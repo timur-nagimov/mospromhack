@@ -1,0 +1,17 @@
+[project]
+name = "guard"
+version = "0.1.0"
+description = "Зазеркалье: видеоаналитика нарушений ТБ на LinQ TPU"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+  "numpy", "opencv-python-headless<4.13", "onnxruntime", "onnx", "fastapi>=0.110", "uvicorn[standard]",
+  "pydantic>=2.6", "pyyaml", "pika", "aio-pika", "scipy", "lap", "imageio-ffmpeg", "python-multipart",
+  "requests", "websocket-client", "pillow",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio", "httpx"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

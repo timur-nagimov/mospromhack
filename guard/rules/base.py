@@ -1,0 +1,76 @@
+"""API правил-плагинов. Новый тип нарушения = новый модуль в guard/rules/plugins/ с @register_rule.
+
+Конвейер не меняется: он вызывает evaluate() у всех включённых правил камеры
+и передаёт нарушения в EventManager, который отвечает за подтверждение и дедупликацию.
+"""
+
+from __future__ import annotations
+
+import importlib
+import pkgutil
+from abc import ABC, abstractmethod
+from typing import Any, ClassVar
+
+from guard.contracts import CameraConfig, FrameContext, RuleConfig, Severity, Violation
+
+
+class RulePlugin(ABC):
+    type: ClassVar[str]  # уникальное имя, на него ссылается RuleConfig.type
+    title: ClassVar[str]  # название для UI и журнала
+    required_models: ClassVar[frozenset[str]] = frozenset({"det"})
+    default_severity: ClassVar[Severity] = Severity.high
+    params_schema: ClassVar[dict[str, Any]] = {}  # JSON Schema параметров — по ней UI строит форму
+
+    def __init__(self, cfg: RuleConfig, camera: CameraConfig) -> None:
+        self.cfg = cfg
+        self.camera = camera
+
+    @abstractmethod
+    def evaluate(self, ctx: FrameContext) -> list[Violation]:
+        """Нарушения на этом кадре. Без памяти о подтверждении: окно и дубли ведёт EventManager."""
+
+    def violation(self, ctx: FrameContext, **kwargs: Any) -> Violation:
+        kwargs.setdefault("severity", self.cfg.severity)
+        return Violation(rule_id=self.cfg.rule_id, type=self.type, **kwargs)
+
+
+_REGISTRY: dict[str, type[RulePlugin]] = {}
+
+
+def register_rule(cls: type[RulePlugin]) -> type[RulePlugin]:
+    if cls.type in _REGISTRY and _REGISTRY[cls.type] is not cls:
+        raise ValueError(f"rule type {cls.type!r} already registered")
+    _REGISTRY[cls.type] = cls
+    return cls
+
+
+def load_plugins() -> None:
+    from guard.rules import plugins
+
+    for mod in pkgutil.iter_modules(plugins.__path__):
+        importlib.import_module(f"{plugins.__name__}.{mod.name}")
+
+
+def get_rule(rule_type: str) -> type[RulePlugin]:
+    if not _REGISTRY:
+        load_plugins()
+    return _REGISTRY[rule_type]
+
+
+def build_rules(camera: CameraConfig) -> list[RulePlugin]:
+    return [get_rule(r.type)(r, camera) for r in camera.rules if r.enabled]
+
+
+def available_rules() -> list[dict[str, Any]]:
+    if not _REGISTRY:
+        load_plugins()
+    return [
+        {
+            "type": cls.type,
+            "title": cls.title,
+            "required_models": sorted(cls.required_models),
+            "default_severity": cls.default_severity.value,
+            "params_schema": cls.params_schema,
+        }
+        for cls in _REGISTRY.values()
+    ]
