@@ -422,7 +422,7 @@ def main(argv: list[str] | None = None) -> int:
             x = preprocess(vimg, a.preproc, hwsz) if vimg else calib[:1]
             if batch > 1:
                 x = np.repeat(x, batch, axis=0)
-            ref = ort_run(opt_path, {in_name: x})
+            ref = ort_run(work_onnx, {in_name: x})  # opt.onnx содержит tpu:swish — ORT его не знает
             got = run_quantized(qm, {in_name: x}, out_names, batch, cwl)
             val = {n: compare(ref[n], got[n]) for n in out_names if n in got}
             if cut and set(got) == set(out_names):
