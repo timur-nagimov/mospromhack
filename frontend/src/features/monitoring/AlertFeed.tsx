@@ -9,6 +9,8 @@ import { getViolationMeta, isCriticalEvent } from '../../domain/violations';
 
 type Filter = 'all' | 'new' | 'critical';
 
+const PIN_WINDOW_S = 12 * 3600;
+
 interface Props {
   feed: GuardEvent[];
   freshIds: ReadonlySet<string>;
@@ -71,14 +73,16 @@ function FeedItem({
 export function AlertFeed({ feed, freshIds, cameras, now, unreviewed, onOpen }: Props) {
   const [filter, setFilter] = useState<Filter>('all');
 
+  // Закрепляем только свежие критические (за 12 ч): старый хвост не должен вытеснять ленту
+  const pinEdge = Math.floor(now / 600) * 600 - PIN_WINDOW_S;
   const { pinned, rest } = useMemo(() => {
-    const pinnedList = feed.filter((e) => e.status === 'new' && isCriticalEvent(e));
+    const pinnedList = feed.filter((e) => e.status === 'new' && isCriticalEvent(e) && e.confirmed_at >= pinEdge);
     const pinnedIds = new Set(pinnedList.map((e) => e.id));
     let others = feed.filter((e) => !pinnedIds.has(e.id));
     if (filter === 'new') others = others.filter((e) => e.status === 'new');
     if (filter === 'critical') others = others.filter((e) => isCriticalEvent(e));
     return { pinned: pinnedList, rest: others.slice(0, 80) };
-  }, [feed, filter]);
+  }, [feed, filter, pinEdge]);
 
   const criticalCount = pinned.length;
 
