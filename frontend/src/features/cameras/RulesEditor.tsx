@@ -78,9 +78,9 @@ function RuleCard({
         </span>
         <div className="rule-card__title">
           <strong>{info?.title ?? meta.title}</strong>
-          <span className="mono muted">
-            {rule.type} · {rule.rule_id}
-            {info?.required_models?.length ? ` · модели: ${info.required_models.join(', ')}` : ''}
+          <span className="mono muted" title={`rule_id: ${rule.rule_id}`}>
+            {rule.type}
+            {info?.required_models?.length ? ` · ${info.required_models.join('+')}` : ''}
           </span>
         </div>
         <select

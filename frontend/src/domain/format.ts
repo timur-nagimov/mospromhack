@@ -119,7 +119,7 @@ export function formatClock(sec: number): string {
 }
 
 export function shortId(id: string): string {
-  return id.length > 10 ? id.slice(0, 8) : id;
+  return id.length > 14 ? id.slice(0, 8) : id;
 }
 
 /** Начало суток (локальное время), epoch-секунды */

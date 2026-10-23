@@ -1,9 +1,10 @@
 import { Cctv } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCameraMap, useCameras, useEvents } from '../../api/queries';
-import { formatMs, formatNumber, formatSeconds } from '../../domain/format';
+import { formatMs, formatSeconds } from '../../domain/format';
 import { isCriticalEvent } from '../../domain/violations';
+import { useElementSize } from '../../hooks/useElementSize';
 import { useNow } from '../../hooks/useNow';
 import { activeEventFor, useLive } from '../../state/live';
 import { useEventModal } from '../event/useEventModal';
@@ -19,11 +20,26 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-function gridColumns(n: number): number {
+const TILE_HEAD_PX = 45;
+const GRID_GAP_PX = 10;
+
+/** Число колонок, при котором кадр 16:9 в плитке получается крупнее всего */
+function gridColumns(n: number, width: number, height: number): number {
   if (n <= 1) return 1;
-  if (n <= 4) return 2;
-  if (n <= 9) return 3;
-  return 4;
+  if (!width || !height) return n <= 4 ? 2 : 3;
+  let best = 1;
+  let bestW = 0;
+  for (let cols = 1; cols <= Math.min(n, 5); cols += 1) {
+    const rows = Math.ceil(n / cols);
+    const cellW = (width - GRID_GAP_PX * (cols - 1)) / cols;
+    const cellH = (height - GRID_GAP_PX * (rows - 1)) / rows - TILE_HEAD_PX;
+    const videoW = Math.min(cellW, (cellH * 16) / 9);
+    if (videoW > bestW + 4) {
+      bestW = videoW;
+      best = cols;
+    }
+  }
+  return best;
 }
 
 export function MonitoringPage() {
@@ -36,6 +52,8 @@ export function MonitoringPage() {
   const metrics = useLive((s) => s.metrics);
   const { openEvent } = useEventModal();
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const gridRef = useRef<HTMLElement>(null);
+  const gridSize = useElementSize(gridRef);
 
   const shift = currentShift(now);
   const { data: shiftEvents } = useEvents({ from: Math.floor(shift.start), limit: 500 });
@@ -53,7 +71,7 @@ export function MonitoringPage() {
   const visibleCameras = focusedId ? cameras.filter((c) => c.camera_id === focusedId) : cameras;
   const online = cameras.filter((c) => c.enabled && (metrics?.cameras?.[c.camera_id]?.fps_processed ?? 0) > 0).length;
   const worstLatency = Math.max(0, ...Object.values(metrics?.cameras ?? {}).map((m) => m.timings_ms?.total?.p95 ?? 0));
-  const cols = gridColumns(visibleCameras.length);
+  const cols = gridColumns(visibleCameras.length, gridSize.width, gridSize.height);
   const rows = Math.max(1, Math.ceil(visibleCameras.length / cols));
 
   return (
@@ -90,7 +108,7 @@ export function MonitoringPage() {
       </div>
 
       <div className="monitoring__body">
-        <section className="cam-grid-wrap" aria-label="Камеры">
+        <section className="cam-grid-wrap" aria-label="Камеры" ref={gridRef}>
           {cameras.length === 0 && !isLoading ? (
             <div className="panel empty">
               <Cctv size={30} />
@@ -122,8 +140,6 @@ export function MonitoringPage() {
         </section>
         <AlertFeed feed={feed} freshIds={freshIds} cameras={cameraMap} now={now} unreviewed={unreviewed} onOpen={openEvent} />
       </div>
-      {metrics == null && <span className="sr-only">Метрики ещё не получены</span>}
-      <span className="sr-only">{formatNumber(online)} камер онлайн</span>
     </div>
   );
 }

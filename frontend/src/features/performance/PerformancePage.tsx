@@ -69,7 +69,13 @@ export function PerformancePage() {
 
   const selected = cameraSel === 'all' ? allTimings : (metrics?.cameras?.[cameraSel]?.timings_ms as Record<string, Percentiles>) ?? {};
 
-  const fpsRows = camEntries.map(([id, m]) => ({ id, name: nameOf(id), input: m.fps_in, processed: m.fps_processed }));
+  const fpsRows = camEntries.map(([id, m]) => ({
+    id,
+    name: nameOf(id),
+    input: m.fps_in,
+    processed: m.fps_processed,
+    target: cameras.find((c) => c.camera_id === id)?.sample_fps ?? 0,
+  }));
 
   const stageRows = (['p50', 'p95'] as const).map((p) => {
     const row: Record<string, number | string> = { name: p };
@@ -116,9 +122,9 @@ export function PerformancePage() {
           <div>
             <span className="stat__label">Активный бэкенд инференса</span>
             <div className="perf-backend__name display">{backendLabel(metrics.backend)}</div>
+            <span className="stat__note perf-backend__device">{String(metrics.inference?.device ?? metrics.inference?.backend ?? metrics.backend)}</span>
             <span className="stat__note">
-              {String(metrics.inference?.device ?? metrics.inference?.backend ?? metrics.backend)} ·{' '}
-              <span className={`live-dot${fresh ? '' : ' live-dot--warn'}`} /> {fresh ? 'метрики обновляются' : 'метрики устарели'}
+              <span className={`live-dot${fresh ? '' : ' live-dot--warn'}`} /> {fresh ? 'метрики обновляются раз в 2 с' : 'метрики устарели'}
             </span>
           </div>
         </div>
@@ -157,26 +163,34 @@ export function PerformancePage() {
           className="reveal"
           style={{ ['--i' as string]: 1 } as React.CSSProperties}
           title="FPS по камерам"
-          sub="Обработано против входного потока (анализ идёт с частотой выборки sample_fps)"
+          sub="Обработано против заданной частоты анализа (sample_fps): успевает ли конвейер"
           table={{
-            columns: ['Камера', 'Вход, к/с', 'Обработано, к/с'],
-            rows: fpsRows.map((r) => [r.name, formatNumber(r.input, 1), formatNumber(r.processed, 1)]),
+            columns: ['Камера', 'Вход, к/с', 'Цель, к/с', 'Обработано, к/с'],
+            rows: fpsRows.map((r) => [r.name, formatNumber(r.input, 1), formatNumber(r.target, 1), formatNumber(r.processed, 1)]),
           }}
         >
           <Legend
             items={[
               { label: 'Обработано', color: 'var(--series-1)' },
-              { label: 'Входной поток', color: INPUT_GRAY },
+              { label: 'Цель (sample_fps)', color: INPUT_GRAY },
             ]}
           />
-          <ResponsiveContainer width="100%" height={Math.max(160, fpsRows.length * 44 + 20)}>
+          <ResponsiveContainer width="100%" height={Math.max(160, fpsRows.length * 44 + 30)}>
             <BarChart data={fpsRows} layout="vertical" margin={{ top: 0, right: 16, bottom: 0, left: 0 }} barGap={2} barCategoryGap={10}>
               <CartesianGrid {...gridProps} horizontal={false} />
               <XAxis type="number" {...axisProps} />
-              <YAxis type="category" dataKey="name" {...axisProps} axisLine={false} width={170} tick={{ fill: '#a9a7a0', fontSize: 12 }} />
+              <YAxis
+                type="category"
+                dataKey="name"
+                {...axisProps}
+                axisLine={false}
+                width={176}
+                tick={{ fill: '#a9a7a0', fontSize: 12 }}
+                tickFormatter={(v: string) => (v.length > 24 ? `${v.slice(0, 23)}…` : v)}
+              />
               <Tooltip content={fpsTooltip} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
               <Bar dataKey="processed" name="Обработано" fill="var(--series-1)" radius={[0, 4, 4, 0]} barSize={12} isAnimationActive={false} />
-              <Bar dataKey="input" name="Входной поток" fill={INPUT_GRAY} radius={[0, 4, 4, 0]} barSize={6} isAnimationActive={false} />
+              <Bar dataKey="target" name="Цель" fill={INPUT_GRAY} radius={[0, 4, 4, 0]} barSize={6} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -189,7 +203,7 @@ export function PerformancePage() {
         >
           <Legend shape="line" items={historyIds.map((id) => ({ label: nameOf(id), color: colorOf(id) }))} />
           <ResponsiveContainer width="100%" height={230}>
-            <LineChart data={historyRows} margin={{ top: 8, right: 8, bottom: 0, left: -20 }}>
+            <LineChart data={historyRows} margin={{ top: 8, right: 22, bottom: 0, left: -20 }}>
               <CartesianGrid {...gridProps} vertical={false} />
               <XAxis dataKey="t" {...axisProps} minTickGap={40} />
               <YAxis {...axisProps} axisLine={false} domain={[0, 'auto']} />

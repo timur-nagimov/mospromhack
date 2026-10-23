@@ -18,7 +18,10 @@
   width: auto;
 }
 .filters .select {
-  width: 190px;
+  width: 158px;
+}
+.filters .segmented button {
+  padding: 0 10px;
 }
 .filters__range {
   display: flex;

@@ -98,7 +98,7 @@ function Clock() {
 function TopBar() {
   const { pathname } = useLocation();
   const sound = useSettings((s) => s.sound);
-  const meta = TITLES[pathname] ?? TITLES['/'];
+  const meta = TITLES[`/${pathname.split('/')[1] ?? ''}`.replace(/\/$/, '') || '/'] ?? TITLES['/'];
   return (
     <header className="topbar">
       <div className="topbar__title">

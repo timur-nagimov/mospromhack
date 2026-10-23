@@ -33,8 +33,11 @@ export default function MockStream({ camera, alert, replayFrom, replayLength = 1
     const resize = () => {
       const rect = canvas.getBoundingClientRect();
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      canvas.width = Math.max(1, Math.round(rect.width * dpr));
-      canvas.height = Math.max(1, Math.round(rect.height * dpr));
+      // Кадр всегда 16:9, вписывается без обрезки (object-fit: contain):
+      // нарушение у края кадра не должно пропадать из вида
+      const w = Math.max(1, Math.round(Math.min(rect.width, (rect.height * 16) / 9) * dpr));
+      canvas.width = w;
+      canvas.height = Math.max(1, Math.round((w * 9) / 16));
     };
     resize();
     const ro = new ResizeObserver(resize);

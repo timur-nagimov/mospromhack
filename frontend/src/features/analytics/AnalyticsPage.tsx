@@ -301,7 +301,7 @@ export function AnalyticsPage() {
           table={{ columns: ['День', 'Событий'], rows: dayRows.map((d) => [`${d.weekday}, ${d.label}`, d.count]) }}
         >
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={dayRows} margin={{ top: 16, right: 4, bottom: 0, left: -18 }} barCategoryGap="22%">
+            <BarChart data={dayRows} margin={{ top: 16, right: 18, bottom: 0, left: -18 }} barCategoryGap="22%">
               <CartesianGrid {...gridProps} vertical={false} />
               <XAxis dataKey="label" {...axisProps} interval="preserveStartEnd" minTickGap={18} />
               <YAxis {...axisProps} axisLine={false} allowDecimals={false} />

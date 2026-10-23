@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useCameras, useDeleteCamera, useSaveCamera } from '../../api/queries';
 import { toast } from '../../components/ui/toast';
-import { formatNumber } from '../../domain/format';
+import { formatNumber, plural } from '../../domain/format';
 import { SOURCE_TYPE_LABELS } from '../../domain/labels';
 import type { CameraConfig, Zone } from '../../domain/types';
 import { isValidHoursRange } from '../../domain/zones';
@@ -213,12 +213,12 @@ export function CamerasPage() {
                     <small>
                       {c.site} · {SOURCE_TYPE_LABELS[c.source.type]}
                     </small>
+                    <small>
+                      {c.zones.length} {plural(c.zones.length, ['зона', 'зоны', 'зон'])} ·{' '}
+                      {c.rules.filter((r) => r.enabled).length} {plural(c.rules.filter((r) => r.enabled).length, ['правило', 'правила', 'правил'])}
+                    </small>
                   </span>
-                  <span className="cam-item__meta">
-                    <span title="Зоны">{c.zones.length} з.</span>
-                    <span title="Правила">{c.rules.filter((r) => r.enabled).length} пр.</span>
-                    <span className="num">{m ? `${formatNumber(m.fps_processed, 1)} к/с` : '—'}</span>
-                  </span>
+                  <span className="cam-item__meta num">{m ? `${formatNumber(m.fps_processed, 1)} к/с` : '—'}</span>
                 </button>
               </li>
             );
