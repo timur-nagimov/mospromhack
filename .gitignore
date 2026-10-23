@@ -22,3 +22,4 @@ frontend/dist/
 /data
 /models
 /vendor
+.orchestra/memwatch.log
