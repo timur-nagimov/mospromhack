@@ -600,7 +600,7 @@ class SimpleEventManager:
 # CX-004: журнал событий (в памяти)
 # ======================================================================
 
-_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details", "latency_ms"}
+_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details"}
 _GROUP_FIELDS = {"type": "type", "camera": "camera_id", "zone": "zone_id", "severity": "severity", "status": "status"}
 
 
@@ -629,14 +629,14 @@ class MemoryJournal:
             ev = self._events.get(event_id)
             return ev.model_copy(deep=True) if ev else None
 
-    def update(self, event_id: str, **fields: Any) -> Event | None:
+    def update(self, event_id: str, **fields: Any) -> Event:
         bad = set(fields) - _UPDATABLE
         if bad:
             raise ValueError(f"fields not updatable: {sorted(bad)}")
         with self._lock:
             ev = self._events.get(event_id)
             if ev is None:
-                return None
+                raise KeyError(event_id)
             data = ev.model_dump()
             data.update(fields)
             new = Event.model_validate(data)

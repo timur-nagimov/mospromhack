@@ -68,8 +68,8 @@ class Settings:
     clip_pre_s: float = 5.0
     clip_post_s: float = 5.0
     clip_fps: float = 10.0
-    clip_max_width: int = 960
-    clip_buffer_mb: int = 768
+    clip_max_width: int = 640
+    clip_buffer_mb: int = 256
     # поток MJPEG
     stream_fps: float = 10.0
     stream_max_width: int = 1280
@@ -111,8 +111,8 @@ class Settings:
             clip_pre_s=_env_float("GUARD_CLIP_PRE_S", 5.0),
             clip_post_s=_env_float("GUARD_CLIP_POST_S", 5.0),
             clip_fps=_env_float("GUARD_CLIP_FPS", 10.0),
-            clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 960),
-            clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 768),
+            clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
+            clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 256),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
             ort_threads=_env_int("GUARD_ORT_THREADS", 4),
         )
