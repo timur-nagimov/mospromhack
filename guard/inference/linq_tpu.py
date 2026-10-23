@@ -269,6 +269,7 @@ class _TpuModel:
     tail: Any = None  # onnxruntime.InferenceSession хвоста или None
     tail_inputs: list[str] = field(default_factory=list)
     manifest: dict[str, Any] = field(default_factory=dict)
+    tail_batch1: bool = False  # у хвоста статический batch=1
 
 
 def _find_manifest(spec: ModelSpec, models_dir: Path | None, local_program: Path | None) -> dict[str, Any]:
@@ -404,6 +405,9 @@ class LinqTpuBackend(InferenceBackend):
             except Exception as e:  # noqa: BLE001
                 raise ValueError(f"{spec.model_id}: нет manifest.json и не удалось прочитать вход из ONNX: {e}") from e
         model = _TpuModel(spec, uri, input_name, batch, tpu_outputs, out_names, tail, tail_inputs, man)
+        if tail is not None:
+            shp = tail.get_inputs()[0].shape
+            model.tail_batch1 = bool(shp) and shp[0] == 1
         with self._lock:
             self._models[spec.model_id] = model
         log.info("linq-tpu: %s -> %s (input %s, tail=%s)", spec.model_id, uri, input_name, bool(tail))
@@ -465,8 +469,13 @@ class LinqTpuBackend(InferenceBackend):
                 merged = {n: np.concatenate([o[n] for o in outs_per_chunk])[: x.shape[0]] for n in names}
                 t_tail0 = time.perf_counter()
                 if m.tail is not None:
-                    res = m.tail.run(m.out_names, {n: merged[n].astype(np.float32) for n in m.tail_inputs})
-                    outputs = [np.asarray(r) for r in res]
+                    feeds = {n: merged[n].astype(np.float32) for n in m.tail_inputs}
+                    if m.tail_batch1 and x.shape[0] > 1:  # хвост со статическим batch=1 — по кадру
+                        parts = [m.tail.run(m.out_names, {n: v[i:i + 1] for n, v in feeds.items()})
+                                 for i in range(x.shape[0])]
+                        outputs = [np.concatenate([p[k] for p in parts]) for k in range(len(m.out_names))]
+                    else:
+                        outputs = [np.asarray(r) for r in m.tail.run(m.out_names, feeds)]
                 else:
                     outputs = [merged[n] for n in (m.out_names if set(m.out_names) <= set(merged) else names)]
                 t_end = time.perf_counter()
