@@ -196,6 +196,14 @@
 .sound-toggle.is-on svg {
   color: var(--ok);
 }
+.sound-toggle.is-blocked {
+  border-color: rgba(233, 178, 43, 0.55);
+  color: var(--text-1);
+}
+.sound-toggle.is-blocked svg {
+  color: var(--warn);
+  animation: blink 1.2s steps(2, start) infinite;
+}
 
 .clock {
   display: grid;

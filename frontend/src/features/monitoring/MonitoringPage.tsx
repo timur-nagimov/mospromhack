@@ -54,6 +54,7 @@ export function MonitoringPage() {
   const { openEvent } = useEventModal();
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const gridRef = useRef<HTMLElement>(null);
+  const liveSlotsRef = useRef<string[]>([]);
   const gridSize = useElementSize(gridRef);
 
   const shift = currentShift(now);
@@ -74,15 +75,31 @@ export function MonitoringPage() {
   const worstLatency = Math.max(0, ...Object.values(metrics?.cameras ?? {}).map((m) => m.timings_ms?.total?.p95 ?? 0));
   // Живой MJPEG — сначала камерам с активным нарушением, потом по порядку (лимит пула соединений)
   const alertsByCamera = new Map(visibleCameras.map((c) => [c.camera_id, activeEventFor(feed, c.camera_id, now)]));
-  const liveIds = new Set(
-    [...visibleCameras]
-      .filter((c) => c.enabled)
-      .sort((a, b) => Number(Boolean(alertsByCamera.get(b.camera_id))) - Number(Boolean(alertsByCamera.get(a.camera_id))))
-      .slice(0, MAX_MJPEG)
-      .map((c) => c.camera_id),
-  );
+  // Слоты «липкие»: камера не теряет MJPEG без причины, иначе поток рвётся и мигает
+  const visibleIds = visibleCameras.filter((c) => c.enabled).map((c) => c.camera_id);
+  const slots = liveSlotsRef.current.filter((id) => visibleIds.includes(id));
+  for (const id of visibleIds) {
+    if (!alertsByCamera.get(id) || slots.includes(id)) continue;
+    if (slots.length < MAX_MJPEG) slots.push(id);
+    else {
+      const victim = slots.findIndex((x) => !alertsByCamera.get(x));
+      if (victim >= 0) slots[victim] = id;
+    }
+  }
+  for (const id of visibleIds) {
+    if (slots.length >= MAX_MJPEG) break;
+    if (!slots.includes(id)) slots.push(id);
+  }
+  liveSlotsRef.current = slots;
+  const liveIds = new Set(slots);
 
-  const layout = gridLayout(visibleCameras.length, gridSize.width, gridSize.height - TIMELINE_MIN_PX - GRID_GAP_PX);
+  // На невысоких экранах (ноутбук, проектор 768 px) хронику убираем — место под видео важнее
+  const showTimeline = gridSize.height === 0 || gridSize.height >= 560;
+  const layout = gridLayout(
+    visibleCameras.length,
+    gridSize.width,
+    gridSize.height - (showTimeline ? TIMELINE_MIN_PX + GRID_GAP_PX : 0),
+  );
 
   // Хроника: события смены из журнала + свежие из WS (у них актуальный статус)
   const timelineEvents = useMemo(() => {
@@ -157,7 +174,7 @@ export function MonitoringPage() {
               ))}
             </div>
           )}
-          {cameras.length > 0 && (
+          {cameras.length > 0 && showTimeline && (
             <ShiftTimeline
               cameras={cameras}
               events={timelineEvents}

@@ -17,11 +17,14 @@ const METRICS_POLL_MS = 5_000;
 export function LiveConnector() {
   const qc = useQueryClient();
   const invalidateTimer = useRef<number | null>(null);
+  const resyncTimer = useRef<number | null>(null);
 
   useEffect(() => unlockAudioOnGesture(), []);
 
   useEffect(() => {
     let cancelled = false;
+    let wasDisconnected = false;
+    let everOpened = false;
 
     const scheduleInvalidate = () => {
       if (invalidateTimer.current != null) return;
@@ -55,12 +58,32 @@ export function LiveConnector() {
       }
     };
 
+    // Сверка счётчика с сервером с небольшой задержкой (схлопывает серию обновлений)
+    const scheduleResync = () => {
+      if (resyncTimer.current != null) return;
+      resyncTimer.current = window.setTimeout(() => {
+        resyncTimer.current = null;
+        void resyncUnreviewed();
+      }, 1000);
+    };
+
     void loadInitial();
 
     const unsubscribe = api().subscribe({
       onStatus: (status) => {
         liveActions.setConnection(status);
-        if (status === 'open') void resyncUnreviewed();
+        if (status === 'closed' && everOpened) wasDisconnected = true;
+        if (status === 'open') {
+          everOpened = true;
+          if (wasDisconnected) {
+            // события, пришедшие во время обрыва, догружаем из журнала
+            wasDisconnected = false;
+            void loadInitial();
+            scheduleInvalidate();
+          } else {
+            void resyncUnreviewed();
+          }
+        }
       },
       onMessage: (msg) => {
         if (msg.kind === 'metrics') {
@@ -68,13 +91,13 @@ export function LiveConnector() {
           return;
         }
         if (msg.kind === 'event') {
-          liveActions.addEvent(msg.event);
-          if (settingsStore.get().sound) {
+          const isNew = liveActions.addEvent(msg.event);
+          if (isNew && settingsStore.get().sound) {
             if (isCriticalEvent(msg.event)) playAlarm();
             else playChime();
           }
-        } else {
-          liveActions.upsertEvent(msg.event);
+        } else if (!liveActions.upsertEvent(msg.event)) {
+          scheduleResync();
         }
         qc.setQueryData(queryKeys.event(msg.event.id), msg.event);
         scheduleInvalidate();
@@ -100,6 +123,9 @@ export function LiveConnector() {
       window.clearInterval(resync);
       window.clearInterval(metricsPoll);
       if (invalidateTimer.current != null) window.clearTimeout(invalidateTimer.current);
+      if (resyncTimer.current != null) window.clearTimeout(resyncTimer.current);
+      invalidateTimer.current = null;
+      resyncTimer.current = null;
     };
   }, [qc]);
 

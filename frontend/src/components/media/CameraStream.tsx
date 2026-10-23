@@ -68,12 +68,15 @@ function MjpegStream({ camera }: { camera: CameraConfig }) {
 function PolledFrame({ camera }: { camera: CameraConfig }) {
   const [src, setSrc] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
+  const cameraRef = useRef(camera);
+  cameraRef.current = camera;
 
+  // Перезапуск цикла только при смене камеры, а не при каждом перезапросе списка
   useEffect(() => {
     let alive = true;
     let timer = 0;
     const load = () => {
-      const url = api().media.frameUrl(camera);
+      const url = api().media.frameUrl(cameraRef.current);
       const img = new Image();
       img.onload = () => {
         if (!alive) return;
@@ -93,7 +96,7 @@ function PolledFrame({ camera }: { camera: CameraConfig }) {
       alive = false;
       window.clearTimeout(timer);
     };
-  }, [camera]);
+  }, [camera.camera_id]);
 
   if (failed && !src) {
     return (

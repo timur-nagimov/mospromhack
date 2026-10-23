@@ -7,6 +7,7 @@ import { createStore, useStore } from './createStore';
 
 const FEED_LIMIT = 200;
 const HISTORY_LIMIT = 90; // 3 минуты при снимке раз в 2 с
+const ALARM_FALLBACK_S = 600; // после разбора тревоги баннер переходит на другую критическую не старше 10 мин
 
 export interface MetricsPoint {
   /** epoch, мс */
@@ -64,7 +65,9 @@ export const liveActions = {
     liveStore.set((s) => ({ ...s, unreviewed: total }));
   },
 
-  addEvent(event: GuardEvent) {
+  /** true — событие новое (не дубль повторной доставки WS) */
+  addEvent(event: GuardEvent): boolean {
+    if (liveStore.get().feed.some((e) => e.id === event.id)) return false;
     liveStore.set((s) => {
       if (s.feed.some((e) => e.id === event.id)) return s;
       const fresh = new Set(s.freshIds);
@@ -77,10 +80,15 @@ export const liveActions = {
         freshIds: fresh,
       };
     });
+    return true;
   },
 
-  /** Обновление события (WS event_update или ответ PATCH) */
-  upsertEvent(event: GuardEvent) {
+  /**
+   * Обновление события (WS event_update или ответ PATCH).
+   * false — события не было в ленте, счётчик неразобранных надо сверить с сервером.
+   */
+  upsertEvent(event: GuardEvent): boolean {
+    const known = liveStore.get().feed.some((e) => e.id === event.id);
     liveStore.set((s) => {
       const prev = s.feed.find((e) => e.id === event.id);
       let unreviewed = s.unreviewed;
@@ -89,9 +97,16 @@ export const liveActions = {
         if (prev.status !== 'new' && event.status === 'new') unreviewed += 1;
       }
       const feed = prev ? s.feed.map((e) => (e.id === event.id ? event : e)) : sortFeed([event, ...s.feed]);
-      const alarm = s.alarm && s.alarm.id === event.id && event.status !== 'new' ? null : s.alarm;
+      let alarm = s.alarm;
+      if (alarm && alarm.id === event.id && event.status !== 'new') {
+        // гасим разобранную тревогу, но не теряем другую свежую критическую
+        const edge = Date.now() / 1000 - ALARM_FALLBACK_S;
+        alarm =
+          feed.find((e) => e.id !== event.id && e.status === 'new' && e.ended_at == null && isCriticalEvent(e) && e.confirmed_at >= edge) ?? null;
+      }
       return { ...s, feed, unreviewed, alarm };
     });
+    return known;
   },
 
   dismissAlarm() {

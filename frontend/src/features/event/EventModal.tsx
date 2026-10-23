@@ -88,9 +88,11 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
   const duration = (event.ended_at ?? now) - event.started_at;
   const details = describeDetails(event.details);
 
-  useEffect(() => setNote(event.operator_note ?? ''), [event.id, event.operator_note]);
+  // Черновик комментария живёт, пока открыта эта карточка (key={event.id} у родителя):
+  // event_update из WS не затирает то, что оператор печатает
 
   const decide = (status: Exclude<EventStatus, 'new'>) => {
+    if (patch.isPending) return;
     patch.mutate(
       { id: event.id, patch: { status, operator_note: note.trim() ? note.trim() : null } },
       {
@@ -118,7 +120,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
         else onClose();
         return;
       }
-      if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (isTypingTarget(e.target) || e.metaKey || e.ctrlKey || e.altKey || e.repeat) return;
       const decision = OPERATOR_DECISIONS.find((d) => d.hotkey === e.key);
       if (decision) {
         e.preventDefault();
@@ -306,6 +308,7 @@ export function EventModalHost() {
       <div className="modal ev-modal" role="dialog" aria-modal="true" aria-labelledby="ev-title">
         {event ? (
           <EventCard
+            key={event.id}
             event={event}
             onClose={closeEvent}
             hasNext={nextUnreviewed != null}

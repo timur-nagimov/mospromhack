@@ -21,7 +21,7 @@ export function ShiftTimeline({ cameras, events, from, now, label, onOpen }: Pro
     d.setMinutes(0, 0, 0);
     let t = d.getTime() / 1000 + 3600;
     const step = span > 8 * 3600 ? 7200 : 3600;
-    while (t < now) {
+    while (t < now - span * 0.06) {
       out.push(t);
       t += step;
     }
