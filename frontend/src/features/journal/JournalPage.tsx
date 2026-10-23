@@ -112,7 +112,7 @@ export function JournalPage() {
         if (pageData.items.length === 0) break;
       }
       const rows = all.filter((e) => !filters.severity || e.severity === filters.severity);
-      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      const stamp = toLocalInputValue(Date.now() / 1000).replace(/[:T]/g, '-');
       downloadText(`zhurnal-sobytiy-${stamp}.csv`, eventsToCsv(rows, cameraMap, window.location.origin));
       toast(`Выгружено ${rows.length} ${plural(rows.length, ['событие', 'события', 'событий'])}`);
     } catch (err) {
@@ -223,20 +223,6 @@ export function JournalPage() {
             ))}
           </select>
         </label>
-        <div className="filters__actions">
-          <button
-            type="button"
-            className="btn btn--ghost"
-            disabled={activeFilters === 0}
-            onClick={() => setParams(new URLSearchParams(), { replace: true })}
-          >
-            <FilterX size={16} /> Сбросить
-          </button>
-          <button type="button" className="btn btn--primary" onClick={exportCsv} disabled={exporting != null || total === 0}>
-            <Download size={16} />
-            {exporting != null ? `Экспорт… ${exporting}` : 'Экспорт CSV'}
-          </button>
-        </div>
       </div>
 
       <section className="panel journal__table reveal" style={{ ['--i' as string]: 1 }}>
@@ -245,6 +231,26 @@ export function JournalPage() {
             Найдено <b className="num">{total}</b> {plural(total, ['событие', 'события', 'событий'])}
           </span>
           {isFetching && <span className="spinner" aria-label="Загрузка" />}
+          <div className="filters__actions">
+            <button
+              type="button"
+              className="btn btn--ghost btn--sm"
+              disabled={activeFilters === 0}
+              onClick={() => setParams(new URLSearchParams(), { replace: true })}
+            >
+              <FilterX size={15} /> Сбросить фильтры
+            </button>
+            <button
+              type="button"
+              className="btn btn--primary btn--sm"
+              onClick={exportCsv}
+              disabled={exporting != null || total === 0}
+              title="Все события по текущим фильтрам, CSV для Excel"
+            >
+              <Download size={15} />
+              {exporting != null ? `Экспорт… ${exporting}` : 'Экспорт CSV'}
+            </button>
+          </div>
         </div>
         {isError ? (
           <div className="panel__body">
@@ -310,7 +316,7 @@ export function JournalPage() {
                           <span className="muted">{e.site}</span>
                         </div>
                       </td>
-                      <td className="dim">{zoneName(cameraMap, e.camera_id, e.zone_id) ?? '—'}</td>
+                      <td className="dim">{zoneName(cameraMap, e.camera_id, e.zone_id) ?? <span className="muted">весь кадр</span>}</td>
                       <td>
                         <StatusBadge status={e.status} />
                       </td>

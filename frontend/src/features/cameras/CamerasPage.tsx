@@ -1,9 +1,9 @@
 import { Cctv, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useCameras, useDeleteCamera, useSaveCamera } from '../../api/queries';
 import { toast } from '../../components/ui/toast';
-import { formatNumber } from '../../domain/format';
+import { formatNumber, plural } from '../../domain/format';
 import { SOURCE_TYPE_LABELS } from '../../domain/labels';
 import type { CameraConfig, Zone } from '../../domain/types';
 import { isValidHoursRange } from '../../domain/zones';
@@ -51,12 +51,20 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
   const navigate = useNavigate();
   const save = useSaveCamera();
   const remove = useDeleteCamera();
+  // baseline — последняя загруженная или сохранённая версия; с ней сравниваем черновик
+  const [baseline, setBaseline] = useState<CameraConfig>(original);
   const [draft, setDraft] = useState<CameraConfig>(() => structuredClone(original));
   const [tab, setTab] = useState<Tab>(isNew ? 'source' : 'zones');
-  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(original), [draft, original]);
+  const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
   const error = validate(draft, isNew);
 
+  // Перезапрос списка камер (рантайм-поле status меняется постоянно) не должен
+  // затирать несохранённые правки: синхронизируемся, только если черновик чистый
+  const dirtyRef = useRef(dirty);
+  dirtyRef.current = dirty;
   useEffect(() => {
+    if (dirtyRef.current) return;
+    setBaseline(original);
     setDraft(structuredClone(original));
   }, [original]);
 
@@ -95,6 +103,7 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
       { camera: draft, isNew },
       {
         onSuccess: () => {
+          setBaseline(draft);
           toast(isNew ? 'Камера добавлена' : 'Конфигурация сохранена — применится без перезапуска');
           if (isNew) navigate(`/cameras/${encodeURIComponent(draft.camera_id)}`, { replace: true });
         },
@@ -129,7 +138,7 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
               <Trash2 size={14} /> Удалить
             </button>
           )}
-          <button type="button" className="btn btn--sm" onClick={() => setDraft(structuredClone(original))} disabled={!dirty}>
+          <button type="button" className="btn btn--sm" onClick={() => setDraft(structuredClone(baseline))} disabled={!dirty}>
             <RotateCcw size={14} /> Отменить
           </button>
           <button
@@ -213,12 +222,12 @@ export function CamerasPage() {
                     <small>
                       {c.site} · {SOURCE_TYPE_LABELS[c.source.type]}
                     </small>
+                    <small>
+                      {c.zones.length} {plural(c.zones.length, ['зона', 'зоны', 'зон'])} ·{' '}
+                      {c.rules.filter((r) => r.enabled).length} {plural(c.rules.filter((r) => r.enabled).length, ['правило', 'правила', 'правил'])}
+                    </small>
                   </span>
-                  <span className="cam-item__meta">
-                    <span title="Зоны">{c.zones.length} з.</span>
-                    <span title="Правила">{c.rules.filter((r) => r.enabled).length} пр.</span>
-                    <span className="num">{m ? `${formatNumber(m.fps_processed, 1)} к/с` : '—'}</span>
-                  </span>
+                  <span className="cam-item__meta num">{m ? `${formatNumber(m.fps_processed, 1)} к/с` : '—'}</span>
                 </button>
               </li>
             );

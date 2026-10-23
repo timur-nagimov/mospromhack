@@ -14,8 +14,15 @@ let instance: GuardApi | null = null;
 export function resolveMockMode(): boolean {
   const params = new URLSearchParams(window.location.search);
   const flag = params.get('mock');
-  if (flag === '1') localStorage.setItem('guard.mock', '1');
-  if (flag === '0') localStorage.removeItem('guard.mock');
+  if (flag === '1') {
+    localStorage.setItem('guard.mock', '1');
+    return true;
+  }
+  if (flag === '0') {
+    // явный параметр в адресе сильнее режима сборки
+    localStorage.removeItem('guard.mock');
+    return false;
+  }
   if (import.meta.env.VITE_MOCK === '1') return true;
   return localStorage.getItem('guard.mock') === '1';
 }

@@ -16,10 +16,13 @@ const VEHICLE_NAMES: Record<string, string> = {
   bus: 'автобус',
 };
 
+/** Служебные ключи: уже показаны в карточке или нужны только конвейеру */
+const HIDDEN = new Set(['keypoints', 'zone_name', 'zone_kind', 'camera_name', 'foot_xy', 'confirm_window_s', 'bbox']);
+
 export function describeDetails(details: Record<string, unknown>): { label: string; value: string }[] {
   const out: { label: string; value: string }[] = [];
   for (const [key, raw] of Object.entries(details ?? {})) {
-    if (raw == null || key === 'keypoints') continue;
+    if (raw == null || HIDDEN.has(key)) continue;
     switch (key) {
       case 'missing':
         out.push({

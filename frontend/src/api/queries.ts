@@ -76,6 +76,11 @@ export function usePatchEvent() {
       qc.setQueryData(queryKeys.event(event.id), event);
       liveActions.upsertEvent(event);
       void qc.invalidateQueries({ queryKey: queryKeys.eventsAll });
+      // событие могло быть не в ленте (открыто из журнала) — сверяем счётчик с сервером
+      api()
+        .listEvents({ status: 'new', limit: 1 })
+        .then((page) => liveActions.setUnreviewed(page.total))
+        .catch(() => undefined);
     },
   });
 }

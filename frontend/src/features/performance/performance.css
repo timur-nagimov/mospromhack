@@ -36,9 +36,13 @@
   line-height: 1.15;
 }
 .perf-backend .stat__note {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 6px;
+  line-height: 1.5;
+}
+.perf-backend__device {
+  color: var(--text-2) !important;
 }
 .stat__value small {
   font-size: 18px;

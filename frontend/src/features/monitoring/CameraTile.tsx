@@ -12,11 +12,13 @@ interface Props {
   alert: GuardEvent | null;
   now: number;
   focused: boolean;
+  /** живой MJPEG или опрос кадров (см. MAX_MJPEG) */
+  live: boolean;
   onToggleFocus: () => void;
   onOpenEvent: (id: string) => void;
 }
 
-function CameraTileImpl({ camera, metrics, alert, now, focused, onToggleFocus, onOpenEvent }: Props) {
+function CameraTileImpl({ camera, metrics, alert, now, focused, live, onToggleFocus, onOpenEvent }: Props) {
   const fps = metrics?.fps_processed;
   const latency = metrics?.timings_ms?.total?.p95;
   const online = camera.enabled && fps != null && fps > 0;
@@ -52,7 +54,7 @@ function CameraTileImpl({ camera, metrics, alert, now, focused, onToggleFocus, o
         </div>
       </header>
       <div className="tile__video">
-        <CameraStream camera={camera} alert={alert} />
+        <CameraStream camera={camera} alert={alert} live={live} />
         {alert && (
           <button type="button" className="tile__alert" onClick={() => onOpenEvent(alert.id)}>
             <span className="tile__alert-stripe hazard--red" aria-hidden="true" />
