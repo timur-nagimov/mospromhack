@@ -1,0 +1,139 @@
+@import '../analytics/analytics.css';
+
+.perf {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.perf-kpis {
+  display: grid;
+  grid-template-columns: 1.5fr repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+.perf-backend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 13px 16px;
+  border-radius: var(--r-l);
+  border: 1px solid rgba(232, 112, 58, 0.4);
+  background: linear-gradient(135deg, rgba(232, 112, 58, 0.14), transparent 65%), var(--bg-2);
+}
+.perf-backend__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: rgba(232, 112, 58, 0.15);
+  color: #f09060;
+  border: 1px solid rgba(232, 112, 58, 0.4);
+  flex: none;
+}
+.perf-backend__name {
+  font-size: 26px;
+  line-height: 1.15;
+}
+.perf-backend .stat__note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.stat__value small {
+  font-size: 18px;
+  color: var(--text-3);
+  font-weight: 500;
+}
+.stat--bad {
+  border-color: rgba(229, 72, 77, 0.5);
+}
+.meter--blue {
+  background: rgba(57, 135, 229, 0.2);
+}
+.meter--blue span {
+  background: var(--series-1);
+}
+
+.perf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.perf-wide {
+  grid-column: 1 / -1;
+}
+
+.stage-legend {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.stage-legend__group {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-1);
+}
+.stage-legend__phase {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.stage-legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.stage-legend li {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.stage-legend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex: none;
+}
+.stage-legend b {
+  margin-left: auto;
+  color: var(--text-1);
+  font-weight: 600;
+}
+
+.perf-cam {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.perf-cam i {
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+}
+.perf-cam .mono {
+  font-size: 11.5px;
+}
+.perf-bad {
+  color: #ff8b8e;
+  font-weight: 600;
+}
+
+@media (max-width: 1280px) {
+  .perf-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .perf-grid {
+    grid-template-columns: 1fr;
+  }
+}
