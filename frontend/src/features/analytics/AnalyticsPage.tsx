@@ -190,7 +190,7 @@ export function AnalyticsPage() {
         <div className="stat">
           <span className="stat__label">Критических</span>
           <span className="stat__value">{critical}</span>
-          <span className="stat__note">падение, сближение с техникой</span>
+          <span className="stat__note">падения, сближения с техникой и правила с критической важностью</span>
         </div>
         <div className="stat stat--wide">
           <span className="stat__label">Точность системы по решениям оператора</span>
