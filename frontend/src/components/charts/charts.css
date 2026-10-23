@@ -1,0 +1,220 @@
+.chart-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.chart-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px 6px;
+}
+.chart-card__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.chart-card__body {
+  padding: 8px 16px 16px;
+  min-width: 0;
+  flex: 1;
+}
+.chart-card__table {
+  max-height: 340px;
+}
+
+.legend {
+  list-style: none;
+  margin: 0 0 6px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend__key {
+  display: inline-block;
+  flex: none;
+}
+.legend__key--rect {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.legend__key--line {
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+}
+
+/* recharts: убрать фокус-рамку svg и привести шрифты */
+.recharts-wrapper,
+.recharts-surface {
+  outline: none;
+}
+.recharts-text {
+  font-family: var(--font-ui);
+}
+.recharts-cartesian-axis-tick-value {
+  font-variant-numeric: tabular-nums;
+}
+.recharts-tooltip-cursor {
+  fill: rgba(255, 255, 255, 0.04);
+}
+
+/* горизонтальные div-полосы (участки/камеры, статусы) */
+.hbars {
+  display: grid;
+  gap: 2px;
+}
+.hbar {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) minmax(0, 1fr) 52px;
+  align-items: center;
+  gap: 10px;
+  min-height: 26px;
+  font-size: 12.5px;
+  border-radius: 6px;
+  padding: 0 4px;
+}
+.hbar:hover {
+  background: var(--bg-3);
+}
+.hbar__label {
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.hbar__track {
+  position: relative;
+  height: 12px;
+}
+.hbar__fill {
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--series-1);
+  min-width: 2px;
+  transition: width 0.5s var(--ease-out);
+}
+.hbar__value {
+  text-align: right;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hbar--group {
+  margin-top: 8px;
+}
+.hbar--group:first-child {
+  margin-top: 0;
+}
+.hbar--group .hbar__label {
+  color: var(--text-1);
+  font-weight: 600;
+}
+.hbar--group .hbar__track {
+  height: 16px;
+}
+.hbar--child .hbar__label {
+  padding-left: 14px;
+  position: relative;
+}
+.hbar--child .hbar__label::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 50%;
+  width: 6px;
+  height: 1px;
+  background: var(--line-3);
+}
+.hbar--child .hbar__fill {
+  background: color-mix(in srgb, var(--series-1) 55%, var(--bg-2));
+}
+.hbar--child .hbar__value {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+.stack100 {
+  display: flex;
+  gap: 2px;
+  height: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.stack100 span {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+/* тепловая карта */
+.heatmap {
+  display: grid;
+  grid-template-columns: 34px repeat(24, minmax(0, 1fr));
+  gap: 3px;
+  font-size: 11px;
+}
+.heatmap__corner {
+  grid-column: 1;
+}
+.heatmap__hour {
+  text-align: center;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  padding-bottom: 2px;
+}
+.heatmap__day {
+  display: flex;
+  align-items: center;
+  color: var(--text-2);
+  font-weight: 500;
+}
+.heatmap__cell {
+  aspect-ratio: 1.25;
+  min-height: 18px;
+  border-radius: 4px;
+  border: 0;
+  padding: 0;
+  background: var(--bg-3);
+  cursor: default;
+  transition: transform 0.1s;
+}
+.heatmap__cell:hover,
+.heatmap__cell:focus-visible {
+  outline: 2px solid var(--text-1);
+  outline-offset: 1px;
+  position: relative;
+  z-index: 1;
+}
+.heatmap__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-3);
+  min-height: 20px;
+}
+.heatmap__readout b {
+  color: var(--text-1);
+}
+.scale {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.scale__bar {
+  width: 140px;
+  height: 8px;
+  border-radius: 4px;
+}
