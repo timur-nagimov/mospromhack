@@ -214,6 +214,8 @@ def frames(data: Path, videos: list[dict]) -> None:
         step = v.get("frame_step_s", 2.0)
         times = [round(t * step + 0.5, 1) for t in range(int((dur - 0.6) // step) + 1)]
         folder = data / "images" / v["scenario"].lower()
+        for old in folder.glob(f"{Path(v['name']).stem}_t*.jpg"):  # повторный запуск не копит кадры
+            old.unlink()
         n = grab(path, times, folder, Path(v["name"]).stem)
         log(f"  images/{folder.name}/: +{n} кадров из {v['name']}")
 
@@ -224,11 +226,14 @@ def checks(data: Path, videos: list[dict]) -> None:
         if not path.exists():
             continue
         dur = probe(path)["duration"]
-        times = {round(dur * k / 5 + 0.5, 1) for k in range(5)}
-        for e in v.get("events", [])[:3]:  # плюс середина первых событий
-            times.add(round((e["t_start"] + e["t_end"]) / 2, 1))
-        times = sorted(t for t in times if t < dur - 0.2)[:6]
-        n = grab(path, times, data / "media" / "data_checks", Path(v["name"]).stem, 80)
+        events = [e for e in v.get("events", []) if not e.get("uncertain")][:2]
+        times = {round(dur * (k + 0.5) / (6 - len(events)), 1) for k in range(6 - len(events))}
+        times |= {round((e["t_start"] + e["t_end"]) / 2, 1) for e in events}  # середины достоверных событий
+        times = sorted(t for t in times if t < dur - 0.2)
+        folder = data / "media" / "data_checks"
+        for old in folder.glob(f"{Path(v['name']).stem}_t*.jpg"):
+            old.unlink()
+        n = grab(path, times, folder, Path(v["name"]).stem, 80)
         log(f"  data_checks: {n} кадров из {v['name']}")
 
 
