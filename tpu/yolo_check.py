@@ -103,6 +103,7 @@ def main() -> int:
     ap.add_argument("--windows", default="1,4,8")
     ap.add_argument("--host", default=os.environ.get("LINQ_RABBIT_HOST", "10.0.114.30"))
     ap.add_argument("--out", default="yolo_tpu.json")
+    ap.add_argument("--raw", action="store_true", help="raw=True: упаковка на клиенте (RawCodec)")
     a = ap.parse_args()
 
     import onnxruntime as ort
@@ -114,7 +115,7 @@ def main() -> int:
     login = os.environ.get("LINQ_LOGIN", "hackathon10864")
     uri = a.program or f"file:///auto/cache/{login}/{Path(man['program']).name}"
     spec = ModelSpec(model_id=a.model, onnx_path=a.onnx, tpu_program=uri, input_size=hw)
-    be = LinqTpuBackend(host=a.host, port=5672, models_dir=models_dir, timeout_s=60)
+    be = LinqTpuBackend(host=a.host, port=5672, models_dir=models_dir, timeout_s=60, raw=a.raw)
     be.load(spec)
     so = ort.SessionOptions()
     so.intra_op_num_threads = 2
@@ -182,7 +183,8 @@ def main() -> int:
            "ts": time.strftime("%Y-%m-%d %H:%M:%S")}
     out = Path(a.out)
     data = json.loads(out.read_text()) if out.exists() else {}
-    data[a.model] = res
+    res["raw"] = a.raw
+    data[a.model + ("_raw" if a.raw else "")] = res
     out.write_text(json.dumps(data, indent=1, ensure_ascii=False))
     be.close()
     return 0
