@@ -1,0 +1,38 @@
+{
+  "name": "guard-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Зазеркалье — веб-интерфейс видеоаналитики нарушений ТБ (LinQ)",
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "dev": "vite",
+    "dev:mock": "vite --mode mock",
+    "build": "tsc --noEmit -p tsconfig.json && vite build",
+    "build:mock": "tsc --noEmit -p tsconfig.json && vite build --mode mock --outDir dist-mock",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "screenshots": "node scripts/screenshots.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/onest": "5.3.1",
+    "@fontsource-variable/tektur": "5.3.0",
+    "@tanstack/react-query": "5.62.7",
+    "lucide-react": "0.468.0",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.28.0",
+    "recharts": "2.15.0"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "playwright": "1.64.1",
+    "typescript": "5.6.3",
+    "vite": "5.4.11"
+  }
+}

@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <defs>
+    <pattern id="h" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="3" height="6" fill="#f5c400"/>
+      <rect x="3" width="3" height="6" fill="#111"/>
+    </pattern>
+  </defs>
+  <rect width="32" height="32" rx="6" fill="#111"/>
+  <rect x="2" y="2" width="28" height="28" rx="4" fill="url(#h)"/>
+  <rect x="5" y="5" width="22" height="22" rx="3" fill="#0d0e10"/>
+  <text x="11" y="22" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#f5c400" text-anchor="middle">З</text>
+  <text x="21" y="22" font-family="Arial, sans-serif" font-weight="700" font-size="15" fill="#f5c400" text-anchor="middle" transform="translate(42 0) scale(-1 1)">З</text>
+  <rect x="15.5" y="8" width="1" height="16" fill="#f5c400"/>
+</svg>
