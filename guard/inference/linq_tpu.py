@@ -64,6 +64,15 @@ def _dotenv() -> dict[str, str]:
     return env
 
 
+def _default_host() -> str:
+    """Брокер по умолчанию: на стенде (single-user контейнер Jupyter) — 10.0.114.30 напрямую,
+    иначе — локальный проброс VPN-контейнера 127.0.0.1:5672 (infra/vpn). RABBIT_HOST из .env ноутбука
+    напрямую недоступен (системный VPN не поднимаем)."""
+    if os.environ.get("JUPYTERHUB_USER") or Path("/auto/cache").is_dir():
+        return "10.0.114.30"
+    return "127.0.0.1"
+
+
 def _cfg(*names: str, default: str | None = None) -> str | None:
     dot = None
     for n in names:
@@ -370,9 +379,10 @@ class LinqTpuBackend(InferenceBackend):
         timeout_s: float | None = None,
         retries: int = 2,
         raw: bool | None = None,
+        window: int | None = None,
     ) -> None:
-        self.host = host or _cfg("LINQ_RABBIT_HOST", "RABBIT_HOST", default="127.0.0.1")
-        self.port = int(port or _cfg("LINQ_RABBIT_PORT", "RABBIT_PORT", default="5672"))
+        self.host = host or os.environ.get("LINQ_RABBIT_HOST") or _default_host()
+        self.port = int(port or _cfg("LINQ_RABBIT_PORT", default="5672"))
         self.user = user or _cfg("LINQ_RABBIT_USER", default="guest")
         self.password = password or _cfg("LINQ_RABBIT_PASSWORD", default="guest")
         login = _cfg("LINQ_LOGIN", "JUPYTER_LOGIN", default="hackathon10864")
@@ -383,6 +393,9 @@ class LinqTpuBackend(InferenceBackend):
         # raw=True: клиент сам пакует вход в int8-слова TPU и распаковывает выходы (RawCodec) — трафик в ~3-4 раза
         # меньше (yolov8n 640: запрос 1.64 МБ вместо 4.9, ответ 0.71 вместо 2.8). Проверено на стенде 24.10.
         self.raw = bool(int(_cfg("LINQ_RAW", default="0"))) if raw is None else bool(raw)
+        # окно задач в полёте для submit(): столько потоков, у каждого своё соединение и очередь ответов
+        self.window = int(window or _cfg("LINQ_WINDOW", default="4"))
+        self._pool: Any = None
         self._models: dict[str, _TpuModel] = {}
         self._lock = threading.Lock()
         self._local = threading.local()
@@ -593,6 +606,17 @@ class LinqTpuBackend(InferenceBackend):
     def infer(self, model_id: str, batch: np.ndarray) -> list[np.ndarray]:
         return self.infer_timed(model_id, batch)[0]
 
+    def submit(self, model_id: str, batch: np.ndarray) -> Any:
+        """Асинхронно: concurrent.futures.Future[(outputs, timings)]. До `window` задач в полёте —
+        конвейер для потока камеры без батчинга (на стенде окно 4-8 даёт x1.6-2 к/с)."""
+        if self._pool is None:
+            import concurrent.futures as cf
+
+            with self._lock:
+                if self._pool is None:
+                    self._pool = cf.ThreadPoolExecutor(self.window, thread_name_prefix="linq-tpu")
+        return self._pool.submit(self.infer_timed, model_id, batch)
+
     def stats(self) -> dict[str, Any]:
         return {
             "backend": self.name,
@@ -602,6 +626,9 @@ class LinqTpuBackend(InferenceBackend):
         }
 
     def close(self) -> None:
+        if self._pool is not None:
+            self._pool.shutdown(wait=True)
+            self._pool = None
         with self._lock:
             for c in self._clients:
                 c.close()

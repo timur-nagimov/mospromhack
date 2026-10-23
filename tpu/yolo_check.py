@@ -43,17 +43,20 @@ def iou(a: np.ndarray, b: np.ndarray) -> np.ndarray:
     return inter / (aa[:, None] + bb[None, :] - inter + 1e-9)
 
 
-def decode(out0: np.ndarray, conf: float, iou_thr: float = 0.5) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    p = out0[0].T  # [N, 4+C]
-    scores = p[:, 4:]
+NC = 80  # число классов; для pose = 1, остальное — keypoints (17x3)
+
+
+def decode(out0: np.ndarray, conf: float, iou_thr: float = 0.5):
+    p = out0[0].T  # [N, 4+C(+K*3)]
+    scores = p[:, 4:4 + NC]
     cls = scores.argmax(1)
     sc = scores[np.arange(len(cls)), cls]
     keep = sc >= conf
-    xywh, cls, sc = p[keep, :4], cls[keep], sc[keep]
+    xywh, cls, sc, extra = p[keep, :4], cls[keep], sc[keep], p[keep, 4 + NC:]
     boxes = np.stack([xywh[:, 0] - xywh[:, 2] / 2, xywh[:, 1] - xywh[:, 3] / 2,
                       xywh[:, 0] + xywh[:, 2] / 2, xywh[:, 1] + xywh[:, 3] / 2], 1)
     order = np.argsort(-sc)
-    boxes, cls, sc = boxes[order], cls[order], sc[order]
+    boxes, cls, sc, extra = boxes[order], cls[order], sc[order], extra[order]
     sel = []
     for c in np.unique(cls):
         idx = np.where(cls == c)[0]
@@ -65,14 +68,14 @@ def decode(out0: np.ndarray, conf: float, iou_thr: float = 0.5) -> tuple[np.ndar
             ov = iou(boxes[i:i + 1], boxes[idx[1:]])[0]
             idx = idx[1:][ov < iou_thr]
     sel = sorted(sel, key=lambda i: -sc[i])
-    return boxes[sel], cls[sel], sc[sel]
+    return boxes[sel], cls[sel], sc[sel], extra[sel]
 
 
 def match(ref, got, thr: float = 0.5) -> dict:
-    rb, rc, rs = ref
-    gb, gc, gs = got
+    rb, rc, rs, rk = ref
+    gb, gc, gs, gk = got
     used = set()
-    ious, dconf = [], []
+    ious, dconf, dkpt = [], [], []
     for i in range(len(rb)):
         if len(gb) == 0:
             break
@@ -83,7 +86,12 @@ def match(ref, got, thr: float = 0.5) -> dict:
             used.add(j)
             ious.append(float(ov[j]))
             dconf.append(float(gs[j]) - float(rs[i]))  # знаковый: TPU - CPU
-    return {"ref": len(rb), "got": len(gb), "matched": len(ious), "ious": ious, "dconf": dconf}
+            if rk.shape[1] >= 51:  # pose: ошибка xy видимых keypoint'ов, пиксели входа
+                r3, g3 = rk[i, :51].reshape(17, 3), gk[j, :51].reshape(17, 3)
+                vis = r3[:, 2] > 0.5
+                if vis.any():
+                    dkpt.append(float(np.linalg.norm(r3[vis, :2] - g3[vis, :2], axis=1).mean()))
+    return {"ref": len(rb), "got": len(gb), "matched": len(ious), "ious": ious, "dconf": dconf, "dkpt": dkpt}
 
 
 def pct(xs, q):
@@ -103,8 +111,11 @@ def main() -> int:
     ap.add_argument("--windows", default="1,4,8")
     ap.add_argument("--host", default=os.environ.get("LINQ_RABBIT_HOST", "10.0.114.30"))
     ap.add_argument("--out", default="yolo_tpu.json")
+    ap.add_argument("--nc", type=int, default=80, help="число классов (pose: 1)")
     ap.add_argument("--raw", action="store_true", help="raw=True: упаковка на клиенте (RawCodec)")
     a = ap.parse_args()
+    global NC
+    NC = a.nc
 
     import onnxruntime as ort
 
@@ -124,7 +135,7 @@ def main() -> int:
 
     files = sorted(glob.glob(os.path.join(a.images, "*.jpg")))
     files = files[:: max(1, len(files) // a.n_images)][: a.n_images]
-    agg = {"ref": 0, "got": 0, "matched": 0, "ious": [], "dconf": []}
+    agg = {"ref": 0, "got": 0, "matched": 0, "ious": [], "dconf": [], "dkpt": []}
     raw_cos = []
     cpu_ms = []
     per_image = []
@@ -135,7 +146,7 @@ def main() -> int:
         cpu_ms.append((time.perf_counter() - t0) * 1000)
         tpu_out = be.infer(a.model, x)[0]
         # косинус по вероятностям классов (строки 4:) и по рамкам (0:4)
-        for sl in (slice(0, 4), slice(4, None)):
+        for sl in (slice(0, 4), slice(4, 4 + NC)):
             r, g = ref_out[0, sl].ravel().astype(np.float64), tpu_out[0, sl].ravel().astype(np.float64)
             raw_cos.append(float(r @ g / (np.linalg.norm(r) * np.linalg.norm(g) + 1e-12)))
         m = match(decode(ref_out, a.conf), decode(tpu_out, a.conf))
@@ -147,6 +158,7 @@ def main() -> int:
             agg[k] += m[k]
         agg["ious"] += m["ious"]
         agg["dconf"] += m["dconf"]
+        agg["dkpt"] += m["dkpt"]
     acc = {
         "images": len(files), "conf": a.conf, "cpu_dets": agg["ref"], "tpu_dets": agg["got"], "matched": agg["matched"],
         "recall_vs_cpu": round(agg["matched"] / max(1, agg["ref"]), 3),
@@ -158,6 +170,8 @@ def main() -> int:
         "recall_vs_cpu_lowered": round(agg.get("matched_lo", 0) / max(1, agg["ref"]), 3),
         "precision_vs_cpu_lowered": round(agg.get("matched_lo", 0) / max(1, agg.get("got_lo", 0)), 3),
         "cos_boxes_mean": round(float(np.mean(raw_cos[0::2])), 4), "cos_scores_mean": round(float(np.mean(raw_cos[1::2])), 4),
+        "kpt_err_px_mean": round(float(np.mean(agg["dkpt"])), 2) if agg["dkpt"] else None,
+        "kpt_err_px_p95": pct(agg["dkpt"], 95),
         "per_image": per_image,
     }
     print("accuracy:", json.dumps({k: v for k, v in acc.items() if k != "per_image"}), flush=True)

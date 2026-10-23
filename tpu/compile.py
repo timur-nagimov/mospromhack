@@ -43,7 +43,15 @@ SDK_VERSION = "2026.9.45"
 # Иначе выход output0 [1,84,8400] смешивает координаты 0..640 и вероятности 0..1 в одном int8-тензоре.
 CUT_PRESETS: dict[str, list[str]] = {
     "yolov8": ["/model.22/dfl/conv/Conv_output_0", "/model.22/Sigmoid_output_0"],
-    "yolov8-pose": [  # дословно из pdf стр. 36, сноска 6
+    # pose для экспорта ultralytics (models/yolov8n-pose-*.onnx от A2): рамки (DFL), score (Sigmoid),
+    # сырые xy keypoint'ов (Slice_2, до *2+anchor) и видимость (Sigmoid_1) — разные диапазоны в разных тензорах
+    "yolov8-pose": [
+        "/model.22/dfl/conv/Conv_output_0",
+        "/model.22/Sigmoid_output_0",
+        "/model.22/Slice_2_output_0",
+        "/model.22/Sigmoid_1_output_0",
+    ],
+    "yolov8-pose-vendor": [  # дословно из pdf стр. 36, сноска 6 (другой экспорт, в наших ONNX части узлов нет)
         "/model.22/Mul_6_output_0",
         "/model.22/Concat_6_output_0",
         "/model.22/Concat_5_output_0",
