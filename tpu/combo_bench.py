@@ -32,6 +32,7 @@ def main() -> int:
     ap.add_argument("--frames", type=int, default=64)
     ap.add_argument("--windows", default="1,2,4")
     ap.add_argument("--raw", action="store_true")
+    ap.add_argument("--batches", default="", help="режим батчей: B кадров на вызов, модели параллельно (напр. 4,8)")
     ap.add_argument("--out", default=os.path.expanduser("~/work/metrics/combo.json"))
     a = ap.parse_args()
     md = Path(os.environ.get("GUARD_MODELS_DIR", Path.home() / "work/models"))
@@ -66,6 +67,21 @@ def main() -> int:
                              "frame_latency_ms": {"p50": round(float(np.percentile(lat, 50)), 1),
                                                   "p95": round(float(np.percentile(lat, 95)), 1)}}
         print(f"window {w}: {res['windows'][w]}", flush=True)
+    for b in [int(s) for s in a.batches.split(",") if s]:
+        rounds = max(3, a.frames // b)
+        lat = []
+        t0 = time.perf_counter()
+        for _ in range(rounds):
+            ts = time.perf_counter()
+            futs = [be.submit(n, np.repeat(xs[n], b, axis=0)) for n in names]
+            for f in futs:
+                f.result()
+            lat.append((time.perf_counter() - ts) * 1000)
+        dt = time.perf_counter() - t0
+        res.setdefault("batches", {})[b] = {"frames": rounds * b, "frames_per_s": round(rounds * b / dt, 2),
+                                            "batch_latency_ms": {"p50": round(float(np.percentile(lat, 50)), 1),
+                                                                 "p95": round(float(np.percentile(lat, 95)), 1)}}
+        print(f"batch {b}: {res['batches'][b]}", flush=True)
     res["stats"] = {k: {"fps": v["fps"], "errors": v["errors"]} for k, v in be.stats()["models"].items()}
     be.close()
     out = Path(a.out)
