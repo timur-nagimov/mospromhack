@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight, Download, FilterX, MessageSquare, SearchX } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api';
 import { useCameraMap, useCameras, useEvents, useRuleTypes, zoneName } from '../../api/queries';
@@ -38,9 +38,15 @@ export function JournalPage() {
     status: (params.get('status') ?? '') as EventStatus | '',
     severity: (params.get('severity') ?? '') as Severity | '',
   };
-  const customFrom = params.get('from') ? Number(params.get('from')) : undefined;
-  const customTo = params.get('to') ? Number(params.get('to')) : undefined;
-  const page = Math.max(0, Number(params.get('page') ?? 0));
+  // Параметры адреса могут быть отредактированы руками — читаем безопасно
+  const numParam = (key: string): number | undefined => {
+    const raw = params.get(key);
+    const n = raw == null || raw === '' ? NaN : Number(raw);
+    return Number.isFinite(n) ? n : undefined;
+  };
+  const customFrom = numParam('from');
+  const customTo = numParam('to');
+  const pageParam = Math.max(0, Math.floor(numParam('page') ?? 0));
   const pageSize = PAGE_SIZES.includes(Number(params.get('size'))) ? Number(params.get('size')) : 25;
 
   const minute = Math.floor(now / 60);
@@ -58,8 +64,15 @@ export function JournalPage() {
     from: range.from,
     to: range.to,
   };
+  // Страница за пределами выдачи (например, после смены фильтра) прижимается к последней
+  const [knownTotal, setKnownTotal] = useState<number | null>(null);
+  const lastPage = knownTotal != null ? Math.max(0, Math.ceil(knownTotal / pageSize) - 1) : Infinity;
+  const page = Math.min(pageParam, lastPage);
   const query: EventQuery = { ...baseQuery, limit: pageSize, offset: page * pageSize };
   const { data, isLoading, isFetching, isError, error } = useEvents(query);
+  useEffect(() => {
+    if (data) setKnownTotal(data.total);
+  }, [data]);
 
   // Бэкенд может не знать параметр severity — дофильтровываем на клиенте
   const items = useMemo(
@@ -100,21 +113,27 @@ export function JournalPage() {
   const exportCsv = async () => {
     setExporting('0');
     try {
-      const all: GuardEvent[] = [];
+      // Фиксируем верхнюю границу: новые события во время выгрузки не сдвигают offset
+      const pinnedTo = Math.min(baseQuery.to ?? Infinity, Math.floor(Date.now() / 1000));
+      const byId = new Map<string, GuardEvent>();
       let offset = 0;
       let totalCount = Infinity;
       while (offset < totalCount && offset < EXPORT_MAX) {
-        const pageData = await api().listEvents({ ...baseQuery, limit: EXPORT_PAGE, offset });
+        const pageData = await api().listEvents({ ...baseQuery, to: pinnedTo, limit: EXPORT_PAGE, offset });
         totalCount = pageData.total;
-        all.push(...pageData.items);
+        for (const e of pageData.items) byId.set(e.id, e);
         offset += EXPORT_PAGE;
         setExporting(`${Math.min(offset, totalCount)} из ${totalCount}`);
         if (pageData.items.length === 0) break;
       }
-      const rows = all.filter((e) => !filters.severity || e.severity === filters.severity);
+      const rows = [...byId.values()].filter((e) => !filters.severity || e.severity === filters.severity);
       const stamp = toLocalInputValue(Date.now() / 1000).replace(/[:T]/g, '-');
       downloadText(`zhurnal-sobytiy-${stamp}.csv`, eventsToCsv(rows, cameraMap, window.location.origin));
-      toast(`Выгружено ${rows.length} ${plural(rows.length, ['событие', 'события', 'событий'])}`);
+      if (totalCount > EXPORT_MAX) {
+        toast(`Выгружены первые ${rows.length} из ${totalCount} — сузьте период для полной выгрузки`, 'bad');
+      } else {
+        toast(`Выгружено ${rows.length} ${plural(rows.length, ['событие', 'события', 'событий'])}`);
+      }
     } catch (err) {
       toast(`Экспорт не удался: ${(err as Error).message}`, 'bad');
     } finally {

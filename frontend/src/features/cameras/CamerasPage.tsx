@@ -8,6 +8,7 @@ import { SOURCE_TYPE_LABELS } from '../../domain/labels';
 import type { CameraConfig, Zone } from '../../domain/types';
 import { isValidHoursRange } from '../../domain/zones';
 import { useLive } from '../../state/live';
+import { confirmLeave, setUnsaved } from '../../state/unsaved';
 import { RulesEditor } from './RulesEditor';
 import { CAMERA_ID_RE, SourceForm } from './SourceForm';
 import { ZoneEditor } from './ZoneEditor';
@@ -68,6 +69,11 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
     setDraft(structuredClone(original));
   }, [original]);
 
+  useEffect(() => {
+    setUnsaved(dirty);
+    return () => setUnsaved(false);
+  }, [dirty]);
+
   // Предупреждение при закрытии вкладки с несохранёнными изменениями
   useEffect(() => {
     if (!dirty) return;
@@ -77,17 +83,22 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
   }, [dirty]);
 
   const onZonesChange = (zones: Zone[], removedZoneId?: string) => {
-    setDraft((d) => ({
-      ...d,
-      zones,
-      rules: removedZoneId
-        ? d.rules.map((r) => {
-            if (!r.zones?.includes(removedZoneId)) return r;
-            const left = r.zones.filter((z) => z !== removedZoneId);
-            return { ...r, zones: left.length ? left : null };
-          })
-        : d.rules,
-    }));
+    if (!removedZoneId) {
+      setDraft((d) => ({ ...d, zones }));
+      return;
+    }
+    // zones: null у правила = «весь кадр». Если удалили последнюю зону правила,
+    // не расширяем его на весь кадр молча (лавина ложных тревог), а выключаем
+    const disabled: string[] = [];
+    const rules = draft.rules.map((r) => {
+      if (!r.zones?.includes(removedZoneId)) return r;
+      const left = r.zones.filter((z) => z !== removedZoneId);
+      if (left.length) return { ...r, zones: left };
+      disabled.push(r.rule_id);
+      return { ...r, zones: null, enabled: false };
+    });
+    setDraft((d) => ({ ...d, zones, rules }));
+    if (disabled.length) toast(`Правило ${disabled.join(', ')} выключено: его зона удалена. Проверьте на вкладке «Правила».`, 'bad');
   };
 
   const onSave = () => {
@@ -200,7 +211,7 @@ export function CamerasPage() {
       <aside className="cam-list panel reveal">
         <div className="cam-list__head">
           <span className="eyebrow">Камеры · {cameras.length}</span>
-          <button type="button" className="btn btn--sm" onClick={() => navigate('/cameras/new')}>
+          <button type="button" className="btn btn--sm" onClick={() => confirmLeave() && navigate('/cameras/new')}>
             <Plus size={14} /> Добавить
           </button>
         </div>
@@ -214,7 +225,7 @@ export function CamerasPage() {
                 <button
                   type="button"
                   className={`cam-item${c.camera_id === cameraId ? ' is-selected' : ''}`}
-                  onClick={() => navigate(`/cameras/${encodeURIComponent(c.camera_id)}`)}
+                  onClick={() => confirmLeave() && navigate(`/cameras/${encodeURIComponent(c.camera_id)}`)}
                 >
                   <span className={`live-dot${online ? '' : ' live-dot--bad'}`} />
                   <span className="cam-item__text">
@@ -256,7 +267,7 @@ export function CamerasPage() {
             <>
               <Cctv size={30} />
               <span className="empty__title">{cameraId ? `Камера ${cameraId} не найдена` : 'Камер пока нет'}</span>
-              <button type="button" className="btn btn--primary" onClick={() => navigate('/cameras/new')}>
+              <button type="button" className="btn btn--primary" onClick={() => confirmLeave() && navigate('/cameras/new')}>
                 <Plus size={15} /> Добавить камеру
               </button>
             </>

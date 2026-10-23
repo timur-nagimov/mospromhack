@@ -11,6 +11,7 @@ import { isAudioBlocked } from '../../hooks/alarmSound';
 import { useNow } from '../../hooks/useNow';
 import { liveActions, useLive } from '../../state/live';
 import { toggleSound, useSettings } from '../../state/settings';
+import { confirmLeave } from '../../state/unsaved';
 import { MirrorMark } from '../ui/customIcons';
 import './shell.css';
 
@@ -41,7 +42,14 @@ function NavRail() {
       <ul className="rail__nav">
         {NAV.map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
-            <NavLink to={to} end={end} className="rail__link">
+            <NavLink
+              to={to}
+              end={end}
+              className="rail__link"
+              onClick={(e) => {
+                if (!confirmLeave()) e.preventDefault();
+              }}
+            >
               <span className="rail__icon">
                 <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
                 {to === '/' && unreviewed != null && unreviewed > 0 && (

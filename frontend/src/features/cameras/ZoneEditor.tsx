@@ -82,9 +82,16 @@ export function ZoneEditor({ camera, onChange }: Props) {
   useEffect(() => {
     if (!drawing) return;
     const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return;
       if (e.key === 'Escape') setDrawing(null);
-      else if (e.key === 'Enter') finishDrawing(drawing);
-      else if (e.key === 'Backspace') setDrawing((d) => (d ? d.slice(0, -1) : d));
+      else if (e.key === 'Enter') {
+        e.preventDefault();
+        finishDrawing(drawing);
+      } else if (e.key === 'Backspace') {
+        e.preventDefault();
+        setDrawing((d) => (d ? d.slice(0, -1) : d));
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -93,8 +100,14 @@ export function ZoneEditor({ camera, onChange }: Props) {
   const onStageClick = (e: React.MouseEvent) => {
     if (!drawing) return;
     const pt = toNorm(e.clientX, e.clientY);
-    if (nearFirst(pt)) finishDrawing(drawing);
-    else setDrawing([...drawing, pt]);
+    if (nearFirst(pt)) {
+      finishDrawing(drawing);
+      return;
+    }
+    // двойной клик не должен ставить две одинаковые вершины
+    const last = drawing[drawing.length - 1];
+    if (last && Math.hypot(last[0] - pt[0], last[1] - pt[1]) < 0.004) return;
+    setDrawing([...drawing, pt]);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -179,6 +192,8 @@ export function ZoneEditor({ camera, onChange }: Props) {
           onClick={onStageClick}
           onPointerMove={onPointerMove}
           onPointerUp={() => (dragRef.current = null)}
+          onPointerCancel={() => (dragRef.current = null)}
+          onLostPointerCapture={() => (dragRef.current = null)}
           onPointerLeave={() => setHoverPt(null)}
           onContextMenu={(e) => e.preventDefault()}
         >
