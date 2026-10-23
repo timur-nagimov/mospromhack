@@ -183,7 +183,9 @@ def bench_net(host: str, port: int, sizes_mb: list[float], n_rtt: int, n_size: i
 
 def make_input(name: str, size: tuple[int, int]) -> np.ndarray:
     h, w = size
-    img = ROOT / "vendor/linq_api/usage_example_python_api/ILSVRC2012_val_00000045.JPEG"
+    img = Path(os.environ.get("BENCH_IMAGE", ROOT / "vendor/linq_api/usage_example_python_api/ILSVRC2012_val_00000045.JPEG"))
+    if not img.exists():  # на стенде пример лежит в ~/work/examples
+        img = Path.home() / "work/examples/ILSVRC2012_val_00000045.JPEG"
     from PIL import Image
 
     im = Image.open(img).convert("RGB")

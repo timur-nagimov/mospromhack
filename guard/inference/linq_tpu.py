@@ -378,7 +378,22 @@ class LinqTpuBackend(InferenceBackend):
             tail = ort.InferenceSession(str(tail_path), so, providers=["CPUExecutionProvider"])
             tail_inputs = [i.name for i in tail.get_inputs()]
             out_names = [o.name for o in tail.get_outputs()]
-        if input_name is None:  # программа без manifest (например, пример resnet50) — имя входа из ONNX
+        if input_name is None:  # без manifest: имена из metadata.json программы, если файл доступен
+            prog = local or Path(uri[len("file://"):].split("?")[0])
+            try:
+                import zipfile
+
+                with zipfile.ZipFile(prog) as z:
+                    meta = json.loads(z.read("metadata.json"))
+                ins = [n for d in meta.get("inputs", {}).values() for n in d]
+                outs = [n for d in meta.get("outputs", {}).values() for n in d]
+                input_name = ins[0] if ins else None
+                out_names = out_names or outs
+                tpu_outputs = tpu_outputs or outs
+                batch = int(next(t for d in meta["inputs"].values() for t in d.values())["user_shape"][0])
+            except Exception:  # noqa: BLE001
+                pass
+        if input_name is None:  # иначе — имя входа из исходной ONNX
             try:
                 import onnx
 
