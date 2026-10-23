@@ -112,7 +112,7 @@ export function JournalPage() {
         if (pageData.items.length === 0) break;
       }
       const rows = all.filter((e) => !filters.severity || e.severity === filters.severity);
-      const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+      const stamp = toLocalInputValue(Date.now() / 1000).replace(/[:T]/g, '-');
       downloadText(`zhurnal-sobytiy-${stamp}.csv`, eventsToCsv(rows, cameraMap, window.location.origin));
       toast(`Выгружено ${rows.length} ${plural(rows.length, ['событие', 'события', 'событий'])}`);
     } catch (err) {

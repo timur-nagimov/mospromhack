@@ -129,7 +129,7 @@ export function PerformancePage() {
           </div>
         </div>
         <div className="stat">
-          <span className="stat__label">Загрузка ускорителя{load.estimated ? ' (оценка)' : ''}</span>
+          <span className="stat__label">{metrics.backend === 'linq-tpu' ? 'Загрузка ускорителя' : 'Загрузка инференса'}{load.estimated ? ' (оценка)' : ''}</span>
           <span className="stat__value">{load.value != null ? formatPercent(load.value) : '—'}</span>
           <div className="meter meter--blue" aria-hidden="true">
             <span style={{ width: `${(load.value ?? 0) * 100}%` }} />

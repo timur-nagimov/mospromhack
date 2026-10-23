@@ -175,7 +175,13 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
             </div>
             <div>
               <dt>Зона</dt>
-              <dd>{zone ? `${zone.name} · ${ZONE_KIND_LABELS[zone.kind]}` : event.zone_id ?? 'Весь кадр'}</dd>
+              <dd>
+                {zone
+                  ? `${zone.name} · ${ZONE_KIND_LABELS[zone.kind]}`
+                  : typeof event.details?.zone_name === 'string'
+                    ? event.details.zone_name
+                    : event.zone_id ?? 'Весь кадр'}
+              </dd>
             </div>
             <div>
               <dt>Начало нарушения</dt>

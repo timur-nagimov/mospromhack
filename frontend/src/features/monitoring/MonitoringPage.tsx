@@ -96,7 +96,7 @@ export function MonitoringPage() {
         <div className={`kpi${kpi.critical > 0 ? ' kpi--critical' : ''}`}>
           <span className="kpi__label">Критических за смену</span>
           <span className="kpi__value">{kpi.critical}</span>
-          <span className="kpi__note">падения и сближения с техникой</span>
+          <span className="kpi__note">требуют немедленной реакции</span>
         </div>
         <div className="kpi">
           <span className="kpi__label">До оповещения, медиана</span>
