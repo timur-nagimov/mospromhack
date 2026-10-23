@@ -1,7 +1,8 @@
 """Confirm frame-level violations and suppress repeated notifications.
 
 Timestamps must be finite and nondecreasing independently for each camera.
-Spatial keys use 8-by-8-pixel cells because bounding boxes are in pixels.
+Trackless identities use stable IDs and one-to-one spatial matching against
+the latest boxes within each camera, rule and zone.
 Cooldown starts when closure is detected; Event.ended_at records the last
 violating frame. Public methods return independent Event snapshots.
 """
@@ -11,7 +12,7 @@ from __future__ import annotations
 from collections import deque
 from copy import deepcopy
 from dataclasses import dataclass, field
-from math import floor, isfinite
+from math import hypot, isfinite
 from threading import Lock
 from uuid import uuid4
 
@@ -19,10 +20,7 @@ from guard.contracts import BBox, CameraConfig, Event, RuleConfig, Violation
 
 
 _EPS = 1e-9
-_Key = (
-    tuple[str, str, int]
-    | tuple[str, str, str | None, tuple[int, int]]
-)
+_Key = tuple[str, str, int] | tuple[str, str, str | None, int]
 
 
 @dataclass
@@ -46,14 +44,7 @@ class _CameraState:
     candidates: dict[_Key, _Candidate] = field(default_factory=dict)
     events: dict[str, _EventState] = field(default_factory=dict)
     aliases: dict[_Key, str] = field(default_factory=dict)
-
-
-def _key(camera_id: str, violation: Violation) -> _Key:
-    if violation.track_id is not None:
-        return camera_id, violation.rule_id, violation.track_id
-    x1, y1, x2, y2 = violation.bbox
-    cell = (floor((x1 + x2) / 16), floor((y1 + y2) / 16))
-    return camera_id, violation.rule_id, violation.zone_id, cell
+    next_spatial_id: int = 0
 
 
 def _trim(timestamps: deque[float], cutoff: float) -> None:
@@ -69,6 +60,88 @@ def _iou(first: BBox, second: BBox) -> float:
     second_area = max(0.0, second[2] - second[0]) * max(0.0, second[3] - second[1])
     union = first_area + second_area - intersection
     return intersection / union if union > 0 else 0.0
+
+
+def _spatial_quality(first: BBox, second: BBox) -> tuple[float, float] | None:
+    overlap = _iou(first, second)
+    distance = hypot(
+        (first[0] + first[2] - second[0] - second[2]) / 2,
+        (first[1] + first[3] - second[1] - second[3]) / 2,
+    )
+    largest_dimension = max(
+        0.0,
+        first[2] - first[0],
+        first[3] - first[1],
+        second[2] - second[0],
+        second[3] - second[1],
+    )
+    if overlap >= 0.3 or distance <= 0.5 * largest_dimension:
+        return overlap, distance
+    return None
+
+
+def _match_trackless(
+    state: _CameraState,
+    camera_id: str,
+    violations: list[Violation],
+    reserved: set[str],
+) -> dict[_Key, Violation]:
+    """Assign stable keys greedily, using each observation and target once."""
+    targets: dict[_Key, Violation | Event] = {
+        key: candidate.latest
+        for key, candidate in state.candidates.items()
+        if candidate.latest.track_id is None
+    }
+    for key, event_id in state.aliases.items():
+        # A four-part key is the persistent spatial alias created when a
+        # trackless candidate confirms. Tracked aliases have three parts.
+        if len(key) != 4 or event_id in reserved:
+            continue
+        event = state.events[event_id].event
+        if event.track_id is None:
+            # Recently closed events remain eligible until cooldown expires.
+            targets[key] = event
+
+    target_items = list(targets.items())
+    matches: list[tuple[float, float, int, int]] = []
+    for observation_index, violation in enumerate(violations):
+        for target_index, (_, target) in enumerate(target_items):
+            if (
+                target.rule_id != violation.rule_id
+                or target.zone_id != violation.zone_id
+            ):
+                continue
+            quality = _spatial_quality(target.bbox, violation.bbox)
+            if quality is not None:
+                overlap, distance = quality
+                matches.append(
+                    (-overlap, distance, observation_index, target_index)
+                )
+
+    # Score every pair before updating any box. Prefer larger IoU, then
+    # shorter center distance, independently of observation processing order.
+    matches.sort()
+    assigned: dict[int, _Key] = {}
+    used_targets: set[int] = set()
+    for _, _, observation_index, target_index in matches:
+        if observation_index in assigned or target_index in used_targets:
+            continue
+        assigned[observation_index] = target_items[target_index][0]
+        used_targets.add(target_index)
+
+    current: dict[_Key, Violation] = {}
+    for observation_index, violation in enumerate(violations):
+        key = assigned.get(observation_index)
+        if key is None:
+            key = (
+                camera_id,
+                violation.rule_id,
+                violation.zone_id,
+                state.next_spatial_id,
+            )
+            state.next_spatial_id += 1
+        current[key] = violation
+    return current
 
 
 def _overlapping_event(
@@ -123,10 +196,16 @@ class EventManager:
             if state.frames and ts < state.frames[-1]:
                 raise ValueError("ts must be nondecreasing for each camera")
 
-            # One hit per candidate per camera frame; retain the last observation.
-            current = {_key(camera.camera_id, v): v for v in violations}
+            # One hit per tracked identity per frame; retain the last observation.
+            current: dict[_Key, Violation] = {
+                (camera.camera_id, v.rule_id, v.track_id): v
+                for v in violations
+                if v.track_id is not None
+            }
+            trackless = [v for v in violations if v.track_id is None]
             rules = {rule.rule_id: rule for rule in camera.rules}
             rule_types = {v.rule_id: v.type for v in current.values()}
+            rule_types.update({v.rule_id: v.type for v in trackless})
             rule_types.update(
                 {
                     candidate.latest.rule_id: candidate.latest.type
@@ -179,14 +258,24 @@ class EventManager:
                 for key in current
                 if key in state.aliases
             }
+            current.update(
+                _match_trackless(state, camera.camera_id, trackless, reserved)
+            )
+            reserved.update(
+                state.aliases[key]
+                for key in current
+                if key in state.aliases
+            )
 
             for key, violation in current.items():
                 event_id = state.aliases.get(key)
                 record = (
                     state.events[event_id]
                     if event_id is not None
-                    else _overlapping_event(state, violation, reserved)
+                    else None
                 )
+                if record is None and violation.track_id is not None:
+                    record = _overlapping_event(state, violation, reserved)
                 if record is not None:
                     state.aliases[key] = record.event.id
                     reserved.add(record.event.id)
@@ -231,7 +320,13 @@ class EventManager:
                 if total == 0 or len(candidate.hits) / total + _EPS < rule.min_ratio:
                     continue
 
-                record = _overlapping_event(state, violation, reserved)
+                # Trackless identities were assigned together before any box
+                # updates. A second spatial pass could merge separate objects.
+                record = (
+                    _overlapping_event(state, violation, reserved)
+                    if violation.track_id is not None
+                    else None
+                )
                 if record is not None:
                     state.aliases[key] = record.event.id
                     reserved.add(record.event.id)

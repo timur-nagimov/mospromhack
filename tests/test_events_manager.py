@@ -359,6 +359,7 @@ def test_event_metadata_and_returned_snapshots_are_independent():
     assert event.camera_id == camera.camera_id
     assert event.site == camera.site
     assert event.zone_id == violation.zone_id
+    assert event.rule_id == violation.rule_id
     assert event.type == violation.type
     assert event.severity == Severity.critical
     assert event.started_at == event.confirmed_at == 10
@@ -438,3 +439,244 @@ def test_invalid_timestamps_do_not_corrupt_existing_state():
             manager.process(camera, ts, [])
     assert [e.id for e in manager.open_events()] == [created[0].id]
     assert manager.process(camera, 2, [_violation()]) == ([], [])
+
+
+def test_trackless_fire_confirms_with_twenty_pixel_jitter():
+    from random import Random
+
+    manager = EventManager()
+    camera = _camera(min_duration_s=2, min_ratio=0.7)
+    camera.rules[0].type = "smoking_fire"
+    rng = Random(1)
+
+    def violations_at(index):
+        dx = rng.uniform(-20, 20)
+        dy = rng.uniform(-20, 20)
+        return [
+            _violation(
+                track_id=None,
+                bbox=(100.0 + dx, 100.0 + dy, 160.0 + dx, 180.0 + dy),
+                kind="smoking_fire",
+                severity=Severity.critical,
+            )
+        ]
+
+    created, closed = _feed(manager, camera, range(16), violations_at)
+    assert len(created) == 1
+    event = created[0]
+    assert event.track_id is None
+    assert event.type == "smoking_fire"
+    assert event.severity == Severity.critical
+    assert event.started_at == 0.0
+    assert event.confirmed_at - event.started_at == pytest.approx(2, abs=0.25)
+    assert closed == []
+    assert [event.id for event in manager.open_events()] == [created[0].id]
+
+
+def test_two_distant_trackless_boxes_confirm_separately():
+    manager = EventManager()
+    boxes = [
+        (100.0, 100.0, 160.0, 180.0),
+        (500.0, 100.0, 560.0, 180.0),
+    ]
+
+    def violations_at(index):
+        ordered = boxes if index % 2 == 0 else list(reversed(boxes))
+        return [_violation(track_id=None, bbox=bbox) for bbox in ordered]
+
+    created, closed = _feed(
+        manager,
+        _camera(min_duration_s=2),
+        range(16),
+        violations_at,
+    )
+    assert len(created) == 2
+    assert len({event.id for event in created}) == 2
+    assert {event.bbox for event in created} == set(boxes)
+    assert all(event.track_id is None for event in created)
+    assert all(event.zone_id == "z1" for event in created)
+    assert all(event.started_at == 0.0 for event in created)
+    assert all(event.confirmed_at == pytest.approx(2) for event in created)
+    assert closed == []
+    assert len(manager.open_events()) == 2
+
+
+def test_trackless_box_moving_five_pixels_per_frame_keeps_one_event():
+    manager = EventManager()
+
+    def violations_at(index):
+        dx = 5.0 * index
+        return [
+            _violation(
+                track_id=None,
+                bbox=(100.0 + dx, 100.0, 160.0 + dx, 180.0),
+            )
+        ]
+
+    created, closed = _feed(
+        manager,
+        _camera(min_duration_s=2),
+        range(31),
+        violations_at,
+    )
+    assert len(created) == 1
+    assert created[0].started_at == 0.0
+    assert created[0].confirmed_at == pytest.approx(2)
+    assert closed == []
+    opened = manager.open_events()
+    assert len(opened) == 1
+    assert opened[0].id == created[0].id
+    assert opened[0].bbox == (250.0, 100.0, 310.0, 180.0)
+
+
+def test_trackless_event_confirms_again_after_closure_and_cooldown():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0.4, close_after_s=0.4, cooldown_s=1)
+    bbox = (100.0, 100.0, 160.0, 180.0)
+    first, _ = _feed(
+        manager,
+        camera,
+        range(3),
+        lambda _: [_violation(track_id=None, bbox=bbox)],
+    )
+    _, closed = _feed(manager, camera, range(3, 6), lambda _: [])
+    assert len(first) == len(closed) == 1
+    assert closed[0].id == first[0].id
+    assert closed[0].ended_at == pytest.approx(0.4)
+    assert manager.open_events() == []
+
+    second, closed_again = _feed(
+        manager,
+        camera,
+        range(11, 14),
+        lambda _: [_violation(track_id=None, bbox=bbox)],
+    )
+    assert len(second) == 1
+    assert second[0].id != first[0].id
+    assert second[0].started_at == pytest.approx(2.2)
+    assert second[0].confirmed_at == pytest.approx(2.6)
+    assert closed_again == []
+    assert [event.id for event in manager.open_events()] == [second[0].id]
+
+
+@pytest.mark.parametrize("min_duration", [0, 0.4])
+def test_trackless_matches_are_globally_greedy_and_one_to_one(min_duration):
+    manager = EventManager()
+    camera = _camera(min_duration_s=min_duration, min_ratio=1)
+    left = (0.0, 0.0, 60.0, 80.0)
+    right = (50.0, 0.0, 110.0, 80.0)
+    ambiguous = (20.0, 0.0, 80.0, 80.0)
+
+    def violations_at(index):
+        if index == 0:
+            boxes = [left, right]
+        else:
+            # The first box prefers left, but the second has an exact match.
+            # Reserve that exact match first, then match ambiguous to right.
+            boxes = [ambiguous, left]
+        return [_violation(track_id=None, bbox=bbox) for bbox in boxes]
+
+    created, closed = _feed(manager, camera, range(3), violations_at)
+    assert len(created) == 2
+    assert len({event.id for event in created}) == 2
+    assert all(event.started_at == 0.0 for event in created)
+    assert all(
+        event.confirmed_at == pytest.approx(min_duration)
+        for event in created
+    )
+    assert closed == []
+    opened = manager.open_events()
+    assert len(opened) == 2
+    assert {event.bbox for event in opened} == {left, ambiguous}
+
+
+@pytest.mark.parametrize("min_duration", [0, 0.4])
+def test_trackless_distance_breaks_equal_iou_ties(min_duration):
+    manager = EventManager()
+    camera = _camera(min_duration_s=min_duration, min_ratio=1)
+    left = (0.0, 0.0, 4.0, 80.0)
+    right = (30.0, 0.0, 34.0, 80.0)
+    moved = (20.0, 0.0, 24.0, 80.0)
+
+    first, closed = manager.process(
+        camera,
+        0,
+        [
+            _violation(track_id=None, bbox=left),
+            _violation(track_id=None, bbox=right),
+        ],
+    )
+    assert closed == []
+    # Both targets have zero IoU and pass the distance threshold.
+    # Right is nearer, despite being inserted after left.
+    later, closed = _feed(
+        manager,
+        camera,
+        range(1, 3),
+        lambda _: [_violation(track_id=None, bbox=moved)],
+    )
+    assert closed == []
+    if min_duration == 0:
+        assert len(first) == 2
+        assert later == []
+        right_id = next(event.id for event in first if event.bbox == right)
+        opened = {event.id: event for event in manager.open_events()}
+        assert len(opened) == 2
+        assert opened[right_id].bbox == moved
+        assert {event.bbox for event in opened.values()} == {left, moved}
+    else:
+        assert first == []
+        assert len(later) == 1
+        assert later[0].started_at == 0.0
+        assert later[0].confirmed_at == pytest.approx(0.4)
+        assert later[0].bbox == moved
+
+
+@pytest.mark.parametrize("changed_field", ["zone_id", "rule_id"])
+def test_trackless_event_matching_respects_rule_and_zone(changed_field):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    camera.rules.append(
+        RuleConfig(rule_id="r2", type="zone_intrusion", min_duration_s=0)
+    )
+    first, _ = manager.process(camera, 0, [_violation(track_id=None)])
+    options = {changed_field: "z2" if changed_field == "zone_id" else "r2"}
+    second, closed = manager.process(
+        camera,
+        0.2,
+        [_violation(track_id=None, **options)],
+    )
+    assert len(first) == len(second) == 1
+    assert second[0].id != first[0].id
+    assert getattr(second[0], changed_field) == options[changed_field]
+    assert closed == []
+    assert len(manager.open_events()) == 2
+
+
+def test_trackless_event_reopens_during_cooldown_after_box_moves():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0.4, close_after_s=0.4, cooldown_s=2)
+    first, _ = _feed(
+        manager,
+        camera,
+        range(3),
+        lambda _: [_violation(track_id=None)],
+    )
+    _, closed = _feed(manager, camera, range(3, 6), lambda _: [])
+    assert len(first) == len(closed) == 1
+    assert manager.open_events() == []
+
+    moved = (18.0, 8.0, 50.0, 80.0)
+    assert manager.process(
+        camera,
+        2.8,
+        [_violation(track_id=None, bbox=moved)],
+    ) == ([], [])
+    opened = manager.open_events()
+    assert len(opened) == 1
+    assert opened[0].id == first[0].id
+    assert opened[0].started_at == 0.0
+    assert opened[0].confirmed_at == pytest.approx(0.4)
+    assert opened[0].ended_at is None
+    assert opened[0].bbox == moved
+    assert closed[0].ended_at == pytest.approx(0.4)
