@@ -154,18 +154,25 @@ class JHub:
 
     # ---------- сессия ----------
 
-    def _xsrf(self) -> str | None:
+    def _xsrf(self, url_path: str | None = None) -> str | None:
+        """Значение cookie _xsrf для пути запроса: у hub (/hub/) и single-user сервера (/user/<u>/) они разные."""
+        best, best_len = None, -1
         for c in self.s.cookies:
-            if c.name == "_xsrf":
-                return c.value
-        return None
+            if c.name != "_xsrf":
+                continue
+            cp = c.path or "/"
+            if url_path is not None and not url_path.startswith(cp.rstrip("/") or "/"):
+                continue
+            if len(cp) > best_len:
+                best, best_len = c.value, len(cp)
+        return best
 
-    def _headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+    def _headers(self, extra: dict[str, str] | None = None, url_path: str | None = None) -> dict[str, str]:
         h: dict[str, str] = {}
         tok = self.token or self.hub_api_token
         if tok:
             h["Authorization"] = f"token {tok}"
-        x = self._xsrf()
+        x = self._xsrf(url_path)
         if x:
             h["X-XSRFToken"] = x
         if extra:
@@ -212,7 +219,7 @@ class JHub:
         """Восстановить сессию из кеша и проверить её; при неудаче — войти заново."""
         if self.api_base is None and self.load_session():
             try:
-                r = self.s.get(self.api_base + "/api/status", headers=self._headers(), timeout=self.timeout,
+                r = self.s.get(self.api_base + "/api/status", headers=self._headers(url_path=urlsplit(self.api_base).path + "/api/status"), timeout=self.timeout,
                                allow_redirects=True)
                 if r.status_code == 200 and r.headers.get("content-type", "").startswith("application/json"):
                     return self
@@ -246,7 +253,7 @@ class JHub:
 
     def _login_token(self) -> dict[str, Any]:
         # Пробуем как hub-токен, потом как токен одиночного сервера.
-        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(), timeout=self.timeout)
+        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(url_path="/hub/"), timeout=self.timeout)
         if r.status_code == 200:
             u = r.json()
             self.mode, self.user = "hub", u.get("name", self.user)
@@ -281,7 +288,7 @@ class JHub:
             r = self.s.post(
                 f"{self.base}/hub/api/users/{quote(self.user)}/tokens",
                 json={"note": "zazerkalye-jhub", "expires_in": 3 * 24 * 3600},
-                headers=self._headers(),
+                headers=self._headers(url_path="/hub/"),
                 timeout=self.timeout,
             )
             if r.status_code in (200, 201):
@@ -297,11 +304,11 @@ class JHub:
         return {"auth": "hub-form", "user": self.user, "token_issued": bool(self.hub_api_token)}
 
     def _hub_get_user(self) -> dict[str, Any] | None:
-        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(), timeout=self.timeout)
+        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(url_path="/hub/"), timeout=self.timeout)
         if r.status_code == 200:
             return r.json()
         if self.user:
-            r = self.s.get(f"{self.base}/hub/api/users/{quote(self.user)}", headers=self._headers(),
+            r = self.s.get(f"{self.base}/hub/api/users/{quote(self.user)}", headers=self._headers(url_path="/hub/"),
                            timeout=self.timeout)
             if r.status_code == 200:
                 return r.json()
@@ -316,7 +323,7 @@ class JHub:
         if ready(u):
             return u
         self._log("single-user сервер не запущен, запускаем")
-        r = self.s.post(f"{self.base}/hub/api/users/{quote(self.user)}/server", headers=self._headers(),
+        r = self.s.post(f"{self.base}/hub/api/users/{quote(self.user)}/server", headers=self._headers(url_path="/hub/"),
                         timeout=self.timeout)
         if r.status_code not in (201, 202, 400):  # 400 = уже запущен/запускается
             # запасной путь: /hub/spawn через браузерный поток
@@ -354,7 +361,7 @@ class JHub:
         self.ensure()
         extra = kw.pop("headers", None)
         kw.setdefault("timeout", self.timeout)
-        r = self.s.request(method, self.api_base + path, headers=self._headers(extra), **kw)
+        r = self.s.request(method, self.api_base + path, headers=self._headers(extra, urlsplit(self.api_base).path + path), **kw)
         expired = r.status_code == 401 or (r.status_code == 403 and "xsrf" in r.text.lower())
         if expired and (self.password or self.token):
             self._log(method, path, "->", r.status_code, "релогин")
@@ -362,7 +369,7 @@ class JHub:
             self.hub_api_token = None
             self.api_base = None
             self.login()
-            r = self.s.request(method, self.api_base + path, headers=self._headers(extra), **kw)
+            r = self.s.request(method, self.api_base + path, headers=self._headers(extra, urlsplit(self.api_base).path + path), **kw)
         return r
 
     @staticmethod
@@ -568,13 +575,17 @@ class JHub:
         own = kernel_id is None
         kid = kernel_id or self.start_kernel(kernel_name)
         session_id = uuid.uuid4().hex
-        hdrs = [f"{k}: {v}" for k, v in self._headers().items()]
-        cookie = "; ".join(f"{c.name}={c.value}" for c in self.s.cookies)
-        if cookie:
-            hdrs.append(f"Cookie: {cookie}")
+        hdrs = [f"{k}: {v}" for k, v in self._headers(url_path=urlsplit(self.api_base).path + "/api/kernels").items()]
+        if not (self.token or self.hub_api_token):  # без токена — cookie-авторизация
+            cookie = "; ".join(f"{c.name}={c.value}" for c in self.s.cookies)
+            if cookie:
+                hdrs.append(f"Cookie: {cookie}")
         res = ExecResult()
         t0 = time.time()
-        ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60))
+        # Origin не шлём: за nginx стенда Host без порта, и проверка origin в jupyter_server отклоняет
+        # «http://127.0.0.1:8888» (Cross origin websockets not allowed); без Origin запрос пропускается.
+        ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60),
+                                         suppress_origin=True)
         try:
             msg_id = uuid.uuid4().hex
             msg = {
