@@ -434,6 +434,77 @@ class JHub:
         dt = time.time() - t0
         return {"remote": remote, "bytes": size, "seconds": round(dt, 3), "MBps": round(size / 1e6 / max(dt, 1e-9), 3)}
 
+    def clone(self) -> "JHub":
+        """Независимая копия клиента с той же авторизацией (для параллельных потоков)."""
+        self.ensure()
+        c = JHub(self.base, self.user, self.password, self.token, self.timeout, session_file=None,
+                 verbose=self.verbose)
+        c.mode, c.api_base, c.hub_api_token = self.mode, self.api_base, self.hub_api_token
+        for ck in self.s.cookies:
+            c.s.cookies.set(ck.name, ck.value, domain=ck.domain, path=ck.path)
+        return c
+
+    def upload_parallel(self, local: str | Path, remote: str, workers: int = 6, part_mb: float = 4.0) -> dict:
+        """Загрузка частями в несколько потоков + склейка и sha256 на сервере.
+
+        Через VPN один поток упирается в окно TCP (~0.3 МБ/с при RTT 240 мс), потоки складываются."""
+        import concurrent.futures as cf
+        import hashlib
+
+        local = Path(local)
+        size = local.stat().st_size
+        part = int(part_mb * 1024 * 1024)
+        nparts = max(1, (size + part - 1) // part)
+        if nparts == 1:
+            return self.upload(local, remote)
+        sha = hashlib.sha256(local.read_bytes()).hexdigest()
+        rdir = remote.strip("/").rsplit("/", 1)[0] if "/" in remote.strip("/") else ""
+        if rdir:
+            self.mkdirs(rdir)
+        tmpdir = f"{rdir}/_parts_{Path(remote).name}" if rdir else f"_parts_{Path(remote).name}"
+        self.mkdirs(tmpdir)
+        clients = [self.clone() for _ in range(min(workers, nparts))]
+        t0 = time.time()
+
+        def put(i: int) -> int:
+            c = clients[i % len(clients)]
+            with local.open("rb") as f:
+                f.seek(i * part)
+                data = f.read(part)
+            body = {"type": "file", "format": "base64", "name": f"p{i:05d}", "content": base64.b64encode(data).decode()}
+            for attempt in range(3):
+                try:
+                    r = c._api("PUT", f"/api/contents/{self._cpath(tmpdir)}/p{i:05d}", json=body, timeout=600)
+                    if r.status_code in (200, 201):
+                        return len(data)
+                except requests.RequestException:
+                    pass
+                time.sleep(1 + attempt)
+            raise JHubError(f"часть {i} не загрузилась")
+
+        with cf.ThreadPoolExecutor(len(clients)) as ex:
+            sent = sum(ex.map(put, range(nparts)))
+        t_up = time.time() - t0
+        # пути contents API — от корня сервера (~/work в стенде LinQ); склеиваем через ядро
+        res = self.execute(
+            "import os, glob, hashlib, shutil\n"
+            f"root = os.path.expanduser(os.environ.get('JUPYTER_SERVER_ROOT', '~/work'))\n"
+            f"tmp = os.path.join(root, {tmpdir!r}); dst = os.path.join(root, {remote.strip('/')!r})\n"
+            "h = hashlib.sha256()\n"
+            "with open(dst + '.tmp', 'wb') as out:\n"
+            "    for p in sorted(glob.glob(os.path.join(tmp, 'p*'))):\n"
+            "        b = open(p, 'rb').read(); h.update(b); out.write(b)\n"
+            "os.replace(dst + '.tmp', dst); shutil.rmtree(tmp)\n"
+            "print(h.hexdigest(), os.path.getsize(dst))\n",
+            timeout=300,
+        )
+        got = (res.stdout.split() or ["", "0"])
+        if not res.ok or got[0] != sha:
+            raise JHubError(f"склейка/sha256 не совпали: {res.stdout} {res.error}")
+        dt = time.time() - t0
+        return {"remote": remote, "bytes": size, "parts": nparts, "workers": len(clients), "seconds": round(dt, 2),
+                "upload_seconds": round(t_up, 2), "MBps": round(size / 1e6 / max(dt, 1e-9), 3), "sha256": sha}
+
     def download(self, remote: str, local: str | Path | None = None) -> dict:
         local = Path(local) if local else Path(Path(remote).name)
         if local.is_dir():
@@ -590,7 +661,7 @@ class JHub:
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
             raise JHubError("name: только буквы, цифры, _.-")
         script = (
-            f"mkdir -p ~/jhub_bg && cd {workdir} && "
+            f"mkdir -p ~/jhub_bg; cd {workdir} || exit 1; "
             f"nohup setsid bash -lc {shlex.quote(cmd)} > ~/jhub_bg/{name}.log 2>&1 < /dev/null & "
             f"echo $! > ~/jhub_bg/{name}.pid; "
             f"printf '%s\\n' {shlex.quote(cmd)} > ~/jhub_bg/{name}.cmd; cat ~/jhub_bg/{name}.pid"
@@ -640,6 +711,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("local")
     p.add_argument("remote")
     p.add_argument("--chunk-mb", type=float, default=UPLOAD_CHUNK / 1024 / 1024)
+    p.add_argument("--parallel", type=int, default=1, help="потоков (части по --chunk-mb, склейка+sha256)")
     p = sub.add_parser("download", help="скачать файл")
     p.add_argument("remote")
     p.add_argument("local", nargs="?")
@@ -676,7 +748,10 @@ def main(argv: list[str] | None = None) -> int:
                 size = it.get("size")
                 print(f"{kind} {size if size is not None else '':>12} {it.get('last_modified', '')[:19]}  {it['path']}")
         elif a.cmd == "upload":
-            _print_json(jh.upload(a.local, a.remote, chunk=int(a.chunk_mb * 1024 * 1024), progress=a.verbose))
+            if a.parallel > 1:
+                _print_json(jh.upload_parallel(a.local, a.remote, workers=a.parallel, part_mb=a.chunk_mb))
+            else:
+                _print_json(jh.upload(a.local, a.remote, chunk=int(a.chunk_mb * 1024 * 1024), progress=a.verbose))
         elif a.cmd == "download":
             _print_json(jh.download(a.remote, a.local))
         elif a.cmd in ("exec", "sh"):
