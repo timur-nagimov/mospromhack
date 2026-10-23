@@ -1,0 +1,17 @@
+# Клиент OpenVPN хакатона в отдельном сетевом пространстве контейнера.
+# Маршруты хоста и рабочий VPN не меняются; наружу — только порты на 127.0.0.1.
+FROM docker.io/library/alpine:3.20 AS socks
+RUN apk add --no-cache build-base git \
+ && (git clone -q --depth 1 --branch v1.0.4 https://github.com/rofl0r/microsocks /src \
+     || git clone -q --depth 1 https://github.com/rofl0r/microsocks /src) \
+ && grep -q 'define THREAD_STACK_SIZE' /src/sockssrv.c \
+ && sed -i 's/^#define THREAD_STACK_SIZE .*/#define THREAD_STACK_SIZE (512*1024)/' /src/sockssrv.c \
+ && make -C /src
+
+FROM docker.io/library/alpine:3.20
+RUN apk add --no-cache openvpn socat iproute2 bind-tools curl netcat-openbsd tini
+COPY --from=socks /src/microsocks /usr/local/bin/microsocks
+COPY entrypoint.sh vpn-up.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/vpn-up.sh
+EXPOSE 1080 5672 8888
+ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]

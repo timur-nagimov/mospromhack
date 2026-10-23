@@ -18,3 +18,7 @@ frontend/dist/
 .orchestra/codex/running/
 .orchestra/ITERATION.lock
 .DS_Store
+.orchestra/heavy.lock/
+/data
+/models
+/vendor
