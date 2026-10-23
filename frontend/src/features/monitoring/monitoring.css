@@ -250,6 +250,34 @@
   overflow: hidden;
   transition: border-color 0.2s;
 }
+/* узкие плитки (много камер или маленький экран): имя камеры важнее бейджей */
+.tile {
+  container-type: inline-size;
+}
+@container (max-width: 330px) {
+  .tile__badges .metric-chip:nth-child(2) {
+    display: none;
+  }
+  .tile__alert-text small {
+    display: none;
+  }
+  .tile__alert {
+    padding: 5px 8px 5px 16px;
+    gap: 7px;
+  }
+  .tile__alert .vicon {
+    display: none;
+  }
+}
+@container (max-width: 240px) {
+  .tile__badges .btn--icon {
+    display: none;
+  }
+  .tile__name span {
+    display: none;
+  }
+}
+
 .tile--alert {
   border-color: rgba(240, 128, 60, 0.75);
   box-shadow: 0 0 18px rgba(240, 128, 60, 0.18);
@@ -270,7 +298,7 @@
 }
 .tile__name {
   display: grid;
-  min-width: 0;
+  min-width: 72px;
   flex: 1;
   line-height: 1.2;
 }

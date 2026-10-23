@@ -1,5 +1,5 @@
 import { Bell, BellOff, ChartColumn, Cctv, Gauge, LayoutGrid, ScrollText, Siren, X } from 'lucide-react';
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { api } from '../../api';
 import { useCameraMap } from '../../api/queries';
@@ -7,6 +7,7 @@ import { formatClock, formatLongDate, formatTime } from '../../domain/format';
 import { backendLabel } from '../../domain/labels';
 import { getViolationMeta } from '../../domain/violations';
 import { useEventModal } from '../../features/event/useEventModal';
+import { isAudioBlocked } from '../../hooks/alarmSound';
 import { useNow } from '../../hooks/useNow';
 import { liveActions, useLive } from '../../state/live';
 import { toggleSound, useSettings } from '../../state/settings';
@@ -95,7 +96,42 @@ function Clock() {
   );
 }
 
+/** Браузер не даёт играть звук до первого клика — показываем это явно */
+function SoundToggle({ sound }: { sound: boolean }) {
+  useNow(); // перерисовка раз в секунду: состояние AudioContext не реактивно
+  const blocked = sound && isAudioBlocked();
+  const label = !sound ? 'Звук выкл.' : blocked ? 'Включить звук' : 'Звук вкл.';
+  return (
+    <button
+      type="button"
+      className={`btn btn--sm sound-toggle${sound && !blocked ? ' is-on' : ''}${blocked ? ' is-blocked' : ''}`}
+      // при блокировке клик сам «размораживает» звук (глобальный обработчик жеста)
+      onClick={blocked ? undefined : toggleSound}
+      aria-pressed={sound}
+      title={
+        blocked
+          ? 'Браузер ждёт первого клика, чтобы разрешить звук тревог'
+          : sound
+            ? 'Звук критических тревог включён'
+            : 'Звук выключен'
+      }
+    >
+      {sound ? <Bell size={15} aria-hidden="true" /> : <BellOff size={15} aria-hidden="true" />}
+      {label}
+    </button>
+  );
+}
+
+/** Число неразобранных в заголовке вкладки — видно, даже когда пульт свёрнут */
+function useDocumentTitle() {
+  const unreviewed = useLive((s) => s.unreviewed);
+  useEffect(() => {
+    document.title = unreviewed ? `(${unreviewed}) Зазеркалье · Видеоаналитика ТБ` : 'Зазеркалье · Видеоаналитика ТБ';
+  }, [unreviewed]);
+}
+
 function TopBar() {
+  useDocumentTitle();
   const { pathname } = useLocation();
   const sound = useSettings((s) => s.sound);
   const meta = TITLES[`/${pathname.split('/')[1] ?? ''}`.replace(/\/$/, '') || '/'] ?? TITLES['/'];
@@ -114,16 +150,7 @@ function TopBar() {
         )}
         <BackendPill />
         <ConnectionPill />
-        <button
-          type="button"
-          className={`btn btn--sm sound-toggle${sound ? ' is-on' : ''}`}
-          onClick={toggleSound}
-          aria-pressed={sound}
-          title={sound ? 'Звук критических тревог включён' : 'Звук выключен'}
-        >
-          {sound ? <Bell size={15} aria-hidden="true" /> : <BellOff size={15} aria-hidden="true" />}
-          {sound ? 'Звук вкл.' : 'Звук выкл.'}
-        </button>
+        <SoundToggle sound={sound} />
         <Clock />
       </div>
     </header>

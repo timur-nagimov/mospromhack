@@ -10,8 +10,8 @@ const OUT = resolve(process.env.SHOTS_DIR ?? '/Users/nagimov-timur/Desktop/mospr
 const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
 mkdirSync(OUT, { recursive: true });
 
-const W = 1600;
-const H = 1000;
+const W = Number(process.env.SHOT_W ?? 1600);
+const H = Number(process.env.SHOT_H ?? 1000);
 
 const browser = await chromium.launch({ args: ['--disable-gpu', '--disable-dev-shm-usage'] });
 const errors = [];
@@ -25,7 +25,7 @@ try {
     if (ONLY && !ONLY.includes(name)) return;
     await page.setViewportSize({ width: W, height });
     await page.waitForTimeout(400);
-    const path = `${OUT}/${name}.png`;
+    const path = `${OUT}/${process.env.SHOT_PREFIX ?? ''}${name}.png`;
     await page.screenshot({ path });
     console.log('saved', path);
   };

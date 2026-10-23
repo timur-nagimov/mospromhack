@@ -82,7 +82,13 @@ export function MonitoringPage() {
       .map((c) => c.camera_id),
   );
 
-  const layout = gridLayout(visibleCameras.length, gridSize.width, gridSize.height - TIMELINE_MIN_PX - GRID_GAP_PX);
+  // На невысоких экранах (ноутбук, проектор 768 px) хронику убираем — место под видео важнее
+  const showTimeline = gridSize.height === 0 || gridSize.height >= 560;
+  const layout = gridLayout(
+    visibleCameras.length,
+    gridSize.width,
+    gridSize.height - (showTimeline ? TIMELINE_MIN_PX + GRID_GAP_PX : 0),
+  );
 
   // Хроника: события смены из журнала + свежие из WS (у них актуальный статус)
   const timelineEvents = useMemo(() => {
@@ -157,7 +163,7 @@ export function MonitoringPage() {
               ))}
             </div>
           )}
-          {cameras.length > 0 && (
+          {cameras.length > 0 && showTimeline && (
             <ShiftTimeline
               cameras={cameras}
               events={timelineEvents}
