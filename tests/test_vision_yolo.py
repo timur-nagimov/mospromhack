@@ -152,6 +152,8 @@ def test_clips_boxes_and_discards_invalid_or_fully_outside_candidates():
             [100, 100, -20, 20, 0.99],
             [np.nan, 100, 20, 20, 0.99],
             [100, 100, 20, 20, np.nan],
+            # ниже порога: делает тензор неквадратным, иначе раскладка (B, N, C) неоднозначна
+            [10, 10, 5, 5, 0.01],
         ],
         False,
     )
