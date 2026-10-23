@@ -43,7 +43,15 @@ SDK_VERSION = "2026.9.45"
 # Иначе выход output0 [1,84,8400] смешивает координаты 0..640 и вероятности 0..1 в одном int8-тензоре.
 CUT_PRESETS: dict[str, list[str]] = {
     "yolov8": ["/model.22/dfl/conv/Conv_output_0", "/model.22/Sigmoid_output_0"],
-    "yolov8-pose": [  # дословно из pdf стр. 36, сноска 6
+    # pose для экспорта ultralytics (models/yolov8n-pose-*.onnx от A2): рамки (DFL), score (Sigmoid),
+    # сырые xy keypoint'ов (Slice_2, до *2+anchor) и видимость (Sigmoid_1) — разные диапазоны в разных тензорах
+    "yolov8-pose": [
+        "/model.22/dfl/conv/Conv_output_0",
+        "/model.22/Sigmoid_output_0",
+        "/model.22/Slice_2_output_0",
+        "/model.22/Sigmoid_1_output_0",
+    ],
+    "yolov8-pose-vendor": [  # дословно из pdf стр. 36, сноска 6 (другой экспорт, в наших ONNX части узлов нет)
         "/model.22/Mul_6_output_0",
         "/model.22/Concat_6_output_0",
         "/model.22/Concat_5_output_0",
@@ -161,6 +169,16 @@ def remove_initialized_inputs(model) -> None:  # из compile.py SDK
             model.graph.input.remove(name_to_input[init.name])
 
 
+def prune_initializers(model) -> int:
+    """Удалить initializer'ы, на которые не ссылается ни один узел (get_sub_model оставляет все веса сети)."""
+    used = {i for n in model.graph.node for i in n.input}
+    used |= {o.name for o in model.graph.output}
+    dead = [init for init in model.graph.initializer if init.name not in used]
+    for init in dead:
+        model.graph.initializer.remove(init)
+    return len(dead)
+
+
 def split_model(onnx_path: Path, cut: list[str], out_dir: Path, name: str) -> tuple[Path, Path, list[str], list[str]]:
     """Голова (вход -> cut) для TPU и хвост (cut -> исходные выходы) для CPU."""
     import onnx
@@ -175,6 +193,8 @@ def split_model(onnx_path: Path, cut: list[str], out_dir: Path, name: str) -> tu
 
         head = get_sub_model(model=m, ordered_input_names=in_names, ordered_output_names=cut)
         tail = get_sub_model(model=m, ordered_input_names=cut, ordered_output_names=out_names)
+        prune_initializers(head)
+        prune_initializers(tail)
         onnx.save(head, str(head_path))
         onnx.save(tail, str(tail_path))
         how = "tpu_framework.get_sub_model"
