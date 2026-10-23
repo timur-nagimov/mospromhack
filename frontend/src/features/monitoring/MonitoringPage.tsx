@@ -11,6 +11,7 @@ import { useEventModal } from '../event/useEventModal';
 import { AlertFeed } from './AlertFeed';
 import { CameraTile } from './CameraTile';
 import { currentShift } from './shift';
+import { ShiftTimeline } from './ShiftTimeline';
 import './monitoring.css';
 
 function median(values: number[]): number | null {
@@ -20,24 +21,23 @@ function median(values: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-const TILE_HEAD_PX = 45;
+const TILE_HEAD_PX = 46;
 const GRID_GAP_PX = 10;
+const TIMELINE_MIN_PX = 168;
 
-/** Число колонок, при котором кадр 16:9 в плитке получается крупнее всего */
-function gridColumns(n: number, width: number, height: number): number {
-  if (n <= 1) return 1;
-  if (!width || !height) return n <= 4 ? 2 : 3;
-  let best = 1;
-  let bestW = 0;
+/**
+ * Раскладка плиток: кадр всегда 16:9 без обрезки. Перебираем число колонок
+ * и берём то, при котором кадр крупнее всего и сетка помещается по высоте.
+ */
+function gridLayout(n: number, width: number, height: number): { cols: number; tileW: number | null } {
+  if (n === 0 || !width || !height) return { cols: n <= 4 ? 2 : 3, tileW: null };
+  let best = { cols: 1, tileW: 0 };
   for (let cols = 1; cols <= Math.min(n, 5); cols += 1) {
     const rows = Math.ceil(n / cols);
     const cellW = (width - GRID_GAP_PX * (cols - 1)) / cols;
     const cellH = (height - GRID_GAP_PX * (rows - 1)) / rows - TILE_HEAD_PX;
-    const videoW = Math.min(cellW, (cellH * 16) / 9);
-    if (videoW > bestW + 4) {
-      bestW = videoW;
-      best = cols;
-    }
+    const videoW = Math.floor(Math.min(cellW, (cellH * 16) / 9));
+    if (videoW > best.tileW + 4) best = { cols, tileW: videoW };
   }
   return best;
 }
@@ -71,8 +71,14 @@ export function MonitoringPage() {
   const visibleCameras = focusedId ? cameras.filter((c) => c.camera_id === focusedId) : cameras;
   const online = cameras.filter((c) => c.enabled && (metrics?.cameras?.[c.camera_id]?.fps_processed ?? 0) > 0).length;
   const worstLatency = Math.max(0, ...Object.values(metrics?.cameras ?? {}).map((m) => m.timings_ms?.total?.p95 ?? 0));
-  const cols = gridColumns(visibleCameras.length, gridSize.width, gridSize.height);
-  const rows = Math.max(1, Math.ceil(visibleCameras.length / cols));
+  const layout = gridLayout(visibleCameras.length, gridSize.width, gridSize.height - TIMELINE_MIN_PX - GRID_GAP_PX);
+
+  // Хроника: события смены из журнала + свежие из WS (у них актуальный статус)
+  const timelineEvents = useMemo(() => {
+    const byId = new Map((shiftEvents?.items ?? []).map((e) => [e.id, e]));
+    for (const e of feed) if (e.confirmed_at >= shift.start) byId.set(e.id, e);
+    return [...byId.values()];
+  }, [shiftEvents, feed, shift.start]);
 
   return (
     <div className="page page--fill monitoring">
@@ -120,10 +126,12 @@ export function MonitoringPage() {
           ) : (
             <div
               className="cam-grid"
-              style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+              style={{
+                gridTemplateColumns: layout.tileW ? `repeat(${layout.cols}, ${layout.tileW}px)` : `repeat(${layout.cols}, minmax(0, 1fr))`,
+              }}
             >
               {visibleCameras.map((camera, i) => (
-                <div key={camera.camera_id} className="reveal" style={{ ['--i' as string]: i + 1, minHeight: 0 }}>
+                <div key={camera.camera_id} className="reveal" style={{ ['--i' as string]: i + 1 }}>
                   <CameraTile
                     camera={camera}
                     metrics={metrics?.cameras?.[camera.camera_id]}
@@ -136,6 +144,16 @@ export function MonitoringPage() {
                 </div>
               ))}
             </div>
+          )}
+          {cameras.length > 0 && (
+            <ShiftTimeline
+              cameras={cameras}
+              events={timelineEvents}
+              from={shift.start}
+              now={now}
+              label={shift.label}
+              onOpen={openEvent}
+            />
           )}
         </section>
         <AlertFeed feed={feed} freshIds={freshIds} cameras={cameraMap} now={now} unreviewed={unreviewed} onOpen={openEvent} />
