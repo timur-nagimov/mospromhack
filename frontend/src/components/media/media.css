@@ -19,6 +19,17 @@
     #08090b;
   font-size: 13px;
 }
+.stream__mode {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(0, 0, 0, 0.65);
+  font-size: 11px;
+  color: var(--text-2);
+}
+
 .stream__nosignal small {
   color: var(--text-4);
 }

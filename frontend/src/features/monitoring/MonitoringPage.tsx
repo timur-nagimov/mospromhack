@@ -7,6 +7,7 @@ import { isCriticalEvent } from '../../domain/violations';
 import { useElementSize } from '../../hooks/useElementSize';
 import { useNow } from '../../hooks/useNow';
 import { activeEventFor, useLive } from '../../state/live';
+import { MAX_MJPEG } from '../../components/media/CameraStream';
 import { useEventModal } from '../event/useEventModal';
 import { AlertFeed } from './AlertFeed';
 import { CameraTile } from './CameraTile';
@@ -71,6 +72,16 @@ export function MonitoringPage() {
   const visibleCameras = focusedId ? cameras.filter((c) => c.camera_id === focusedId) : cameras;
   const online = cameras.filter((c) => c.enabled && (metrics?.cameras?.[c.camera_id]?.fps_processed ?? 0) > 0).length;
   const worstLatency = Math.max(0, ...Object.values(metrics?.cameras ?? {}).map((m) => m.timings_ms?.total?.p95 ?? 0));
+  // Живой MJPEG — сначала камерам с активным нарушением, потом по порядку (лимит пула соединений)
+  const alertsByCamera = new Map(visibleCameras.map((c) => [c.camera_id, activeEventFor(feed, c.camera_id, now)]));
+  const liveIds = new Set(
+    [...visibleCameras]
+      .filter((c) => c.enabled)
+      .sort((a, b) => Number(Boolean(alertsByCamera.get(b.camera_id))) - Number(Boolean(alertsByCamera.get(a.camera_id))))
+      .slice(0, MAX_MJPEG)
+      .map((c) => c.camera_id),
+  );
+
   const layout = gridLayout(visibleCameras.length, gridSize.width, gridSize.height - TIMELINE_MIN_PX - GRID_GAP_PX);
 
   // Хроника: события смены из журнала + свежие из WS (у них актуальный статус)
@@ -135,9 +146,10 @@ export function MonitoringPage() {
                   <CameraTile
                     camera={camera}
                     metrics={metrics?.cameras?.[camera.camera_id]}
-                    alert={activeEventFor(feed, camera.camera_id, now)}
+                    alert={alertsByCamera.get(camera.camera_id) ?? null}
                     now={now}
                     focused={focusedId === camera.camera_id}
+                    live={liveIds.has(camera.camera_id)}
                     onToggleFocus={() => setFocusedId((id) => (id === camera.camera_id ? null : camera.camera_id))}
                     onOpenEvent={openEvent}
                   />
