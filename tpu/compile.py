@@ -313,6 +313,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--samplewise-percentile", type=float, default=None,
                     help="устойчивость к выбросам на больших наборах (pdf стр. 12)")
     ap.add_argument("--thresholds", help="готовые thresholds.json (пропустить калибровку)")
+    ap.add_argument("--finetune-epochs", type=int, default=0,
+                    help="дообучить пороги fine_tune_torch (дистилляция к fp32, pdf стр. 13-14) на кадрах калибровки")
+    ap.add_argument("--finetune-lr", type=float, default=0.001)
+    ap.add_argument("--finetune-limit", type=int, default=None, help="макс. шагов оптимизатора")
     ap.add_argument("--no-validate", action="store_true", help="не сверять квантованную модель с fp32")
     ap.add_argument("--validate-image", help="картинка для сверки (по умолчанию первый кадр калибровки)")
     ap.add_argument("--docker", action="store_true", help="выполнить в Docker-образе SDK (для мака)")
@@ -427,6 +431,16 @@ def main(argv: list[str] | None = None) -> int:
             am = regular.anchors_mapping
             thresholds = regular.calibrate({am[k]: v for k, v in calib_dict.items()}, **kw)
     RegularModel.dump_thresholds(str(thr_path), thresholds)
+    if a.finetune_epochs > 0:
+        t1 = time.time()
+        ft_kw = {"thresholds": thresholds, "fine_tuning_data": calib_dict, "fine_tuning_epochs": a.finetune_epochs,
+                 "learning_rate": a.finetune_lr, "device": "cpu"}
+        if a.finetune_limit:
+            ft_kw["limit"] = a.finetune_limit
+        thresholds = regular.fine_tune_torch(**ft_kw)
+        RegularModel.dump_thresholds(str(out_dir / "thresholds_finetuned.json"), thresholds)
+        manifest["finetune"] = {"epochs": a.finetune_epochs, "lr": a.finetune_lr, "seconds": round(time.time() - t1, 1)}
+        log(f"fine_tune_torch {a.finetune_epochs} эп. за {time.time() - t1:.1f} с")
     log(f"калибровка {time.time() - t0:.1f} с -> {thr_path}")
     t0 = time.time()
     qm = regular.quantize(thresholds)
