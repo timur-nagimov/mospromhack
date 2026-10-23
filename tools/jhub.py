@@ -584,8 +584,16 @@ class JHub:
         t0 = time.time()
         # Origin не шлём: за nginx стенда Host без порта, и проверка origin в jupyter_server отклоняет
         # «http://127.0.0.1:8888» (Cross origin websockets not allowed); без Origin запрос пропускается.
-        ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60),
-                                         suppress_origin=True)
+        try:
+            ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60),
+                                             suppress_origin=True)
+        except Exception:
+            if own:  # не оставляем «висящее» ядро при неудачном рукопожатии
+                try:
+                    self.stop_kernel(kid)
+                except Exception:  # noqa: BLE001
+                    pass
+            raise
         try:
             msg_id = uuid.uuid4().hex
             msg = {
