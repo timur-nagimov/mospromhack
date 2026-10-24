@@ -236,6 +236,7 @@ def capture(camera_id: str, request: Request) -> dict[str, Any]:
         stored = _capture_playback(engine, cam, writer)
     if stored is None:
         raise HTTPException(503, f"camera {camera_id} has no frame yet")
+    audit.record(request, audit.FLYWHEEL_CAPTURE, str(stored.get("id") or ""), {"camera_id": camera_id})
     return sample_out(stored)
 
 
