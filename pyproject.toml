@@ -20,3 +20,6 @@ ml = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+markers = [
+  "integration: требует внешних бинарников (mediamtx, ffmpeg) и пропускается без них",
+]

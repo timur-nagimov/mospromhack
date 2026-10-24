@@ -5,6 +5,7 @@ import { formatClock, formatMs, formatNumber } from '../../domain/format';
 import type { CameraConfig, CameraMetrics, GuardEvent } from '../../domain/types';
 import { getViolationMeta, isCriticalEvent } from '../../domain/violations';
 import { ViolationIcon } from '../../components/ui/badges';
+import { SourceStateChip, SourceStateDot, sourceView } from '../../components/ui/sourceState';
 
 interface Props {
   camera: CameraConfig;
@@ -22,13 +23,15 @@ function CameraTileImpl({ camera, metrics, alert, now, focused, live, onToggleFo
   const fps = metrics?.fps_processed;
   const latency = metrics?.timings_ms?.total?.p95;
   const online = camera.enabled && fps != null && fps > 0;
+  const source = sourceView(camera.enabled, metrics?.source, online);
+  const noSignal = source.state === 'reconnecting' || source.state === 'offline' || source.state === 'error';
   const critical = alert ? isCriticalEvent(alert) : false;
   const state = alert ? (critical ? 'critical' : 'alert') : 'ok';
 
   return (
     <article className={`tile tile--${state}`} aria-label={`Камера ${camera.name}`}>
       <header className="tile__head">
-        <span className={`live-dot${online ? '' : ' live-dot--bad'}`} title={online ? 'Поток обрабатывается' : 'Нет данных'} />
+        <SourceStateDot view={source} />
         <div className="tile__name">
           <strong>{camera.name}</strong>
           <span>
@@ -36,6 +39,7 @@ function CameraTileImpl({ camera, metrics, alert, now, focused, live, onToggleFo
           </span>
         </div>
         <div className="tile__badges">
+          <SourceStateChip view={source} />
           <span className="metric-chip" title="Обработано кадров в секунду">
             <b className="num">{fps != null ? formatNumber(fps, 1) : '—'}</b> к/с
           </span>
@@ -55,6 +59,12 @@ function CameraTileImpl({ camera, metrics, alert, now, focused, live, onToggleFo
       </header>
       <div className="tile__video">
         <CameraStream camera={camera} alert={alert} live={live} />
+        {noSignal && (
+          <div className={`tile__nosignal tile__nosignal--${source.tone}`} title={source.title}>
+            <strong>{source.state === 'reconnecting' ? 'Связь с камерой потеряна' : source.label}</strong>
+            <span>{source.state === 'error' ? 'Проверьте адрес источника' : 'Переподключение идёт автоматически'}</span>
+          </div>
+        )}
         {alert && (
           <button type="button" className="tile__alert" onClick={() => onOpenEvent(alert.id)}>
             <span className="tile__alert-stripe hazard--red" aria-hidden="true" />
