@@ -72,7 +72,7 @@
 
 ### Edge-режим
 
-На edge-узле нет журнала, поэтому сэмплы уходят на шлюз:
+На edge-узле нет хранилища маховика, поэтому сэмплы уходят на шлюз:
 - сырой кадр (JPEG, ширина ≤ 960) и детекции — вместе с событием или отдельным сообщением `flywheel_sample`;
 - для `uncertain` и `flicker` на edge период по умолчанию 30 с;
 - прибавка к трафику со стенда — не больше 10 КБ/с на камеру. Сейчас весь трафик со стенда — 11 КБ/с, канал от
@@ -212,6 +212,7 @@ UI обновляет по нему счётчики. Если UI его не о
 | `GUARD_FLYWHEEL_SHADOW` | 0 | Сверка TPU с CPU на выборочных кадрах |
 | `GUARD_FLYWHEEL_SHADOW_PERIOD_S` | 30 | Период сверки |
 | `GUARD_FLYWHEEL_ALLOW_TRAIN` | 0 | Разрешить задачи `train` и `deploy` из UI |
+| `GUARD_FLYWHEEL_EDGE_KBPS` | 4 | Edge: трафик сэмплов на шлюз на камеру, КБ/с (добавлено при реализации) |
 
 ## UI: страница «Данные» (`frontend/src/features/flywheel/`, маршрут `/data`)
 
@@ -252,15 +253,20 @@ UI обновляет по нему счётчики. Если UI его не о
 | Что | Где |
 |---|---|
 | Хранилище: SQLite `flywheel.db` (WAL), кадры `frames/<camera_id>/<sample_id>.jpg`, версии датасетов | `guard/flywheel/store.py` (`FlywheelStore`) |
-| Отбор кадров: полоса уверенности, мигание трека, сверка TPU и CPU | `guard/flywheel/select.py` |
+| Отбор кадров: полоса уверенности, мигание трека, сравнение TPU и CPU | `guard/flywheel/select.py` |
 | Сборщик в конвейере и фоновый писатель | `guard/flywheel/collector.py` (`FlywheelCollector`, `LocalWriter`) |
-| Подключение к движкам (одна строка в `PipelineEngine` и `GatewayEngine`) | `guard/flywheel/wiring.py` |
+| Edge-режим: отправка частями и сборка на шлюзе | `guard/flywheel/edge.py` (`EdgeSender`, `SampleAssembler`) |
+| Канал сэмплов в AMQP topology v2: своя очередь, publisher edge, приём на шлюзе | `guard/flywheel/amqp.py` |
+| Вид сообщения `flywheel_sample` и проверка его payload | `guard/transport/protocol.py` |
+| Сверка TPU с CPU | `guard/flywheel/shadow.py` (`ShadowChecker`) |
+| Подключение к движкам (одна строка в `PipelineEngine` и в `GatewayEngine`) | `guard/flywheel/wiring.py` |
 | Отложенная выборка | `guard/flywheel/holdout.py` |
 | Карточки моделей, задачи | `guard/flywheel/cards.py`, `guard/flywheel/jobs.py` |
 | API | `guard/api/flywheel.py`, подключён в `guard/api/app.py` двумя строками |
-| Экспорт версии датасета | `ml/flywheel/export.py` |
+| Экспорт версии датасета, авторазметка | `ml/flywheel/export.py`, `ml/flywheel/autolabel.py` |
 
 Хранилище по умолчанию — `<GUARD_DATA_DIR>/flywheel` (`data/flywheel`), меняется `GUARD_FLYWHEEL_DIR`.
+Дополнительная настройка — `GUARD_FLYWHEEL_EDGE_KBPS` (4): трафик сэмплов с edge на камеру, КБ/с.
 
 ### Горячий путь
 
@@ -271,7 +277,7 @@ UI обновляет по нему счётчики. Если UI его не о
 - `CameraWorker.process`: в конце обработки кадра вызывается `flywheel.observe(worker, ctx)`, после
   `handle_events` и `frame_meta`. В нём обновляется жизненный цикл треков (мигание) и, раз в период, ищется
   неуверенная рамка.
-- Очередь писателя — 16 задач. Если она полна, сэмпл отбрасывается и растёт `dropped.queue`.
+- Очередь записи — 16 задач. Если она полна, сэмпл отбрасывается и растёт `dropped.queue`.
 - JPEG (≤ 1280 px, q90), файл, строка SQLite и сообщение WS делаются в потоке `flywheel-writer`.
 - `PATCH /api/events/{id}` со `status` сразу пишет `operator_label` в сэмпл `event`. Если оператор успел
   раньше, чем фон записал сэмпл, писатель берёт статус события из журнала при вставке.
@@ -308,8 +314,102 @@ UI обновляет по нему счётчики. Если UI его не о
 - **Holdout — расширение контракта.** Отложенными считаются ролики всех `ml/eval/scenarios*.yaml`, а не только
   `scenarios.yaml`: наборы `scenarios_<имя>.yaml` тоже оценочные. Совпадение ищется по имени ролика в пути
   источника: `videos/s1_01.mp4`, субпоток стенда `data_360/videos/s1_01.mp4`, каталоги кадров `images/s2`.
-  **Все четыре демо-камеры `configs/cameras.yaml` — отложенные ролики**, их сэмплы имеют `holdout = 1` и без
-  `--include-holdout` в датасет не попадают.
+  **Все четыре демо-камеры `configs/cameras.yaml` и камеры стенда — отложенные ролики**, их сэмплы имеют
+  `holdout = 1` и без `--include-holdout` в датасет не попадают.
+
+### Сверка TPU с CPU (`disagreement`)
+
+- Включается `GUARD_FLYWHEEL_SHADOW=1` и только при бэкенде `linq-tpu`. На `onnx-cpu` сравнивать не с чем,
+  и сверка не создаётся.
+- Раз в `GUARD_FLYWHEEL_SHADOW_PERIOD_S` на камеру кадр и детекции TPU уходят в поток `flywheel-shadow`.
+  Там та же модель считается на CPU (onnxruntime fp32, 1 поток, ONNX из `onnx_path` реестра).
+- Очередь сверки — 2 кадра. Если CPU не успевает, кадр пропускается (`skipped`).
+- Сравниваются только целевые классы правил камеры. Рамка считается уверенной, если `conf ≥ conf_threshold + 0.10`.
+  Пара — рамка того же класса с IoU ≥ 0.5 среди всех рамок другой стороны: int8 занижает conf на ~0.05.
+- Уверенная рамка без пары даёт сэмпл `disagreement`. В нём детекции обеих сторон, CPU — с `model_id = <модель>_cpu`.
+
+### Edge-режим
+
+```
+edge:    on_event / observe → EdgeSender (поток) → JPEG ≤ 960 px, ≤ 60 КБ → части по 8 КБ
+         конверт flywheel_sample из Journal.make_message; ведро токенов 4 КБ/с × число камер
+         FlywheelPublisher (своё соединение) ──► exchange guard.edge.v1, ключ <edge_id>.flywheel
+broker:  очередь guard.gateway.<edge_id>.flywheel.v1: TTL 120 с, ≤ 256 частей, ≤ 4 МБ, delivery_mode=1
+gateway: FlywheelReceiver (поток, своё соединение, basic_get) → SampleAssembler → LocalWriter → data/flywheel
+```
+
+- **Протокол.** Сэмпл идёт конвертами протокола edge → шлюз (`docs/EDGE_PROTOCOL.md`), вид `flywheel_sample`.
+  Payload: `sample_id`, `part`, `parts` (≤ 64), `sample` (только в части 0), `jpeg_b64` (кусок JPEG ≤ 64 КБ).
+  Конверт выдаёт журнал edge (`Journal.make_message`): тот же producer и сквозная sequence, что у событий.
+  В outbox сэмплы не попадают: это не события, доставка без гарантии, как у телеметрии.
+- **Что передаёт edge.** Только поля `id`, `created_at`, `camera_id`, `source`, `event_id`, `reason`,
+  `holdout`, `width`, `height`, `detections`, `meta`. Протокол отклоняет остальное. Путь кадра, статус сэмпла
+  и метку оператора ставит шлюз. Размеры берутся из самого JPEG. Метка оператора — из журнала шлюза.
+- **Своя очередь, а не `telemetry.v2` — отступление от «как телеметрия».** В `telemetry.v2` TTL 5 с и
+  32 сообщения. Шлюз через VPN читает её по сообщению за два RTT, ~2 сообщения/с, а 4–5 камер шлют
+  `frame_meta` 4–5 сообщений/с. Часть сэмпла там терялась бы почти всегда, и сэмпл не собирался бы.
+- **Задержка оповещения.** Опрос событий шлюзом сэмпла не ждёт: у очереди маховика своё соединение и свой
+  поток. На шлюзе в полёте не больше одной части (~11 КБ). Событие делит с ней туннель стенд → ноутбук
+  (0.1–0.4 МБ/с) не дольше 30–110 мс. Целый кадр (~75 КБ) держал бы его 0.2–0.8 с.
+- **Ограничение трафика.** Ведро токенов считает байты конверта: base64 и метаданные тоже. По умолчанию
+  4 КБ/с на работающую камеру (`GUARD_FLYWHEEL_EDGE_KBPS`), контракт — не больше 10.
+- **Порядок.** Сэмплы событий и ручного захвата идут вперёд остальных. При полном буфере (8 сырых кадров)
+  вытесняется самый старый обычный сэмпл. Ошибка публикации бросает сэмпл целиком (`dropped.channel`).
+  Следующая попытка — после паузы 1–15 с, брокер не долбим каждым сэмплом.
+- Период `uncertain` и `flicker` на edge — 30 с. Сводка сборщика edge уходит на шлюз в `metrics.flywheel`.
+  По ней `/api/flywheel/summary` на шлюзе показывает `collecting` и `collector`. Приём на шлюзе — в
+  `receiver`: счётчики сборщика и очереди.
+- **Шлюз.** `SampleAssembler` собирает части по `sample_id`. Незавершённые забываются через 120 с
+  (`dropped.gateway_incomplete`). Не больше 32 незавершённых и 8 МБ (`gateway_overflow`). Битый JPEG или
+  чужой `source` — `gateway_invalid`. Повторная доставка не даёт второй строки.
+- Части, пришедшие через `GatewayEngine.receive` (тесты, `FakeBroker`, другой транспорт), идут в тот же
+  сборщик. Старый шлюз без маховика отклоняет незнакомый вид сообщения, а не падает.
+- Ручной захват на шлюзе без локального источника отвечает 503: кадров на шлюзе нет.
+- Старый путь через `sink` (`guard/pipeline/gateway.py`, сообщения `guard/transport/messages.py`) сэмплы не возит.
+
+Живая проверка канала: настоящий RabbitMQ стенда через VPN, своя временная очередь
+`guard.gateway.fwcheck-0af72390.flywheel.v1`, 24.10 21:20. Итог —
+`data/media/checks/flywheel_amqp_20261024-2120/report.json`:
+- 4 кадра 1280×720 ролика `s1_01` → 4 сэмпла 960×540, 29 частей, 299.6 КБ конвертов;
+- принято 29 из 29, отклонено 0, собрано 4 из 4;
+- кадр сэмпла события отличается от исходного на 1.37 из 255 в среднем: сырой кадр, только сжатие JPEG;
+- средняя скорость 2.7 КБ/с при лимите 4: каждая часть ждёт подтверждения брокера через VPN;
+- временная очередь удалена.
+
+Прежний замер трафика (edge на ноутбуке, `--transport log`, 4 демо-камеры, 90 с, кадры 1280×720) —
+`data/media/checks/flywheel_edge_20261024-1607/edge_flywheel.json`: 27 сэмплов, **3.34 КБ/с на камеру**
+при лимите 4, отброшенных 0. Тогда считались байты JPEG; сейчас ведро считает байты конверта, он на ~35 %
+больше. Значит, при том же лимите сэмплов уходит меньше, а трафик не растёт.
+
+### Авторазметка учителем
+
+```bash
+tools/heavy.sh .venv/bin/python -m ml.flywheel.autolabel --limit 10 [--teachers coco,world,hardhat] \
+    [--status new] [--source event,uncertain] [--ids a,b] [--skip-holdout] [--viz DIR]
+```
+
+| Учитель | Веса | Классы проекта |
+|---|---|---|
+| `coco` — YOLOv8x COCO | `models/weights/teacher/yolov8x.pt`, sha256 `3df4ada6…524c8` | person, car, truck, bus, motorcycle, bicycle, train, cell phone, backpack, handbag, suitcase |
+| `world` — YOLO-World v2 x, текстовые классы | `models/weights/teacher_world/yolov8x-worldv2.pt`, sha256 `41e771bf…02a0e` | forklift, helmet, vest, cigarette, fire, smoke, excavator, wheel_loader, dump_truck |
+| `hardhat` — keremberke/yolov8m-hard-hat-detection | `models/weights/hardhat_keremberke_v8m.pt` | helmet, no_helmet |
+
+- Источник весов YOLOv8x и YOLO-World — https://github.com/ultralytics/assets/releases/tag/v8.3.0.
+  Глобалы чекпойнтов проверены статически (`torch.serialization.get_unsafe_globals_in_checkpoint`): только
+  `torch` и `ultralytics`.
+- Учителя независимы от моделей конвейера (det — YOLOv8n, ppe — constructelligence). Иначе модель учится
+  на своих ошибках.
+- NMS без учёта класса: одна рамка на объект. Иначе фура получает и `truck`, и `bus`. Рамки одного класса
+  от разных учителей сливаются при IoU ≥ 0.6.
+- Метки получают `origin = teacher` и `conf`, статус `new` → `auto`, в `meta.autolabel` записываются
+  учителя и время. Проверенные сэмплы и метки человека не трогаются без `--overwrite`.
+- **YOLO-World сейчас пропускается.** Для текстовых классов нужен пакет `clip` (ultralytics/CLIP). Его установку
+  из GitHub в этой сессии запретила система разрешений. Учитель пропускается с понятным сообщением.
+  Автоустановку ultralytics скрипт выключает (`YOLO_AUTOINSTALL=false`). Включить можно так:
+  `uv pip install --python .venv/bin/python --no-deps git+https://github.com/ultralytics/CLIP.git`. Пакеты
+  `ftfy` и `regex` уже стоят. Без YOLO-World учитель не предложит погрузчик, жилет и сигарету — их
+  размечает человек в UI.
+- Задача `autolabel` из UI (`POST /api/flywheel/jobs`) идёт через `tools/heavy.sh`.
 
 ### API — уточнения
 
@@ -320,16 +420,20 @@ UI обновляет по нему счётчики. Если UI его не о
   изменённые и новые получают `origin = operator`.
 - `GET /api/flywheel/summary`: поля контракта и ещё:
   - `by_class` — классы итоговых меток, `by_detected_class` — классы детекций;
-  - `dropped` — число; `dropped_detail` — по причинам: `queue` (очередь полна), `cap` (суточный лимит);
-  - `collector` — счётчики сборщика, `writer` — счётчики писателя;
+  - `dropped` — число; `dropped_detail` — по причинам: `queue`, `cap`, `channel`, `gateway_incomplete`;
+  - `collector` — счётчики сборщика (на шлюзе — с edge), `writer` — счётчики писателя;
   - `allow_train`, `mode`.
 - `POST /api/flywheel/capture/{camera_id}` (local) берёт последний обработанный кадр камеры и его детекции.
 - `POST /api/flywheel/datasets` → 201 с описанием версии. Если принятых сэмплов нет — 422.
 - `POST /api/flywheel/jobs`: `args` превращаются во флаги CLI (`{"limit": 10, "include_holdout": true}` →
-  `--limit 10 --include-holdout`). Хранилище CLI получает через `GUARD_FLYWHEEL_DIR`. Очереди tools/heavy.sh:
-  autolabel, gate и deploy — `default`, train — `train`; export идёт без очереди. Если модуля
-  `ml/flywheel/<kind>.py` нет, задача сразу получает `status = failed` и понятную ошибку. Описание задачи
-  лежит в `jobs/<id>.json` рядом с логом и переживает перезапуск сервиса.
+  `--limit 10 --include-holdout`). Хранилище CLI получает через `GUARD_FLYWHEEL_DIR`. Полосы `tools/heavy.sh`:
+  - autolabel, gate и deploy — `default`;
+  - train — `train`;
+  - export — без очереди.
+
+  Если модуля `ml/flywheel/<kind>.py` нет, задача сразу получает `status = failed` и понятную ошибку.
+  Описание задачи лежит в `jobs/<id>.json` рядом с логом и переживает перезапуск сервиса.
+- `/api/metrics` в local и на edge содержит ключ `flywheel` — сводку сборщика.
 
 ### Экспорт
 
@@ -347,13 +451,25 @@ python -m ml.flywheel.export [--include-holdout] [--classes person,forklift] [--
 
 ### Проверено
 
-- Тесты: `tests/test_flywheel_{store,select,holdout,operator,latency,export,api}.py`.
-- Живой прогон 24.10 14:01, `uvicorn guard.api.app:app --port 8010`, демо-камеры `configs/cameras.yaml`,
-  onnx-cpu, 75 с. Журнал, медиа и хранилище маховика — отдельные, в `data/media/checks/flywheel_live_20261024-1401/`:
-  - 12 событий → 12 сэмплов `event`, 17 `uncertain`, 2 `flicker`, 0 отброшено;
+- Тесты: `tests/test_flywheel_*.py`, 67 тестов: store, select, holdout, operator, latency, export, api, edge,
+  shadow, autolabel. Полный pytest — 1143 зелёных.
+- Живой прогон 24.10 15:49, `uvicorn guard.api.app:app --port 8010`, демо-камеры `configs/cameras.yaml`,
+  onnx-cpu, 75 с. Журнал, медиа и хранилище маховика — отдельные, в `data/media/checks/flywheel_live_20261024-1549/`:
+  - 13 событий → 13 сэмплов `event`, 16 `uncertain`, 2 `flicker`, 0 отброшено, 0 ошибок в логе;
   - ручной захват `cam_s1` — 201;
-  - кадры `frame_event.jpg` (падение) и `frame_uncertain.jpg` — сырые, без рамок и зон;
+  - кадры сэмплов — сырые, без рамок и зон (`frame_event.jpg`, `frame_uncertain.jpg`);
   - все сэмплы — `holdout = 1`: демо-камеры смотрят ролики оценки.
+- Авторазметка 10 сэмплов того же прогона (MPS, coco + hardhat, YOLO-World пропущен): 10 из 10 размечены.
+  - Метки: person 10, helmet 4, truck 1, bus 1. YOLOv8x — 2 с на 10 кадров.
+  - Кадры с метками — `autolabel_viz/`, просмотрены глазами. Лежащий человек на `uncertain` cam_s3: у
+    конвейера (YOLOv8n) 0.32, у учителя 0.88 и точная рамка. Каска со спины — `helmet` 0.62. Фуру учитель
+    назвал `bus` 0.48 — поэтому метки учителя идут в обучение только после проверки человеком.
+- Тот же цикл через API на живом сервере (порт 8011, `api_check.json`):
+  1. `train` без `GUARD_FLYWHEEL_ALLOW_TRAIN` — 403;
+  2. задача `autolabel` на 3 сэмпла: `tools/heavy.sh` → `done`, метки `teacher`;
+  3. `PATCH` принимает три сэмпла;
+  4. датасет без holdout — 422, потому что все сэмплы демо отложенные;
+  5. с `include_holdout` — `fw-20261024-1624`: train 2, val 1, hard negative 1, предупреждение о загрязнённой оценке.
 
 ### Звено 6: дообучение, гейт, выкатка (ds-forklift)
 

@@ -159,7 +159,7 @@ def normalize_detection(det: Mapping[str, Any]) -> dict[str, Any]:
     return {
         "model_id": str(det.get("model_id") or det.get("model") or ""),
         "cls": str(det.get("cls") or ""),
-        "conf": _num(det.get("conf"), 4),
+        "conf": _num(det.get("conf"), 4) or 0.0,  # UI ждёт число
         "bbox": normalize_box(det.get("bbox")),
         "track_id": int(track) if track is not None else None,
     }
