@@ -49,6 +49,7 @@ class FileSource(FrameSource):
                     return
                 continue
             self.connected, self.eof = True, False
+            self._new_capture()
             fps = self.native_fps or 25.0
             t0 = time.monotonic()
             idx = 0  # номер следующего кадра от начала прохода
@@ -129,6 +130,7 @@ class LiveSource(FrameSource):
                 backoff = min(backoff * 2, 15.0)
                 continue
             self.connected = True
+            self._new_capture()
             backoff = 1.0
             failures = 0
             try:

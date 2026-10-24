@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-24",
+  "scope": "local_code",
+  "base_commit": "c017614",
+  "origin_main_verified": true,
+  "python": "3.11.16",
+  "node": "24.8.0",
+  "pytest": {
+    "command": ".venv/bin/python -m pytest -q",
+    "passed": 535,
+    "failed": 0,
+    "duration_s": 26.45
+  },
+  "frontend": {
+    "command": "npm ci && npm run build",
+    "status": "passed"
+  },
+  "live_tpu_verified": false,
+  "real_model_inference_verified": false
+}

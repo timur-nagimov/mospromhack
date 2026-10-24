@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import sys
+import json
 import threading
 import time
 from types import SimpleNamespace
@@ -316,3 +317,40 @@ def test_partial_connection_is_closed_on_channel_failure(monkeypatch):
         client.connect()
     assert closed == [True]
     assert client.conn is None and client.ch is None
+
+
+def test_tpu_head_cpu_tail_is_not_an_implicit_cpu_fallback(tmp_path, monkeypatch, batch):
+    directory = tmp_path / "tpu/m"
+    directory.mkdir(parents=True)
+    (directory / "manifest.json").write_text(json.dumps({
+        "inputs": {"x": {"shape": [1, 3, 8, 8]}}, "tpu_outputs": ["y"],
+        "orig_outputs": ["result"], "batch": 1, "tail_onnx": "tail.onnx",
+    }))
+    tail_calls = []
+
+    class FakeTail:
+        def get_inputs(self):
+            return [SimpleNamespace(name="y", shape=[1, 2])]
+
+        def get_outputs(self):
+            return [SimpleNamespace(name="result")]
+
+        def run(self, names, feeds):
+            tail_calls.append(feeds["y"].copy())
+            return [feeds["y"] + 10]
+
+    monkeypatch.setitem(sys.modules, "onnxruntime", SimpleNamespace(
+        SessionOptions=lambda: SimpleNamespace(), InferenceSession=lambda *args, **kwargs: FakeTail()))
+    backend = lt.LinqTpuBackend(host="fake", raw=False, models_dir=tmp_path)
+    monkeypatch.setattr(backend, "_client", lambda: SuccessClient())
+    try:
+        backend.load(ModelSpec(model_id="m", onnx_path="unused.onnx", tpu_program="file:///remote/m.tpu", input_size=(8, 8)))
+        outputs = backend.infer("m", batch)
+        np.testing.assert_array_equal(outputs[0], np.full((1, 2), 11, np.float32))
+        assert len(tail_calls) == 1
+        stats = backend.stats()
+        assert stats["active"] == stats["active_backend"] == stats["requested_backend"] == "linq-tpu"
+        assert stats["fallback"] is False and stats["fallback_enabled"] is False
+        assert stats["cpu_tail_models"] == ["m"]
+    finally:
+        backend.close()

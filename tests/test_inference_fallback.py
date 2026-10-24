@@ -112,6 +112,8 @@ def test_switch_and_return_with_same_spec(spec, batch, clock, failure):
         assert backend.max_batch_size("m") == 1
         state = backend.stats()
         assert state["active"] == "onnx-cpu"
+        assert state["active_backend"] == "onnx-cpu" and state["requested_backend"] == "linq-tpu"
+        assert state["fallback_enabled"] is True
         assert state["switches"] == 1
         assert state["available"] is True
         assert state["last_error"]
@@ -290,7 +292,7 @@ def test_only_one_recovery_probe_runs(spec, batch, clock):
         backend.close()
 
 
-def test_get_backend_default_opt_out_and_kwargs(monkeypatch):
+def test_get_backend_fail_closed_default_explicit_opt_in_and_kwargs(monkeypatch, spec, batch):
     import guard.inference as inference
 
     created = []
@@ -317,10 +319,25 @@ def test_get_backend_default_opt_out_and_kwargs(monkeypatch):
         "guard.inference.linq_tpu": SimpleNamespace(LinqTpuBackend=Primary),
         "guard.inference.onnx_cpu": SimpleNamespace(OnnxCpuBackend=Secondary),
     }
-    monkeypatch.setattr(inference.importlib, "import_module", lambda name: modules[name])
+    imports = []
+
+    def import_backend(name):
+        imports.append(name)
+        return modules[name]
+
+    monkeypatch.setattr(inference.importlib, "import_module", import_backend)
     monkeypatch.delenv("GUARD_BACKEND_FALLBACK", raising=False)
+    strict = inference.get_backend("linq-tpu", host="fake")
+    assert isinstance(strict, Primary) and len(created) == 1
+    assert imports == ["guard.inference.linq_tpu"]
+    strict.load(spec)
+    strict.failure = BackendUnavailable("TPU unavailable")
+    with pytest.raises(BackendUnavailable, match="TPU unavailable"):
+        strict.infer("m", batch)
+    assert len(created) == 1  # CPU was neither imported/constructed nor called.
+    strict.close()
     backend = inference.get_backend(
-        "linq-tpu", host="fake", models_dir="/fake/models", intra_op_threads=2, max_batch=3,
+        "linq-tpu", fallback="onnx-cpu", host="fake", models_dir="/fake/models", intra_op_threads=2, max_batch=3,
     )
     try:
         assert isinstance(backend, FallbackBackend)
@@ -344,6 +361,9 @@ def test_get_backend_default_opt_out_and_kwargs(monkeypatch):
     from_env = inference.get_backend()
     assert isinstance(from_env, FallbackBackend)
     from_env.close()
+    forced_strict = inference.get_backend("tpu", fallback="none")
+    assert isinstance(forced_strict, Primary)
+    forced_strict.close()
 
     cpu = inference.get_backend("cpu")
     assert isinstance(cpu, Secondary)
@@ -358,6 +378,7 @@ def make_engine(backend, errors=(), *, age=0.0):
     # _health_base читает settings.mode (режимы local/edge/gateway, A3).
     engine.settings = SimpleNamespace(mode="local")
     engine.backend = backend
+    engine._stopped = False
     engine._lock = threading.RLock()
     engine.started_at = time.time()
     engine.workers = {
@@ -463,7 +484,7 @@ def test_health_tracks_real_fallback_state(spec, batch, clock):
         backend.close()
 
 
-def test_engine_stop_closes_backend_last():
+def test_engine_stop_closes_scheduler_and_media_before_backend_then_journal():
     calls = []
     backend = FakeBackend()
     backend.close = lambda: calls.append("backend")
@@ -472,4 +493,4 @@ def test_engine_stop_closes_backend_last():
     engine.media = SimpleNamespace(stop=lambda: calls.append("media"))
     engine.journal = SimpleNamespace(close=lambda: calls.append("journal"))
     engine.stop()
-    assert calls == ["scheduler", "media", "journal", "backend"]
+    assert calls == ["scheduler", "media", "backend", "journal"]

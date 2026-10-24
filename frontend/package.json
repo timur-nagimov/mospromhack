@@ -13,6 +13,7 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "build:mock": "tsc --noEmit -p tsconfig.json && vite build --mode mock --outDir dist-mock",
     "preview": "vite preview",
+    "test:analytics": "node --test scripts/test-analytics.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "screenshots": "node scripts/screenshots.mjs"
   },

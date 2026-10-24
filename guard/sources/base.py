@@ -11,7 +11,8 @@ import logging
 import threading
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from uuid import uuid4
 
 import numpy as np
 
@@ -27,6 +28,7 @@ class FramePacket:
     seq: int  # номер кадра источника, растёт монотонно
     decode_ms: float  # время чтения и декодирования
     pos_s: float | None = None  # позиция в файле (для file)
+    capture_id: str = field(default_factory=lambda: str(uuid4()))
 
 
 FrameCallback = Callable[[FramePacket], None]
@@ -51,6 +53,11 @@ class FrameSource:
         self.errors = 0
         self.native_fps: float | None = None
         self.frame_size: tuple[int, int] | None = None  # (w, h)
+        self.capture_id = str(uuid4())
+
+    def _new_capture(self) -> None:
+        """A reconnect/file loop is a new capture, even if frame positions repeat."""
+        self.capture_id = str(uuid4())
 
     # ---- жизненный цикл ----
 
@@ -95,7 +102,7 @@ class FrameSource:
 
     def _publish(self, frame: np.ndarray, decode_ms: float, ts: float | None = None, pos_s: float | None = None) -> None:
         self._seq += 1
-        pkt = FramePacket(frame=frame, ts=time.time() if ts is None else ts, seq=self._seq, decode_ms=decode_ms, pos_s=pos_s)
+        pkt = FramePacket(frame=frame, ts=time.time() if ts is None else ts, seq=self._seq, decode_ms=decode_ms, pos_s=pos_s, capture_id=self.capture_id)
         self.frame_size = (frame.shape[1], frame.shape[0])
         with self._cond:
             self._latest = pkt

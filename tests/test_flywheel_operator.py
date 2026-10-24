@@ -51,7 +51,8 @@ def _run_frames(worker, n=20):
     frame = _frame()
     t0 = time.time() - 20
     for i in range(n):
-        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0))
+        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0,
+                                   capture_id=worker.source.capture_id))
     return frame
 
 

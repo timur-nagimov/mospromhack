@@ -122,7 +122,12 @@ class LocalWriter:
         if self._thread is None or not self._thread.is_alive():
             self._stop.clear()
             self._thread = threading.Thread(target=self._run, name="flywheel-writer", daemon=True)
-            self._thread.start()
+            try:
+                self._thread.start()
+            except BaseException:
+                if not self._thread.is_alive():
+                    self._thread = None
+                raise
 
     def stop(self, timeout: float = 3.0) -> None:
         """Дописать очередь (не дольше timeout) и остановиться."""
@@ -135,6 +140,8 @@ class LocalWriter:
         except queue.Full:
             pass
         thread.join(timeout)
+        if thread.is_alive():
+            raise RuntimeError("Flywheel writer did not stop")
         self._thread = None
 
     @property

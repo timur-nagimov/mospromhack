@@ -105,6 +105,15 @@ export function useStats(groupBy: StatsGroupBy, from?: number, to?: number) {
   });
 }
 
+/** Один запрос — один снимок SQLite для всех показателей выбранного периода. */
+export function useAnalyticsStats(from: number | undefined, to: number) {
+  return useQuery({
+    queryKey: ['stats', 'analytics', from, to],
+    queryFn: ({ signal }) => api().getAnalytics({ from, to }, signal),
+    staleTime: 30_000,
+  });
+}
+
 export function useSaveCamera() {
   const qc = useQueryClient();
   return useMutation({

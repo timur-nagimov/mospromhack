@@ -1,0 +1,5853 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "scope": "heavy model CPU quality experiments before upstream integration",
+  "selection_priority": "accuracy first; CPU timing descriptive only; production requires external LinQ TPU",
+  "ticket_mode": "no_ticket",
+  "upstream_integration_target": "e23ff4f",
+  "paired_s1": {
+    "ok": true,
+    "worker_returncode": 0,
+    "report": {
+      "path": "data/model_comparison/20261024T095758Z-58d6c67e/report.json",
+      "bytes": 136994,
+      "sha256": "237cc39cbc1b79a619c34880564e390305b098d69576779c68cfc06346918fc6"
+    },
+    "provenance": {
+      "executable_code": {
+        "definition": "guard/**/*.py + ml/**/*.py; relative paths and SHA256, including untracked files",
+        "file_count": 70,
+        "files": {
+          "guard/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/api/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/api/app.py": "9299bf4ce335f2a54c10ee1dc52cab9a16372deb19142cdc6746fbbefeb27adb",
+          "guard/contracts.py": "1a9ac18385240ad72c64c385eb9300a4a15e41cdf44647fbd63ec5c5411a7210",
+          "guard/doctor.py": "d271d75c39319ed69050662117216490d2fd21783687d828623b812da2b667d2",
+          "guard/edge/__init__.py": "24fea43659d7daf56e8a5d6360bb97cbfb2d38c58f568762ca73b6b8e29d68f3",
+          "guard/edge/runner.py": "e766ff776863b6bb2fb92b69d54354ffb29f92c955caf282771fe49bcef9d983",
+          "guard/events/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/events/journal.py": "c5f96dc5ff350b109341f3b017d3d6a7394e5c123579660b31733009481d0bbc",
+          "guard/events/manager.py": "14e1f5b9c5800d4e9a0d027931f131ad9d6276628c33a7f8e172e21364e2b60c",
+          "guard/events/media.py": "151e176d06775fc92da4b1c6946842d3ff32ed02a0ab65f4002fd8e67bf51773",
+          "guard/gateway/__init__.py": "4f683e0aa4f43a9448d00c819e050db31f6acba49cbdda9fde32db322305a22c",
+          "guard/gateway/engine.py": "fe6cb9c7386ead6e47806100168878af38b73eaa13eb3b8214168bb3c5427b3e",
+          "guard/gateway/frames.py": "770e874ffcee133b586104fd5fe94e53e1f185ce54cd07125123f6118b71e034",
+          "guard/inference/__init__.py": "ad0d98583455b27f1ebe1279c075d6002c6a11ac7c1b626c59586f71b0ef608c",
+          "guard/inference/base.py": "8fcafb60c8df4bbc47c33d44b1238656e2b7478e8eb15faddd2b5642d70fb863",
+          "guard/inference/linq_tpu.py": "47c5d1639cf052bcb73c684658274530c78547c7df7a961880cb6959ae49d896",
+          "guard/inference/onnx_cpu.py": "34662ac34519dd44a6a1816205af292b8c3075f3202c197617b9be8017491566",
+          "guard/metrics/__init__.py": "2312fb7b055b850f31f5a634aff509d9f125d8392dbc58406732d071516349e5",
+          "guard/pipeline/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/pipeline/_fallbacks.py": "d41ad238e4877d783ff1be6c28718ec31b2239332a99bf8ea959c498eb8fc0e7",
+          "guard/pipeline/bus.py": "45f9e77aa4b4bf609e32c894426343268d9879891791d89ed81e0f1b1f002432",
+          "guard/pipeline/compat.py": "ba99ee6545af582e7ef358b39cd07c3f65e180bf03ef01726c45edf701fea12d",
+          "guard/pipeline/config.py": "7ce8b7713419b9a4aa707eb7aaef7e64ff6e6f96eeae6325a19d7f7ed3c949a3",
+          "guard/pipeline/detector.py": "c2620b18c5ce089c591ed05743772f41a492e64c873c3b8026d64e3c1f711977",
+          "guard/pipeline/engine.py": "a5ffb21d4f6154671ab16946668b893412de68a840d4d4425635c232a9687a1e",
+          "guard/pipeline/errors.py": "f7e09a60f5f9f0f02f61243d2066bd4864a2f49a2a97baa6ad0abfc9594e2cc6",
+          "guard/pipeline/settings.py": "2c2366e57da7afa4f6d4e4e29cfaaa7baeec5f96dc318be085793481e3ffdc19",
+          "guard/pipeline/worker.py": "8968859bce6171446b0232d7a2d13ffda2e879b0da283a306f27bbaf7c4f49fa",
+          "guard/reports/__init__.py": "2f73ac6f3a9990fa94ef24bb7f66e9bfeed38cebfd624d6954cfc6c02098d87c",
+          "guard/reports/shift_report.py": "628f2680220cf8000a5cd79a485d5215c70de16af2855ed1a60a46c84cc3252e",
+          "guard/rules/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/rules/base.py": "508964672bfa932f068104acf903b7241ce9aa4358d88896b731630ffaf3e1ef",
+          "guard/rules/geometry.py": "4ffe0557ff979e51fc7f2a72b96afc3842b496488517813a9edf23e3f87eeb38",
+          "guard/rules/plugins/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/rules/plugins/fall_immobile.py": "88a6297f0f5c11cbceb0707a9a80f2d62caa56ba7eb257a6359df6e2d3e0004c",
+          "guard/rules/plugins/fence_climb.py": "d743d95952e5dd265b7acd4d6801233385e7cbbdc1f2620af8fcb969ca8c5765",
+          "guard/rules/plugins/phone_usage.py": "31894dd4ca3788392d95712ccb971ccb30a604f75cfa5394de2effbee1d4c6a1",
+          "guard/rules/plugins/ppe_missing.py": "d6de89a3c0ff0380d32f4e60f4f4fb1f1b14081b30db91ee39f5179b72fab391",
+          "guard/rules/plugins/running.py": "a39187710bb864d8591bacec582a9c689b0fbe5b26d89ad0a932a3df11a7d23b",
+          "guard/rules/plugins/smoking_fire.py": "b023b2eb65122c88f0b60dafffe9a407cc7348c7efd9b120716702ac86a29f4c",
+          "guard/rules/plugins/vehicle_proximity.py": "03bb6feda32953834166b4baad5f761641ec4e1fefe178bc813c0d55c200df7d",
+          "guard/rules/plugins/zone_intrusion.py": "2fd6d417dfa24a47c84ae8e51aa8e62d3b28d48f67b60ad323598c067ac393b2",
+          "guard/sources/__init__.py": "6a8ffec5d614e3a9e6e8b590044771cd861a484d448cb8d82b2d83736e1da38e",
+          "guard/sources/base.py": "e4c155e824d997f0343701785778e0ee061a8113aa81006631c4a1d2f62e04bf",
+          "guard/sources/images.py": "9f6baa882392eb11dd3a3bc9a7b209baf5278a0681929568e006f432564674a7",
+          "guard/sources/video.py": "a63177d3cb234c435bddc2c2395d6e71b449c7163f24e782133c95f79bd3d31b",
+          "guard/tracking/__init__.py": "c01a9358003d95fe5310ed34472c9c95b4c510890916c58231d8872b362d7a32",
+          "guard/tracking/_geometry.py": "89e034b55f6ce3a1ea778fc2b1c14caccaf28c39c71ff773f784b662fbfbc73e",
+          "guard/tracking/attributes.py": "70814ef4c126ce3685ccc55af2c34e3845f65ed8ecbb80ab62e5fc6f20251b0b",
+          "guard/tracking/bytetrack.py": "c3ac4c8c7c6301fef1a41090dea11764241c7b170945aef74a99098fba2313af",
+          "guard/transport/__init__.py": "181d29bf0d3cbd6b0f2264bc45aaeb6ab08bffcaaaf79fda270dd1ac5f71d614",
+          "guard/transport/fake.py": "3e4f37d22a48c4cb26d4fb2dc3d20c497692883b4d6d6f75dc9313cf9df06593",
+          "guard/transport/protocol.py": "100fd0ba3c305bb256ec99d13479f9ff826108dccd5efbec2b8b5fc6c6377f08",
+          "guard/transport/rabbit.py": "e8fa408d65875d14c2c8b7458937afb8cdb632fa128767792a9a75dfdb1af247",
+          "guard/transport/store.py": "d305e4be72370049902ec76915c35e67a3ad6c3df5dfbf813be513b2ee60c14a",
+          "guard/vision/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "guard/vision/draw.py": "f8d4ea5f64f8d7115f1f29d6a1d04fb8cbb62ceb8ba8d327a643b79f30a7e995",
+          "guard/vision/nms.py": "3b9114ecaa577a64aac3ca37d50505f8988583503542aa3c6b87b9cfbecd5533",
+          "guard/vision/preprocess.py": "d7553411fbcb212103d6de9bf8857c88a0b8bce90458b6a16d1cb670de5a7ad1",
+          "guard/vision/yolo.py": "036f6203aa78e0549ca766c22ecc291dc5265a29df448b95d99674c65980bf4a",
+          "ml/eval/__init__.py": "56b3d66cca3f4acd866946facdbd454e98d34ddbfe09afa9e873a1d178bb55c3",
+          "ml/eval/compare_s1_models.py": "3f2c48a77c5dbd9262e55c28c719cda269e3f66bd417bb14b4d46b0e72ee2d11",
+          "ml/eval/events_eval.py": "662f2e29555973b305386f604ed111a142809c362a27aa314e61f25c796427e4",
+          "ml/eval/run_ppe_onnx.py": "24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215",
+          "ml/eval/run_s1.py": "9e52c61e5acc534d544cac860f12614a61cb836cefbd8c46cf28ed91406253b3",
+          "ml/eval_ppe.py": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d",
+          "ml/export_onnx.py": "b2b885914f09325864343bd573d2d3c5c954d2938d92c656a1ff280a6b3e2e53",
+          "ml/registry.py": "693198a6b1798c7e7cb22465efc5ae71b22bcb20c485e3d727383c3f735a1cf2",
+          "ml/yolo_decode.py": "16c0b5815fd020cf83c8fa2a444c77b99e3a63e2d80f6111be9084bbc926794e"
+        },
+        "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97"
+      },
+      "code_checks": [
+        {
+          "stage": "before_baseline",
+          "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97",
+          "matches_frozen": true,
+          "changed_paths": []
+        },
+        {
+          "stage": "after_baseline",
+          "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97",
+          "matches_frozen": true,
+          "changed_paths": []
+        },
+        {
+          "stage": "before_candidate",
+          "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97",
+          "matches_frozen": true,
+          "changed_paths": []
+        },
+        {
+          "stage": "after_candidate",
+          "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97",
+          "matches_frozen": true,
+          "changed_paths": []
+        },
+        {
+          "stage": "final",
+          "sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97",
+          "matches_frozen": true,
+          "changed_paths": []
+        }
+      ]
+    },
+    "comparison": {
+      "paired_config_sha256": "fe48b2ac0c1a556d03099c2ac220982f0dfe6d6d47e6c3f8a4b76b3d030aac98",
+      "paired_artifact_hashes": {
+        "manifest.json": "ba68295782d52c380c4661ba7c3d9828c466eb6bd8c31761f5e19851c9f9773a",
+        "labels_with_ids.json": "aa40bfe74dc9d42e3fa2d0e5565883ea403b0f01122458284177be6ff603b26d",
+        "mapping.json": "f9c7d76d50999c209fbbdbb37bc8821884db7a2ba6eadab693281d35a5dee26b",
+        "durations.json": "c925352b0779d406de8e97d9a9e2f78505fee62009d678a6d46af55fc9550721",
+        "camera_s1_01.json": "9ca5c64e70e0c3741d90f35527e86014120d45426258ffc5358d08682da41220",
+        "camera_s1_02.json": "d881772bf5ccdd5728a494aa95ec40335267a2ea32f85ada6bc66d9eb9d2c580",
+        "labels/s1_01.json": "159719b4b831f2649e39e6a608cab9228899cd0dd951912e4500bc36ba981065",
+        "labels/s1_02.json": "7113d810f91d3118233e841df427b455229d94828002848a2b04ea0a49b2b59a"
+      },
+      "per_video": {
+        "s1_01.mp4": {
+          "paired_samples": 300,
+          "sample_fingerprints": {
+            "baseline": "64e1d1861b0c7ee3b100726e9a48d861a3f6e71de66d14a90ba3cad834e46198",
+            "candidate": "64e1d1861b0c7ee3b100726e9a48d861a3f6e71de66d14a90ba3cad834e46198"
+          },
+          "raw_difference_artifact": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/data/model_comparison/20261024T095758Z-58d6c67e/paired_s1_01.jsonl",
+            "bytes": 196691,
+            "mtime_ns": 1792836792005812684,
+            "sha256": "b8c66017a60f4efda4f54988f4ce19f4c92790e8f1a89c9244950564463e4f77"
+          },
+          "frames_detection_count_changed": 31,
+          "frames_raw_detections_changed": 235,
+          "frames_track_count_changed": 3,
+          "frames_violation_presence_changed": 0,
+          "boundary_examples": [
+            {
+              "sample_index": 67,
+              "source_frame_index": 804,
+              "source_time_s": 13.413400000000001,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      600.8790893554688,
+                      432.6917724609375,
+                      1087.4637451171875,
+                      1069.2916259765625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      603.9169921875,
+                      431.08740234375,
+                      1085.4100341796875,
+                      1078.673583984375
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 68,
+              "source_frame_index": 816,
+              "source_time_s": 13.6136,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      563.7282104492188,
+                      409.10247802734375,
+                      1037.8883056640625,
+                      1070.677734375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      564.6923217773438,
+                      408.652587890625,
+                      1038.220458984375,
+                      1069.2498779296875
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 69,
+              "source_frame_index": 828,
+              "source_time_s": 13.8138,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      579.864990234375,
+                      365.60467529296875,
+                      952.6118774414062,
+                      1070.95947265625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      587.059326171875,
+                      366.01776123046875,
+                      949.4826049804688,
+                      1069.4820556640625
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 70,
+              "source_frame_index": 840,
+              "source_time_s": 14.014000000000001,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      592.0673217773438,
+                      339.44769287109375,
+                      892.5715942382812,
+                      1072.068359375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      593.8582763671875,
+                      336.9664306640625,
+                      891.368408203125,
+                      1069.2791748046875
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 71,
+              "source_frame_index": 852,
+              "source_time_s": 14.2142,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      565.29638671875,
+                      334.20263671875,
+                      841.7516479492188,
+                      1072.740234375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      564.5654296875,
+                      333.0018310546875,
+                      841.4141235351562,
+                      1069.1572265625
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 72,
+              "source_frame_index": 864,
+              "source_time_s": 14.4144,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      503.13555908203125,
+                      309.8627014160156,
+                      804.073486328125,
+                      1070.069091796875
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      500.874755859375,
+                      313.5751037597656,
+                      800.8474731445312,
+                      1069.828125
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 73,
+              "source_frame_index": 876,
+              "source_time_s": 14.614600000000001,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      434.935546875,
+                      288.598388671875,
+                      775.71826171875,
+                      1031.8267822265625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      435.689208984375,
+                      290.2279357910156,
+                      774.1029052734375,
+                      1024.185302734375
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 74,
+              "source_frame_index": 888,
+              "source_time_s": 14.8148,
+              "detections": {
+                "baseline": 1,
+                "candidate": 2,
+                "delta": 1,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      416.1819763183594,
+                      274.2169189453125,
+                      745.4546508789062,
+                      1027.436279296875
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      417.9654235839844,
+                      273.68206787109375,
+                      748.6677856445312,
+                      1021.9817504882812
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 75,
+              "source_frame_index": 900,
+              "source_time_s": 15.015,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      428.40234375,
+                      270.28399658203125,
+                      720.1774291992188,
+                      1005.019775390625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      428.1396789550781,
+                      270.29718017578125,
+                      721.349853515625,
+                      1003.46923828125
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 76,
+              "source_frame_index": 912,
+              "source_time_s": 15.2152,
+              "detections": {
+                "baseline": 2,
+                "candidate": 1,
+                "delta": -1,
+                "classes_baseline": {
+                  "person": 1,
+                  "skis": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      430.2000732421875,
+                      251.36233520507812,
+                      698.3585815429688,
+                      949.0604248046875
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      433.15777587890625,
+                      250.86488342285156,
+                      695.8472900390625,
+                      949.6294555664062
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 77,
+              "source_frame_index": 924,
+              "source_time_s": 15.4154,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      427.219482421875,
+                      238.63851928710938,
+                      679.1746215820312,
+                      897.6436767578125
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      428.4576416015625,
+                      237.36776733398438,
+                      680.5658569335938,
+                      894.4292602539062
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [
+                  {
+                    "track_id": 2,
+                    "zone_id": "behind_tape",
+                    "bbox": [
+                      427.219482421875,
+                      238.63851928710938,
+                      679.1746215820312,
+                      897.6436767578125
+                    ],
+                    "score": 0.9290856122970581
+                  }
+                ],
+                "candidate": [
+                  {
+                    "track_id": 2,
+                    "zone_id": "behind_tape",
+                    "bbox": [
+                      428.4576416015625,
+                      237.36776733398438,
+                      680.5658569335938,
+                      894.4292602539062
+                    ],
+                    "score": 0.9367163777351379
+                  }
+                ]
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 78,
+              "source_frame_index": 936,
+              "source_time_s": 15.6156,
+              "detections": {
+                "baseline": 1,
+                "candidate": 1,
+                "delta": 0,
+                "classes_baseline": {
+                  "person": 1
+                },
+                "classes_candidate": {
+                  "person": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      413.8033447265625,
+                      234.91159057617188,
+                      659.1080932617188,
+                      901.2255859375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 2,
+                    "bbox": [
+                      414.9706726074219,
+                      231.82232666015625,
+                      662.03076171875,
+                      894.1554565429688
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [
+                  {
+                    "track_id": 2,
+                    "zone_id": "behind_tape",
+                    "bbox": [
+                      413.8033447265625,
+                      234.91159057617188,
+                      659.1080932617188,
+                      901.2255859375
+                    ],
+                    "score": 0.9074220061302185
+                  }
+                ],
+                "candidate": [
+                  {
+                    "track_id": 2,
+                    "zone_id": "behind_tape",
+                    "bbox": [
+                      414.9706726074219,
+                      231.82232666015625,
+                      662.03076171875,
+                      894.1554565429688
+                    ],
+                    "score": 0.9284289479255676
+                  }
+                ]
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            }
+          ],
+          "boundary_example_definition": "first 12 changed source frames within 2s of any annotated boundary; descriptive, not new matching/actor labels",
+          "manual_review_landmarks": [
+            {
+              "sample_index": 0,
+              "target_s": 0.0,
+              "source_frame_index": 0,
+              "source_time_s": 0.0,
+              "decoder_pos_s": 0.0,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 50,
+              "target_s": 10.0,
+              "source_frame_index": 600,
+              "source_time_s": 10.01,
+              "decoder_pos_s": 10.01,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 100,
+              "target_s": 20.0,
+              "source_frame_index": 1199,
+              "source_time_s": 20.003316666666667,
+              "decoder_pos_s": 20.003316666666667,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 150,
+              "target_s": 30.0,
+              "source_frame_index": 1799,
+              "source_time_s": 30.013316666666668,
+              "decoder_pos_s": 30.013316666666668,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 200,
+              "target_s": 40.0,
+              "source_frame_index": 2398,
+              "source_time_s": 40.00663333333333,
+              "decoder_pos_s": 40.00663333333333,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 250,
+              "target_s": 50.0,
+              "source_frame_index": 2998,
+              "source_time_s": 50.01663333333333,
+              "decoder_pos_s": 50.01663333333334,
+              "capture_id": "s1-quality:s1_01.mp4"
+            },
+            {
+              "sample_index": 299,
+              "target_s": 59.8,
+              "source_frame_index": 3585,
+              "source_time_s": 59.80975,
+              "decoder_pos_s": 59.80975,
+              "capture_id": "s1-quality:s1_01.mp4"
+            }
+          ]
+        },
+        "s1_02.mp4": {
+          "paired_samples": 300,
+          "sample_fingerprints": {
+            "baseline": "66a996cb94de445fd0bd7c1a14170a1987daf9fa3a5f80ae53dd44d5eeb0dd2f",
+            "candidate": "66a996cb94de445fd0bd7c1a14170a1987daf9fa3a5f80ae53dd44d5eeb0dd2f"
+          },
+          "raw_difference_artifact": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/data/model_comparison/20261024T095758Z-58d6c67e/paired_s1_02.jsonl",
+            "bytes": 381395,
+            "mtime_ns": 1792836792033907028,
+            "sha256": "94f030d23f8aaef5b1200edb4b4f0aa339491ed0aa149959799ddd97f153003e"
+          },
+          "frames_detection_count_changed": 300,
+          "frames_raw_detections_changed": 300,
+          "frames_track_count_changed": 40,
+          "frames_violation_presence_changed": 11,
+          "boundary_examples": [
+            {
+              "sample_index": 103,
+              "source_frame_index": 1235,
+              "source_time_s": 20.603916666666667,
+              "detections": {
+                "baseline": 13,
+                "candidate": 31,
+                "delta": 18,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 8,
+                  "refrigerator": 1,
+                  "cup": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 26,
+                  "cup": 2
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      403.3416748046875,
+                      72.45465850830078,
+                      496.7952880859375,
+                      298.318603515625
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      507.64593505859375,
+                      117.7324447631836,
+                      602.5745239257812,
+                      371.96038818359375
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      430.0062255859375,
+                      247.4040069580078,
+                      564.7146606445312,
+                      401.8460998535156
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      403.3291015625,
+                      72.94483947753906,
+                      497.5293273925781,
+                      291.45751953125
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      508.1614685058594,
+                      119.39556884765625,
+                      602.6539306640625,
+                      372.377197265625
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      429.3388366699219,
+                      250.50970458984375,
+                      568.178955078125,
+                      401.64874267578125
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 104,
+              "source_frame_index": 1247,
+              "source_time_s": 20.804116666666665,
+              "detections": {
+                "baseline": 10,
+                "candidate": 28,
+                "delta": 18,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 6,
+                  "refrigerator": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 24,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      401.09375,
+                      69.62842559814453,
+                      492.23870849609375,
+                      290.46551513671875
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      507.1681823730469,
+                      117.1333999633789,
+                      602.3029174804688,
+                      373.4690246582031
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      431.4768981933594,
+                      249.0024871826172,
+                      565.434326171875,
+                      401.9927978515625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      400.7999267578125,
+                      70.90232849121094,
+                      493.530029296875,
+                      291.7527160644531
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      508.3404235839844,
+                      117.77307891845703,
+                      602.5164184570312,
+                      371.779052734375
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      430.7077941894531,
+                      251.78521728515625,
+                      570.1727905273438,
+                      401.4797058105469
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 105,
+              "source_frame_index": 1259,
+              "source_time_s": 21.004316666666668,
+              "detections": {
+                "baseline": 10,
+                "candidate": 27,
+                "delta": 17,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 7
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 23,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      398.5379638671875,
+                      64.96375274658203,
+                      489.8356628417969,
+                      292.1866760253906
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      495.5722351074219,
+                      115.70368194580078,
+                      597.45849609375,
+                      367.45318603515625
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      433.5762023925781,
+                      248.08570861816406,
+                      566.275390625,
+                      400.61480712890625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      397.6723327636719,
+                      65.6694564819336,
+                      489.294189453125,
+                      293.165283203125
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      495.9616394042969,
+                      116.17657470703125,
+                      597.532470703125,
+                      368.6993713378906
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      430.9422912597656,
+                      250.1514434814453,
+                      569.6134643554688,
+                      401.6573791503906
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 106,
+              "source_frame_index": 1271,
+              "source_time_s": 21.204516666666667,
+              "detections": {
+                "baseline": 10,
+                "candidate": 28,
+                "delta": 18,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 7
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 24,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      395.1478576660156,
+                      63.841552734375,
+                      485.179443359375,
+                      292.7476806640625
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      491.6039733886719,
+                      116.62948608398438,
+                      592.59375,
+                      366.68621826171875
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      434.3222961425781,
+                      242.02235412597656,
+                      563.2919311523438,
+                      400.7835693359375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      395.4102783203125,
+                      63.05195999145508,
+                      485.34832763671875,
+                      292.0169372558594
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      490.45599365234375,
+                      115.31806182861328,
+                      592.4498291015625,
+                      367.4832763671875
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      431.5922546386719,
+                      241.65574645996094,
+                      560.6158447265625,
+                      401.3395690917969
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 107,
+              "source_frame_index": 1283,
+              "source_time_s": 21.404716666666666,
+              "detections": {
+                "baseline": 10,
+                "candidate": 27,
+                "delta": 17,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 6,
+                  "refrigerator": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 24
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      395.219482421875,
+                      63.5865478515625,
+                      481.40447998046875,
+                      292.6683654785156
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      491.23291015625,
+                      117.60054016113281,
+                      587.9722290039062,
+                      363.17333984375
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      434.23681640625,
+                      233.0685577392578,
+                      560.162353515625,
+                      401.7935791015625
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      396.1524963378906,
+                      62.50558090209961,
+                      481.0114440917969,
+                      294.0990905761719
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      492.1296081542969,
+                      115.27974700927734,
+                      587.5225219726562,
+                      367.0507507324219
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      432.7055969238281,
+                      233.07247924804688,
+                      568.9885864257812,
+                      401.85638427734375
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 108,
+              "source_frame_index": 1295,
+              "source_time_s": 21.604916666666668,
+              "detections": {
+                "baseline": 9,
+                "candidate": 28,
+                "delta": 19,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 6
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 25
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      397.19140625,
+                      62.936485290527344,
+                      482.1400146484375,
+                      291.80303955078125
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      490.7095031738281,
+                      114.38212585449219,
+                      583.5074462890625,
+                      361.5152587890625
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      435.3230285644531,
+                      219.35179138183594,
+                      557.8626098632812,
+                      400.9733581542969
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      398.0696716308594,
+                      62.37422561645508,
+                      482.01092529296875,
+                      294.3352966308594
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      491.9832763671875,
+                      113.15354919433594,
+                      583.672119140625,
+                      369.9841003417969
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      433.537109375,
+                      222.2760772705078,
+                      563.6686401367188,
+                      401.33782958984375
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 109,
+              "source_frame_index": 1307,
+              "source_time_s": 21.805116666666667,
+              "detections": {
+                "baseline": 13,
+                "candidate": 30,
+                "delta": 17,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 9,
+                  "cup": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 27
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      399.34161376953125,
+                      60.356964111328125,
+                      483.73736572265625,
+                      289.54296875
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      493.8523254394531,
+                      112.94779205322266,
+                      582.3334350585938,
+                      336.80657958984375
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      434.63018798828125,
+                      212.40643310546875,
+                      556.0504760742188,
+                      400.6299133300781
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      399.17999267578125,
+                      60.530548095703125,
+                      484.0108642578125,
+                      292.7448425292969
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      493.6396789550781,
+                      111.5013427734375,
+                      582.6940307617188,
+                      334.6292724609375
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      434.0055236816406,
+                      213.02435302734375,
+                      557.02099609375,
+                      401.4428405761719
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 110,
+              "source_frame_index": 1319,
+              "source_time_s": 22.005316666666666,
+              "detections": {
+                "baseline": 13,
+                "candidate": 30,
+                "delta": 17,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 8,
+                  "cup": 2
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 26,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      401.34344482421875,
+                      58.559120178222656,
+                      485.2951354980469,
+                      275.26470947265625
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      493.8417053222656,
+                      111.27924346923828,
+                      582.46728515625,
+                      310.4026794433594
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      433.37945556640625,
+                      200.0133819580078,
+                      550.0419311523438,
+                      399.6462097167969
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      402.781982421875,
+                      58.21464538574219,
+                      484.9715270996094,
+                      283.0246887207031
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      493.3128356933594,
+                      110.9925537109375,
+                      582.073974609375,
+                      314.4510803222656
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      434.1080627441406,
+                      203.81204223632812,
+                      552.1069946289062,
+                      401.2525634765625
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 111,
+              "source_frame_index": 1331,
+              "source_time_s": 22.205516666666668,
+              "detections": {
+                "baseline": 10,
+                "candidate": 29,
+                "delta": 19,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 7
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 26
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      408.9359130859375,
+                      56.541015625,
+                      486.45587158203125,
+                      264.6224670410156
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      489.0538635253906,
+                      110.39131164550781,
+                      583.1402587890625,
+                      304.11859130859375
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      431.219970703125,
+                      194.7297821044922,
+                      549.4597778320312,
+                      400.009521484375
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      409.07818603515625,
+                      56.27621078491211,
+                      486.05389404296875,
+                      270.7320861816406
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      489.8516540527344,
+                      109.23355865478516,
+                      581.5717163085938,
+                      308.5643310546875
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      433.94732666015625,
+                      196.75064086914062,
+                      549.7589721679688,
+                      400.6573181152344
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 112,
+              "source_frame_index": 1343,
+              "source_time_s": 22.405716666666667,
+              "detections": {
+                "baseline": 10,
+                "candidate": 30,
+                "delta": 20,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 7
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 26,
+                  "cup": 1
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      411.4677734375,
+                      55.69942855834961,
+                      489.0355224609375,
+                      250.02919006347656
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      489.00909423828125,
+                      106.05233001708984,
+                      580.4297485351562,
+                      300.76348876953125
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      430.7613525390625,
+                      195.20040893554688,
+                      549.4229125976562,
+                      400.897705078125
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      411.74395751953125,
+                      55.90727615356445,
+                      488.3854064941406,
+                      254.72576904296875
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      488.9233093261719,
+                      106.4906005859375,
+                      579.9381103515625,
+                      303.1280212402344
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      431.0236511230469,
+                      194.36990356445312,
+                      549.9656372070312,
+                      400.5916748046875
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 113,
+              "source_frame_index": 1355,
+              "source_time_s": 22.605916666666666,
+              "detections": {
+                "baseline": 12,
+                "candidate": 30,
+                "delta": 18,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 8,
+                  "refrigerator": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 27
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      412.4665222167969,
+                      55.52812957763672,
+                      489.54803466796875,
+                      245.0546417236328
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      490.50213623046875,
+                      105.45211791992188,
+                      577.7329711914062,
+                      298.7667236328125
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      431.019775390625,
+                      205.20530700683594,
+                      549.1467895507812,
+                      400.4169006347656
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      413.3207092285156,
+                      55.740421295166016,
+                      488.1042785644531,
+                      240.2621307373047
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      491.11199951171875,
+                      104.03450012207031,
+                      577.1802978515625,
+                      302.6719665527344
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      429.7546081542969,
+                      196.6754608154297,
+                      550.024658203125,
+                      400.6881408691406
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            },
+            {
+              "sample_index": 114,
+              "source_frame_index": 1367,
+              "source_time_s": 22.806116666666668,
+              "detections": {
+                "baseline": 11,
+                "candidate": 29,
+                "delta": 18,
+                "classes_baseline": {
+                  "person": 3,
+                  "bowl": 7,
+                  "cup": 1
+                },
+                "classes_candidate": {
+                  "person": 3,
+                  "bowl": 26
+                },
+                "raw_equal": false
+              },
+              "person_tracks": {
+                "baseline": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      415.3604736328125,
+                      54.87991714477539,
+                      484.99346923828125,
+                      224.79763793945312
+                    ]
+                  },
+                  {
+                    "id": 2,
+                    "bbox": [
+                      490.4208984375,
+                      102.1852798461914,
+                      574.7113647460938,
+                      297.9758605957031
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      428.26922607421875,
+                      200.49862670898438,
+                      549.3624267578125,
+                      400.0332946777344
+                    ]
+                  }
+                ],
+                "candidate": [
+                  {
+                    "id": 1,
+                    "bbox": [
+                      414.75982666015625,
+                      56.07215881347656,
+                      484.2024841308594,
+                      232.54917907714844
+                    ]
+                  },
+                  {
+                    "id": 3,
+                    "bbox": [
+                      490.7463684082031,
+                      102.56123352050781,
+                      574.8726196289062,
+                      301.1514587402344
+                    ]
+                  },
+                  {
+                    "id": 4,
+                    "bbox": [
+                      426.0445861816406,
+                      196.64126586914062,
+                      549.919677734375,
+                      400.6672668457031
+                    ]
+                  }
+                ],
+                "count_delta": 0
+              },
+              "violations": {
+                "baseline": [
+                  {
+                    "track_id": 1,
+                    "zone_id": "aisle_far_right",
+                    "bbox": [
+                      415.3604736328125,
+                      54.87991714477539,
+                      484.99346923828125,
+                      224.79763793945312
+                    ],
+                    "score": 0.8230681419372559
+                  }
+                ],
+                "candidate": []
+              },
+              "created_event_ids": {
+                "baseline": [],
+                "candidate": []
+              }
+            }
+          ],
+          "boundary_example_definition": "first 12 changed source frames within 2s of any annotated boundary; descriptive, not new matching/actor labels",
+          "manual_review_landmarks": [
+            {
+              "sample_index": 0,
+              "target_s": 0.0,
+              "source_frame_index": 0,
+              "source_time_s": 0.0,
+              "decoder_pos_s": 0.0,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 50,
+              "target_s": 10.0,
+              "source_frame_index": 600,
+              "source_time_s": 10.01,
+              "decoder_pos_s": 10.01,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 100,
+              "target_s": 20.0,
+              "source_frame_index": 1199,
+              "source_time_s": 20.003316666666667,
+              "decoder_pos_s": 20.003316666666667,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 150,
+              "target_s": 30.0,
+              "source_frame_index": 1799,
+              "source_time_s": 30.013316666666668,
+              "decoder_pos_s": 30.013316666666668,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 200,
+              "target_s": 40.0,
+              "source_frame_index": 2398,
+              "source_time_s": 40.00663333333333,
+              "decoder_pos_s": 40.00663333333333,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 250,
+              "target_s": 50.0,
+              "source_frame_index": 2998,
+              "source_time_s": 50.01663333333333,
+              "decoder_pos_s": 50.01663333333334,
+              "capture_id": "s1-quality:s1_02.mp4"
+            },
+            {
+              "sample_index": 299,
+              "target_s": 59.8,
+              "source_frame_index": 3585,
+              "source_time_s": 59.80975,
+              "decoder_pos_s": 59.80975,
+              "capture_id": "s1-quality:s1_02.mp4"
+            }
+          ]
+        }
+      },
+      "runs": {
+        "baseline": {
+          "report": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/data/model_comparison/20261024T095758Z-58d6c67e/baseline/report.json",
+            "bytes": 23276,
+            "mtime_ns": 1792835916624365345,
+            "sha256": "a5aa40dea5a9b1d208daa4ef94abacc0b80b813e77843b3c2fc4054c0a6f8e2b"
+          },
+          "global": {
+            "evaluator": {
+              "tol_s": 2.0,
+              "duration_s": 120.0,
+              "videos": [
+                "s1_01.mp4",
+                "s1_02.mp4"
+              ],
+              "by_type": {
+                "zone_intrusion": {
+                  "tp": 3,
+                  "fp": 0,
+                  "fn": 1,
+                  "duplicates": 1,
+                  "ignored_uncertain": 1,
+                  "precision": 1.0,
+                  "recall": 0.75,
+                  "f1": 0.8571428571428571,
+                  "latency_median_s": 2.2050333333333327,
+                  "latency_p95_s": 2.571948333333334,
+                  "false_alarms_per_hour": 0.0
+                }
+              },
+              "overall": {
+                "tp": 3,
+                "fp": 0,
+                "fn": 1,
+                "duplicates": 1,
+                "ignored_uncertain": 1,
+                "precision": 1.0,
+                "recall": 0.75,
+                "f1": 0.8571428571428571,
+                "latency_median_s": 2.2050333333333327,
+                "latency_p95_s": 2.571948333333334,
+                "false_alarms_per_hour": 0.0
+              }
+            },
+            "supplemental_strict": {
+              "precision_denominator_evaluator": 3,
+              "raw_predictions": 5,
+              "precision_denominator_strict": 4,
+              "recall_denominator": 4,
+              "strict_precision": 0.75,
+              "alarms_false_or_duplicate_per_hour": 30.0,
+              "positive_video_exposure_s": 120.0,
+              "independent_clean_video_exposure_s": 0,
+              "predictions_excluded_uncertain": 1
+            },
+            "label_counts": {
+              "certain": 4,
+              "uncertain": 3
+            },
+            "excluded_uncertain_labels": [
+              {
+                "label_id": "s1_01.mp4:2",
+                "video": "s1_01.mp4",
+                "type": "zone_intrusion",
+                "t_start": 50.2,
+                "t_end": 51.8,
+                "uncertain": true,
+                "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+              },
+              {
+                "label_id": "s1_02.mp4:0",
+                "video": "s1_02.mp4",
+                "type": "zone_intrusion",
+                "t_start": 22.5,
+                "t_end": 25.5,
+                "uncertain": true,
+                "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+              },
+              {
+                "label_id": "s1_02.mp4:2",
+                "video": "s1_02.mp4",
+                "type": "zone_intrusion",
+                "t_start": 38.0,
+                "t_end": 45.0,
+                "uncertain": true,
+                "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+              }
+            ],
+            "prediction_classifications": [
+              {
+                "prediction_id": "48a364d986f34fdbab91d387687ec2be",
+                "video": "s1_01.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "c0e397661f6f414fa3919aa1f99f1762",
+                "video": "s1_01.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "5347966e260f4d7eb85936e104ad5e5e",
+                "video": "s1_01.mp4",
+                "classification": "ignored_uncertain",
+                "reason": "existing_events_eval:ignored_uncertain",
+                "uncertain_label_ids": [
+                  "s1_01.mp4:2"
+                ]
+              },
+              {
+                "prediction_id": "db31c390413a446887adc3beaebd55e0",
+                "video": "s1_02.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "9435b1c945cf4ecca075ddbb18c8e54a",
+                "video": "s1_02.mp4",
+                "classification": "duplicates",
+                "reason": "existing_events_eval:duplicates"
+              }
+            ],
+            "uncertain_exclusions": [
+              {
+                "prediction_id": "5347966e260f4d7eb85936e104ad5e5e",
+                "video": "s1_01.mp4",
+                "classification": "ignored_uncertain",
+                "reason": "existing_events_eval:ignored_uncertain",
+                "uncertain_label_ids": [
+                  "s1_01.mp4:2"
+                ]
+              }
+            ]
+          },
+          "timing": {
+            "stages_ms": {
+              "infer": {
+                "n": 600,
+                "sum_ms": 34256.15820090752,
+                "mean_ms": 57.093597001512535,
+                "p50_ms": 56.340645474847406,
+                "p95_ms": 59.41431908868253,
+                "max_ms": 111.27174994908273
+              },
+              "postprocess": {
+                "n": 600,
+                "sum_ms": 571.0011242190376,
+                "mean_ms": 0.9516685403650627,
+                "p50_ms": 0.9294165065512061,
+                "p95_ms": 1.2062680907547474,
+                "max_ms": 2.1414579823613167
+              },
+              "preprocess": {
+                "n": 600,
+                "sum_ms": 631.873172824271,
+                "mean_ms": 1.0531219547071184,
+                "p50_ms": 1.0200630058534443,
+                "p95_ms": 1.2476437375880778,
+                "max_ms": 2.793750027194619
+              },
+              "queue": {
+                "n": 600,
+                "sum_ms": 0.0,
+                "mean_ms": 0.0,
+                "p50_ms": 0.0,
+                "p95_ms": 0.0,
+                "max_ms": 0.0
+              },
+              "transfer": {
+                "n": 600,
+                "sum_ms": 0.0,
+                "mean_ms": 0.0,
+                "p50_ms": 0.0,
+                "p95_ms": 0.0,
+                "max_ms": 0.0
+              }
+            },
+            "sample_denominator": 600,
+            "instrumented_stage_sum_ms": {
+              "n": 600,
+              "sum_ms": 35459.03249795083,
+              "mean_ms": 59.098387496584714,
+              "p50_ms": 58.28637495869771,
+              "p95_ms": 61.812007531989366,
+              "max_ms": 113.46724897157401
+            },
+            "video_loop_wall_s": 37.04422904108651,
+            "amortized_video_loop_ms_per_frame": 61.74038173514418,
+            "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+            "unmeasured_individual_stages": [
+              "decode",
+              "tracking",
+              "rules",
+              "alert",
+              "total"
+            ]
+          },
+          "per_video": {
+            "s1_01.mp4": {
+              "metrics": {
+                "evaluator": {
+                  "tol_s": 2.0,
+                  "duration_s": 60.0,
+                  "videos": [
+                    "s1_01.mp4"
+                  ],
+                  "by_type": {
+                    "zone_intrusion": {
+                      "tp": 2,
+                      "fp": 0,
+                      "fn": 0,
+                      "duplicates": 0,
+                      "ignored_uncertain": 1,
+                      "precision": 1.0,
+                      "recall": 1.0,
+                      "f1": 1.0,
+                      "latency_median_s": 2.2029749999999995,
+                      "latency_p95_s": 2.2048274999999995,
+                      "false_alarms_per_hour": 0.0
+                    }
+                  },
+                  "overall": {
+                    "tp": 2,
+                    "fp": 0,
+                    "fn": 0,
+                    "duplicates": 0,
+                    "ignored_uncertain": 1,
+                    "precision": 1.0,
+                    "recall": 1.0,
+                    "f1": 1.0,
+                    "latency_median_s": 2.2029749999999995,
+                    "latency_p95_s": 2.2048274999999995,
+                    "false_alarms_per_hour": 0.0
+                  }
+                },
+                "supplemental_strict": {
+                  "precision_denominator_evaluator": 2,
+                  "raw_predictions": 3,
+                  "precision_denominator_strict": 2,
+                  "recall_denominator": 2,
+                  "strict_precision": 1.0,
+                  "alarms_false_or_duplicate_per_hour": 0.0,
+                  "positive_video_exposure_s": 60.0,
+                  "independent_clean_video_exposure_s": 0,
+                  "predictions_excluded_uncertain": 1
+                },
+                "label_counts": {
+                  "certain": 2,
+                  "uncertain": 1
+                },
+                "excluded_uncertain_labels": [
+                  {
+                    "label_id": "s1_01.mp4:2",
+                    "video": "s1_01.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 50.2,
+                    "t_end": 51.8,
+                    "uncertain": true,
+                    "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+                  }
+                ],
+                "prediction_classifications": [
+                  {
+                    "prediction_id": "48a364d986f34fdbab91d387687ec2be",
+                    "video": "s1_01.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  },
+                  {
+                    "prediction_id": "c0e397661f6f414fa3919aa1f99f1762",
+                    "video": "s1_01.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  },
+                  {
+                    "prediction_id": "5347966e260f4d7eb85936e104ad5e5e",
+                    "video": "s1_01.mp4",
+                    "classification": "ignored_uncertain",
+                    "reason": "existing_events_eval:ignored_uncertain",
+                    "uncertain_label_ids": [
+                      "s1_01.mp4:2"
+                    ]
+                  }
+                ],
+                "uncertain_exclusions": [
+                  {
+                    "prediction_id": "5347966e260f4d7eb85936e104ad5e5e",
+                    "video": "s1_01.mp4",
+                    "classification": "ignored_uncertain",
+                    "reason": "existing_events_eval:ignored_uncertain",
+                    "uncertain_label_ids": [
+                      "s1_01.mp4:2"
+                    ]
+                  }
+                ]
+              },
+              "coverage": {
+                "source_fps": 59.94005994005994,
+                "source_frames_expected": 3597,
+                "source_frames_traversed": 3597,
+                "selected_frames_expected": 300,
+                "selected_frames_decoded": 300,
+                "frames_processed": 300,
+                "detections": 292,
+                "person_track_observations": 261,
+                "frames_with_violations": 83,
+                "created_events": 3,
+                "close_notifications": 3,
+                "reopen_transitions": 0,
+                "effective_tracker": {
+                  "high_thresh": 0.4,
+                  "low_thresh": 0.1,
+                  "new_track_thresh": 0.45,
+                  "match_iou": 0.25,
+                  "track_buffer_s": 3.0,
+                  "min_hits": 2
+                },
+                "duration_s": 60.0,
+                "wall_s": 18.72073016606737
+              },
+              "timing": {
+                "stages_ms": {
+                  "infer": {
+                    "n": 300,
+                    "sum_ms": 16977.058999589644,
+                    "mean_ms": 56.59019666529881,
+                    "p50_ms": 56.373020517639816,
+                    "p95_ms": 58.22459583869204,
+                    "max_ms": 61.7406660458073
+                  },
+                  "postprocess": {
+                    "n": 300,
+                    "sum_ms": 257.31249840464443,
+                    "mean_ms": 0.8577083280154815,
+                    "p50_ms": 0.8546044700779021,
+                    "p95_ms": 0.9813916985876859,
+                    "max_ms": 1.809417037293315
+                  },
+                  "preprocess": {
+                    "n": 300,
+                    "sum_ms": 327.63125374913216,
+                    "mean_ms": 1.0921041791637738,
+                    "p50_ms": 1.0374165140092373,
+                    "p95_ms": 1.277595857391134,
+                    "max_ms": 2.793750027194619
+                  },
+                  "queue": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  },
+                  "transfer": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  }
+                },
+                "sample_denominator": 300,
+                "instrumented_stage_sum_ms": {
+                  "n": 300,
+                  "sum_ms": 17562.00275174342,
+                  "mean_ms": 58.54000917247807,
+                  "p50_ms": 58.2791255437769,
+                  "p95_ms": 60.37270453525707,
+                  "max_ms": 63.935874961316586
+                },
+                "video_loop_wall_s": 18.72073016606737,
+                "amortized_video_loop_ms_per_frame": 62.40243388689123,
+                "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+                "unmeasured_individual_stages": [
+                  "decode",
+                  "tracking",
+                  "rules",
+                  "alert",
+                  "total"
+                ]
+              }
+            },
+            "s1_02.mp4": {
+              "metrics": {
+                "evaluator": {
+                  "tol_s": 2.0,
+                  "duration_s": 60.0,
+                  "videos": [
+                    "s1_02.mp4"
+                  ],
+                  "by_type": {
+                    "zone_intrusion": {
+                      "tp": 1,
+                      "fp": 0,
+                      "fn": 1,
+                      "duplicates": 1,
+                      "ignored_uncertain": 0,
+                      "precision": 1.0,
+                      "recall": 0.5,
+                      "f1": 0.6666666666666666,
+                      "latency_median_s": 2.6127166666666675,
+                      "latency_p95_s": 2.6127166666666675,
+                      "false_alarms_per_hour": 0.0
+                    }
+                  },
+                  "overall": {
+                    "tp": 1,
+                    "fp": 0,
+                    "fn": 1,
+                    "duplicates": 1,
+                    "ignored_uncertain": 0,
+                    "precision": 1.0,
+                    "recall": 0.5,
+                    "f1": 0.6666666666666666,
+                    "latency_median_s": 2.6127166666666675,
+                    "latency_p95_s": 2.6127166666666675,
+                    "false_alarms_per_hour": 0.0
+                  }
+                },
+                "supplemental_strict": {
+                  "precision_denominator_evaluator": 1,
+                  "raw_predictions": 2,
+                  "precision_denominator_strict": 2,
+                  "recall_denominator": 2,
+                  "strict_precision": 0.5,
+                  "alarms_false_or_duplicate_per_hour": 60.0,
+                  "positive_video_exposure_s": 60.0,
+                  "independent_clean_video_exposure_s": 0,
+                  "predictions_excluded_uncertain": 0
+                },
+                "label_counts": {
+                  "certain": 2,
+                  "uncertain": 2
+                },
+                "excluded_uncertain_labels": [
+                  {
+                    "label_id": "s1_02.mp4:0",
+                    "video": "s1_02.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 22.5,
+                    "t_end": 25.5,
+                    "uncertain": true,
+                    "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+                  },
+                  {
+                    "label_id": "s1_02.mp4:2",
+                    "video": "s1_02.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 38.0,
+                    "t_end": 45.0,
+                    "uncertain": true,
+                    "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+                  }
+                ],
+                "prediction_classifications": [
+                  {
+                    "prediction_id": "db31c390413a446887adc3beaebd55e0",
+                    "video": "s1_02.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  },
+                  {
+                    "prediction_id": "9435b1c945cf4ecca075ddbb18c8e54a",
+                    "video": "s1_02.mp4",
+                    "classification": "duplicates",
+                    "reason": "existing_events_eval:duplicates"
+                  }
+                ],
+                "uncertain_exclusions": []
+              },
+              "coverage": {
+                "source_fps": 59.94005994005994,
+                "source_frames_expected": 3597,
+                "source_frames_traversed": 3597,
+                "selected_frames_expected": 300,
+                "selected_frames_decoded": 300,
+                "frames_processed": 300,
+                "detections": 4244,
+                "person_track_observations": 957,
+                "frames_with_violations": 157,
+                "created_events": 2,
+                "close_notifications": 1,
+                "reopen_transitions": 0,
+                "effective_tracker": {
+                  "high_thresh": 0.4,
+                  "low_thresh": 0.1,
+                  "new_track_thresh": 0.45,
+                  "match_iou": 0.25,
+                  "track_buffer_s": 3.0,
+                  "min_hits": 2
+                },
+                "duration_s": 60.0,
+                "wall_s": 18.32349887501914
+              },
+              "timing": {
+                "stages_ms": {
+                  "infer": {
+                    "n": 300,
+                    "sum_ms": 17279.099201317877,
+                    "mean_ms": 57.59699733772626,
+                    "p50_ms": 56.275582988746464,
+                    "p95_ms": 61.037237191339955,
+                    "max_ms": 111.27174994908273
+                  },
+                  "postprocess": {
+                    "n": 300,
+                    "sum_ms": 313.68862581439316,
+                    "mean_ms": 1.045628752714644,
+                    "p50_ms": 1.0156455100513995,
+                    "p95_ms": 1.2940833112224936,
+                    "max_ms": 2.1414579823613167
+                  },
+                  "preprocess": {
+                    "n": 300,
+                    "sum_ms": 304.24191907513887,
+                    "mean_ms": 1.014139730250463,
+                    "p50_ms": 0.9819999686442316,
+                    "p95_ms": 1.1647024424746635,
+                    "max_ms": 2.5558751076459885
+                  },
+                  "queue": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  },
+                  "transfer": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  }
+                },
+                "sample_denominator": 300,
+                "instrumented_stage_sum_ms": {
+                  "n": 300,
+                  "sum_ms": 17897.02974620741,
+                  "mean_ms": 59.65676582069136,
+                  "p50_ms": 58.29683400224894,
+                  "p95_ms": 63.54456882108935,
+                  "max_ms": 113.46724897157401
+                },
+                "video_loop_wall_s": 18.32349887501914,
+                "amortized_video_loop_ms_per_frame": 61.078329583397135,
+                "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+                "unmeasured_individual_stages": [
+                  "decode",
+                  "tracking",
+                  "rules",
+                  "alert",
+                  "total"
+                ]
+              }
+            }
+          },
+          "versions": {
+            "python": "3.11.16",
+            "numpy": "2.4.6",
+            "opencv-python-headless": "4.11.0.86",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1",
+            "scipy": "1.17.1",
+            "lap": "0.5.13"
+          },
+          "inference_stats": {
+            "backend": "onnx-cpu",
+            "providers": [
+              "CPUExecutionProvider"
+            ],
+            "intra_op_threads": 2,
+            "models": {
+              "det": {
+                "timings_ms": {
+                  "transfer": {
+                    "p50": 0.0,
+                    "p95": 0.0,
+                    "n": 300
+                  },
+                  "infer": {
+                    "p50": 56.28,
+                    "p95": 61.04,
+                    "n": 300
+                  }
+                },
+                "fps": 15.59,
+                "calls": 600,
+                "items": 600,
+                "max_batch_seen": 1,
+                "errors": 0,
+                "last_error": null
+              }
+            }
+          },
+          "wall_s": 37.49654962506611
+        },
+        "candidate": {
+          "report": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/data/model_comparison/20261024T095758Z-58d6c67e/candidate/report.json",
+            "bytes": 22194,
+            "mtime_ns": 1792836791912804328,
+            "sha256": "aadf27da434d7a1f0179263b1ab2b4f5f7d49055397d21eb4b4a347994a0518a"
+          },
+          "global": {
+            "evaluator": {
+              "tol_s": 2.0,
+              "duration_s": 120.0,
+              "videos": [
+                "s1_01.mp4",
+                "s1_02.mp4"
+              ],
+              "by_type": {
+                "zone_intrusion": {
+                  "tp": 3,
+                  "fp": 0,
+                  "fn": 1,
+                  "duplicates": 1,
+                  "ignored_uncertain": 0,
+                  "precision": 1.0,
+                  "recall": 0.75,
+                  "f1": 0.8571428571428571,
+                  "latency_median_s": 2.2050333333333327,
+                  "latency_p95_s": 2.571948333333334,
+                  "false_alarms_per_hour": 0.0
+                }
+              },
+              "overall": {
+                "tp": 3,
+                "fp": 0,
+                "fn": 1,
+                "duplicates": 1,
+                "ignored_uncertain": 0,
+                "precision": 1.0,
+                "recall": 0.75,
+                "f1": 0.8571428571428571,
+                "latency_median_s": 2.2050333333333327,
+                "latency_p95_s": 2.571948333333334,
+                "false_alarms_per_hour": 0.0
+              }
+            },
+            "supplemental_strict": {
+              "precision_denominator_evaluator": 3,
+              "raw_predictions": 4,
+              "precision_denominator_strict": 4,
+              "recall_denominator": 4,
+              "strict_precision": 0.75,
+              "alarms_false_or_duplicate_per_hour": 30.0,
+              "positive_video_exposure_s": 120.0,
+              "independent_clean_video_exposure_s": 0,
+              "predictions_excluded_uncertain": 0
+            },
+            "label_counts": {
+              "certain": 4,
+              "uncertain": 3
+            },
+            "excluded_uncertain_labels": [
+              {
+                "label_id": "s1_01.mp4:2",
+                "video": "s1_01.mp4",
+                "type": "zone_intrusion",
+                "t_start": 50.2,
+                "t_end": 51.8,
+                "uncertain": true,
+                "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+              },
+              {
+                "label_id": "s1_02.mp4:0",
+                "video": "s1_02.mp4",
+                "type": "zone_intrusion",
+                "t_start": 22.5,
+                "t_end": 25.5,
+                "uncertain": true,
+                "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+              },
+              {
+                "label_id": "s1_02.mp4:2",
+                "video": "s1_02.mp4",
+                "type": "zone_intrusion",
+                "t_start": 38.0,
+                "t_end": 45.0,
+                "uncertain": true,
+                "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+              }
+            ],
+            "prediction_classifications": [
+              {
+                "prediction_id": "54083eed302e4af8900c1fa47378fcb1",
+                "video": "s1_01.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "946e2b3a42984b5ab4fef23baad604e7",
+                "video": "s1_01.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "69e92dd7091e456c9fc8454089e4afbe",
+                "video": "s1_02.mp4",
+                "classification": "tp",
+                "reason": "existing_events_eval:tp"
+              },
+              {
+                "prediction_id": "8238678b21344dfc8591aa26fbf90b19",
+                "video": "s1_02.mp4",
+                "classification": "duplicates",
+                "reason": "existing_events_eval:duplicates"
+              }
+            ],
+            "uncertain_exclusions": []
+          },
+          "timing": {
+            "stages_ms": {
+              "infer": {
+                "n": 600,
+                "sum_ms": 870886.5005346015,
+                "mean_ms": 1451.4775008910026,
+                "p50_ms": 1407.712541462388,
+                "p95_ms": 1596.833924704697,
+                "max_ms": 4139.490250032395
+              },
+              "postprocess": {
+                "n": 600,
+                "sum_ms": 752.0879247458652,
+                "mean_ms": 1.253479874576442,
+                "p50_ms": 1.1902084806934,
+                "p95_ms": 1.5622641891241074,
+                "max_ms": 51.25704105012119
+              },
+              "preprocess": {
+                "n": 600,
+                "sum_ms": 703.1695460900664,
+                "mean_ms": 1.171949243483444,
+                "p50_ms": 1.0971874580718577,
+                "p95_ms": 1.4992358046583827,
+                "max_ms": 11.46641606464982
+              },
+              "queue": {
+                "n": 600,
+                "sum_ms": 0.0,
+                "mean_ms": 0.0,
+                "p50_ms": 0.0,
+                "p95_ms": 0.0,
+                "max_ms": 0.0
+              },
+              "transfer": {
+                "n": 600,
+                "sum_ms": 0.0,
+                "mean_ms": 0.0,
+                "p50_ms": 0.0,
+                "p95_ms": 0.0,
+                "max_ms": 0.0
+              }
+            },
+            "sample_denominator": 600,
+            "instrumented_stage_sum_ms": {
+              "n": 600,
+              "sum_ms": 872341.7580054374,
+              "mean_ms": 1453.9029300090624,
+              "p50_ms": 1410.1572079816833,
+              "p95_ms": 1599.8067235515919,
+              "max_ms": 4143.787001026794
+            },
+            "video_loop_wall_s": 874.3411468339618,
+            "amortized_video_loop_ms_per_frame": 1457.2352447232697,
+            "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+            "unmeasured_individual_stages": [
+              "decode",
+              "tracking",
+              "rules",
+              "alert",
+              "total"
+            ]
+          },
+          "per_video": {
+            "s1_01.mp4": {
+              "metrics": {
+                "evaluator": {
+                  "tol_s": 2.0,
+                  "duration_s": 60.0,
+                  "videos": [
+                    "s1_01.mp4"
+                  ],
+                  "by_type": {
+                    "zone_intrusion": {
+                      "tp": 2,
+                      "fp": 0,
+                      "fn": 0,
+                      "duplicates": 0,
+                      "ignored_uncertain": 0,
+                      "precision": 1.0,
+                      "recall": 1.0,
+                      "f1": 1.0,
+                      "latency_median_s": 2.2029749999999995,
+                      "latency_p95_s": 2.2048274999999995,
+                      "false_alarms_per_hour": 0.0
+                    }
+                  },
+                  "overall": {
+                    "tp": 2,
+                    "fp": 0,
+                    "fn": 0,
+                    "duplicates": 0,
+                    "ignored_uncertain": 0,
+                    "precision": 1.0,
+                    "recall": 1.0,
+                    "f1": 1.0,
+                    "latency_median_s": 2.2029749999999995,
+                    "latency_p95_s": 2.2048274999999995,
+                    "false_alarms_per_hour": 0.0
+                  }
+                },
+                "supplemental_strict": {
+                  "precision_denominator_evaluator": 2,
+                  "raw_predictions": 2,
+                  "precision_denominator_strict": 2,
+                  "recall_denominator": 2,
+                  "strict_precision": 1.0,
+                  "alarms_false_or_duplicate_per_hour": 0.0,
+                  "positive_video_exposure_s": 60.0,
+                  "independent_clean_video_exposure_s": 0,
+                  "predictions_excluded_uncertain": 0
+                },
+                "label_counts": {
+                  "certain": 2,
+                  "uncertain": 1
+                },
+                "excluded_uncertain_labels": [
+                  {
+                    "label_id": "s1_01.mp4:2",
+                    "video": "s1_01.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 50.2,
+                    "t_end": 51.8,
+                    "uncertain": true,
+                    "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+                  }
+                ],
+                "prediction_classifications": [
+                  {
+                    "prediction_id": "54083eed302e4af8900c1fa47378fcb1",
+                    "video": "s1_01.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  },
+                  {
+                    "prediction_id": "946e2b3a42984b5ab4fef23baad604e7",
+                    "video": "s1_01.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  }
+                ],
+                "uncertain_exclusions": []
+              },
+              "coverage": {
+                "source_fps": 59.94005994005994,
+                "source_frames_expected": 3597,
+                "source_frames_traversed": 3597,
+                "selected_frames_expected": 300,
+                "selected_frames_decoded": 300,
+                "frames_processed": 300,
+                "detections": 287,
+                "person_track_observations": 264,
+                "frames_with_violations": 83,
+                "created_events": 2,
+                "close_notifications": 3,
+                "reopen_transitions": 1,
+                "effective_tracker": {
+                  "high_thresh": 0.4,
+                  "low_thresh": 0.1,
+                  "new_track_thresh": 0.45,
+                  "match_iou": 0.25,
+                  "track_buffer_s": 3.0,
+                  "min_hits": 2
+                },
+                "duration_s": 60.0,
+                "wall_s": 448.6566195000196
+              },
+              "timing": {
+                "stages_ms": {
+                  "infer": {
+                    "n": 300,
+                    "sum_ms": 446433.01675328985,
+                    "mean_ms": 1488.1100558442995,
+                    "p50_ms": 1425.7859374629334,
+                    "p95_ms": 1672.4958039354535,
+                    "max_ms": 4139.490250032395
+                  },
+                  "postprocess": {
+                    "n": 300,
+                    "sum_ms": 344.79974943678826,
+                    "mean_ms": 1.1493324981226276,
+                    "p50_ms": 0.9512919932603836,
+                    "p95_ms": 1.270843704696745,
+                    "max_ms": 51.25704105012119
+                  },
+                  "preprocess": {
+                    "n": 300,
+                    "sum_ms": 376.7077879747376,
+                    "mean_ms": 1.2556926265824586,
+                    "p50_ms": 1.1632295208983123,
+                    "p95_ms": 1.5923187602311375,
+                    "max_ms": 11.46641606464982
+                  },
+                  "queue": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  },
+                  "transfer": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  }
+                },
+                "sample_denominator": 300,
+                "instrumented_stage_sum_ms": {
+                  "n": 300,
+                  "sum_ms": 447154.5242907014,
+                  "mean_ms": 1490.5150809690047,
+                  "p50_ms": 1427.8219999396242,
+                  "p95_ms": 1674.5086327369793,
+                  "max_ms": 4143.787001026794
+                },
+                "video_loop_wall_s": 448.6566195000196,
+                "amortized_video_loop_ms_per_frame": 1495.5220650000654,
+                "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+                "unmeasured_individual_stages": [
+                  "decode",
+                  "tracking",
+                  "rules",
+                  "alert",
+                  "total"
+                ]
+              }
+            },
+            "s1_02.mp4": {
+              "metrics": {
+                "evaluator": {
+                  "tol_s": 2.0,
+                  "duration_s": 60.0,
+                  "videos": [
+                    "s1_02.mp4"
+                  ],
+                  "by_type": {
+                    "zone_intrusion": {
+                      "tp": 1,
+                      "fp": 0,
+                      "fn": 1,
+                      "duplicates": 1,
+                      "ignored_uncertain": 0,
+                      "precision": 1.0,
+                      "recall": 0.5,
+                      "f1": 0.6666666666666666,
+                      "latency_median_s": 2.6127166666666675,
+                      "latency_p95_s": 2.6127166666666675,
+                      "false_alarms_per_hour": 0.0
+                    }
+                  },
+                  "overall": {
+                    "tp": 1,
+                    "fp": 0,
+                    "fn": 1,
+                    "duplicates": 1,
+                    "ignored_uncertain": 0,
+                    "precision": 1.0,
+                    "recall": 0.5,
+                    "f1": 0.6666666666666666,
+                    "latency_median_s": 2.6127166666666675,
+                    "latency_p95_s": 2.6127166666666675,
+                    "false_alarms_per_hour": 0.0
+                  }
+                },
+                "supplemental_strict": {
+                  "precision_denominator_evaluator": 1,
+                  "raw_predictions": 2,
+                  "precision_denominator_strict": 2,
+                  "recall_denominator": 2,
+                  "strict_precision": 0.5,
+                  "alarms_false_or_duplicate_per_hour": 60.0,
+                  "positive_video_exposure_s": 60.0,
+                  "independent_clean_video_exposure_s": 0,
+                  "predictions_excluded_uncertain": 0
+                },
+                "label_counts": {
+                  "certain": 2,
+                  "uncertain": 2
+                },
+                "excluded_uncertain_labels": [
+                  {
+                    "label_id": "s1_02.mp4:0",
+                    "video": "s1_02.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 22.5,
+                    "t_end": 25.5,
+                    "uncertain": true,
+                    "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+                  },
+                  {
+                    "label_id": "s1_02.mp4:2",
+                    "video": "s1_02.mp4",
+                    "type": "zone_intrusion",
+                    "t_start": 38.0,
+                    "t_end": 45.0,
+                    "uncertain": true,
+                    "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+                  }
+                ],
+                "prediction_classifications": [
+                  {
+                    "prediction_id": "69e92dd7091e456c9fc8454089e4afbe",
+                    "video": "s1_02.mp4",
+                    "classification": "tp",
+                    "reason": "existing_events_eval:tp"
+                  },
+                  {
+                    "prediction_id": "8238678b21344dfc8591aa26fbf90b19",
+                    "video": "s1_02.mp4",
+                    "classification": "duplicates",
+                    "reason": "existing_events_eval:duplicates"
+                  }
+                ],
+                "uncertain_exclusions": []
+              },
+              "coverage": {
+                "source_fps": 59.94005994005994,
+                "source_frames_expected": 3597,
+                "source_frames_traversed": 3597,
+                "selected_frames_expected": 300,
+                "selected_frames_decoded": 300,
+                "frames_processed": 300,
+                "detections": 8565,
+                "person_track_observations": 993,
+                "frames_with_violations": 164,
+                "created_events": 2,
+                "close_notifications": 1,
+                "reopen_transitions": 0,
+                "effective_tracker": {
+                  "high_thresh": 0.4,
+                  "low_thresh": 0.1,
+                  "new_track_thresh": 0.45,
+                  "match_iou": 0.25,
+                  "track_buffer_s": 3.0,
+                  "min_hits": 2
+                },
+                "duration_s": 60.0,
+                "wall_s": 425.68452733394224
+              },
+              "timing": {
+                "stages_ms": {
+                  "infer": {
+                    "n": 300,
+                    "sum_ms": 424453.48378131166,
+                    "mean_ms": 1414.8449459377055,
+                    "p50_ms": 1390.4720830032602,
+                    "p95_ms": 1525.4089938185643,
+                    "max_ms": 3711.6482499986887
+                  },
+                  "postprocess": {
+                    "n": 300,
+                    "sum_ms": 407.2881753090769,
+                    "mean_ms": 1.3576272510302563,
+                    "p50_ms": 1.302666962146759,
+                    "p95_ms": 1.731134072178975,
+                    "max_ms": 3.404916962608695
+                  },
+                  "preprocess": {
+                    "n": 300,
+                    "sum_ms": 326.46175811532885,
+                    "mean_ms": 1.0882058603844296,
+                    "p50_ms": 1.0541040101088583,
+                    "p95_ms": 1.369303424144164,
+                    "max_ms": 2.0711669931188226
+                  },
+                  "queue": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  },
+                  "transfer": {
+                    "n": 300,
+                    "sum_ms": 0.0,
+                    "mean_ms": 0.0,
+                    "p50_ms": 0.0,
+                    "p95_ms": 0.0,
+                    "max_ms": 0.0
+                  }
+                },
+                "sample_denominator": 300,
+                "instrumented_stage_sum_ms": {
+                  "n": 300,
+                  "sum_ms": 425187.23371473607,
+                  "mean_ms": 1417.2907790491201,
+                  "p50_ms": 1392.851187440101,
+                  "p95_ms": 1528.130919096293,
+                  "max_ms": 3714.3162499414757
+                },
+                "video_loop_wall_s": 425.68452733394224,
+                "amortized_video_loop_ms_per_frame": 1418.948424446474,
+                "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+                "unmeasured_individual_stages": [
+                  "decode",
+                  "tracking",
+                  "rules",
+                  "alert",
+                  "total"
+                ]
+              }
+            }
+          },
+          "versions": {
+            "python": "3.11.16",
+            "numpy": "2.4.6",
+            "opencv-python-headless": "4.11.0.86",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1",
+            "scipy": "1.17.1",
+            "lap": "0.5.13"
+          },
+          "inference_stats": {
+            "backend": "onnx-cpu",
+            "providers": [
+              "CPUExecutionProvider"
+            ],
+            "intra_op_threads": 2,
+            "models": {
+              "det": {
+                "timings_ms": {
+                  "transfer": {
+                    "p50": 0.0,
+                    "p95": 0.0,
+                    "n": 45
+                  },
+                  "infer": {
+                    "p50": 1311.86,
+                    "p95": 1389.23,
+                    "n": 45
+                  }
+                },
+                "fps": 0.76,
+                "calls": 600,
+                "items": 600,
+                "max_batch_seen": 1,
+                "errors": 0,
+                "last_error": null
+              }
+            }
+          },
+          "wall_s": 875.1111147910124
+        }
+      },
+      "attribution_limit": "Run-local track IDs are not actor GT or cross-model identities. Raw differences are observations, not causal correctness labels.",
+      "executable_code_sha256": "57d2f2fcdffd87fb1a9a308fcceaa770e984030fe21093f6477837cf8a427b97"
+    },
+    "models": {
+      "baseline": {
+        "registry": {
+          "path": "data/validation_snapshots_20261024/d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c/models.yaml",
+          "bytes": 716,
+          "mtime_ns": 1792799342359245341,
+          "sha256": "d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c",
+          "source_path_at_capture": "configs/models.yaml",
+          "publication_note": "Captured bytes preserved separately from the current working source."
+        },
+        "onnx": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/yolov8n-640.onnx",
+          "bytes": 12851095,
+          "mtime_ns": 1792802199860879945,
+          "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99"
+        },
+        "metadata": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/det.json",
+          "bytes": 4054,
+          "mtime_ns": 1792802401305980567,
+          "sha256": "bfd32113a5e24e46fe9d0add4ea52f97dcad6c8023e18cb98506e7048980bd5e"
+        },
+        "weights": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/weights/yolov8n.pt",
+          "bytes": 6549796,
+          "mtime_ns": 1792801562862505502,
+          "sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36"
+        },
+        "effective_model": {
+          "model_id": "det",
+          "task": "detect",
+          "onnx_path": "yolov8n-640.onnx",
+          "tpu_program": null,
+          "input_size": [
+            640,
+            640
+          ],
+          "input_dtype": "float32",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "output_format": "yolov8",
+          "conf_threshold": 0.25,
+          "iou_threshold": 0.5
+        },
+        "metadata_content": {
+          "model_id": "det",
+          "task": "detect",
+          "onnx": "yolov8n-640.onnx",
+          "input_size": [
+            640,
+            640
+          ],
+          "input": "NCHW float32 RGB 0..1, letterbox 114",
+          "output_format": "yolov8",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "source_classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "weights": "/Users/mikemoiseev/Documents/mospromhack/models/weights/yolov8n.pt",
+          "weights_sha256": "f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36",
+          "onnx_sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99",
+          "onnx_bytes": 12851095,
+          "source": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt",
+          "license": "AGPL-3.0 (Ultralytics); https://github.com/ultralytics/ultralytics/blob/main/LICENSE",
+          "export_device": "cpu",
+          "export_threads": 2,
+          "torch_threads": 2,
+          "torch_interop_threads": 2,
+          "simplified_by": "onnxslim",
+          "versions": {
+            "ultralytics": "8.3.221",
+            "torch": "2.8.0",
+            "torchvision": "0.23.0",
+            "onnx": "1.23.2",
+            "onnxslim": "0.1.98",
+            "onnxruntime": "1.31.0",
+            "numpy": "2.4.6",
+            "opencv-python": "4.11.0.86",
+            "opencv-python-headless": "4.11.0.86"
+          },
+          "export_s": 0.8,
+          "opset": {
+            "ai.onnx": 12
+          },
+          "inputs": {
+            "images": [
+              1,
+              3,
+              640,
+              640
+            ]
+          },
+          "outputs": {
+            "output0": [
+              1,
+              84,
+              8400
+            ]
+          },
+          "ort_output_shapes": [
+            [
+              1,
+              84,
+              8400
+            ]
+          ],
+          "op_counts": {
+            "Add": 8,
+            "Concat": 19,
+            "Conv": 64,
+            "Div": 1,
+            "MaxPool": 3,
+            "Mul": 58,
+            "Reshape": 5,
+            "Resize": 2,
+            "Sigmoid": 58,
+            "Slice": 2,
+            "Softmax": 1,
+            "Split": 9,
+            "Sub": 2,
+            "Transpose": 2
+          },
+          "num_nodes": 234,
+          "problems": []
+        },
+        "metadata_semantics": {
+          "model_id": "det",
+          "task": "detect",
+          "input_size": [
+            640,
+            640
+          ],
+          "input": "NCHW float32 RGB 0..1, letterbox 114",
+          "output_format": "yolov8",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "source_classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "export_device": "cpu",
+          "export_threads": 2,
+          "torch_threads": 2,
+          "torch_interop_threads": 2,
+          "simplified_by": "onnxslim",
+          "versions": {
+            "ultralytics": "8.3.221",
+            "torch": "2.8.0",
+            "torchvision": "0.23.0",
+            "onnx": "1.23.2",
+            "onnxslim": "0.1.98",
+            "onnxruntime": "1.31.0",
+            "numpy": "2.4.6",
+            "opencv-python": "4.11.0.86",
+            "opencv-python-headless": "4.11.0.86"
+          },
+          "opset": {
+            "ai.onnx": 12
+          },
+          "inputs": {
+            "images": [
+              1,
+              3,
+              640,
+              640
+            ]
+          },
+          "outputs": {
+            "output0": [
+              1,
+              84,
+              8400
+            ]
+          },
+          "ort_output_shapes": [
+            [
+              1,
+              84,
+              8400
+            ]
+          ],
+          "problems": []
+        },
+        "source_claim": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt"
+      },
+      "candidate": {
+        "registry": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.yolov8x-640.yaml",
+          "bytes": 422,
+          "mtime_ns": 1792835877718825086,
+          "sha256": "a1fc1e558f64597938f572772e82295a2a651bfd06f803af2910029d6fa06203"
+        },
+        "onnx": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8x-640/yolov8x-640.onnx",
+          "bytes": 273089535,
+          "mtime_ns": 1792835726229258414,
+          "sha256": "f77f5f8650facf4c2d4c67719aa0043b0cb02ab989d3c2e28182fa552830ae1a"
+        },
+        "metadata": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8x-640/det.json",
+          "bytes": 3981,
+          "mtime_ns": 1792835727997051797,
+          "sha256": "38b89ff8df1a0e4a26b04e4963871d126f596ff632e81ca3aee92d2a923408ee"
+        },
+        "weights": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/weights/yolov8x.pt",
+          "bytes": 136890692,
+          "mtime_ns": 1792835684340376702,
+          "sha256": "3df4ada6b4dad6d657868f2fdf7faecfb34dcfccf3a25c4b82079064718524c8"
+        },
+        "effective_model": {
+          "model_id": "det",
+          "task": "detect",
+          "onnx_path": "yolov8x-640.onnx",
+          "tpu_program": null,
+          "input_size": [
+            640,
+            640
+          ],
+          "input_dtype": "float32",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "output_format": "yolov8",
+          "conf_threshold": 0.25,
+          "iou_threshold": 0.5
+        },
+        "metadata_content": {
+          "model_id": "det",
+          "task": "detect",
+          "onnx": "yolov8x-640.onnx",
+          "input_size": [
+            640,
+            640
+          ],
+          "input": "NCHW float32 RGB 0..1, letterbox 114",
+          "output_format": "yolov8",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "source_classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "weights": "/Users/mikemoiseev/Documents/mospromhack/models/weights/yolov8x.pt",
+          "weights_sha256": "3df4ada6b4dad6d657868f2fdf7faecfb34dcfccf3a25c4b82079064718524c8",
+          "onnx_sha256": "f77f5f8650facf4c2d4c67719aa0043b0cb02ab989d3c2e28182fa552830ae1a",
+          "onnx_bytes": 273089535,
+          "source": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8x.pt",
+          "license": "AGPL-3.0",
+          "export_device": "cpu",
+          "export_threads": 2,
+          "torch_threads": 2,
+          "torch_interop_threads": 2,
+          "simplified_by": "onnxslim",
+          "versions": {
+            "ultralytics": "8.3.221",
+            "torch": "2.8.0",
+            "torchvision": "0.23.0",
+            "onnx": "1.23.2",
+            "onnxslim": "0.1.98",
+            "onnxruntime": "1.31.0",
+            "numpy": "2.4.6",
+            "opencv-python": "4.11.0.86",
+            "opencv-python-headless": "4.11.0.86"
+          },
+          "export_s": 4.7,
+          "opset": {
+            "ai.onnx": 12
+          },
+          "inputs": {
+            "images": [
+              1,
+              3,
+              640,
+              640
+            ]
+          },
+          "outputs": {
+            "output0": [
+              1,
+              84,
+              8400
+            ]
+          },
+          "ort_output_shapes": [
+            [
+              1,
+              84,
+              8400
+            ]
+          ],
+          "op_counts": {
+            "Add": 20,
+            "Concat": 19,
+            "Conv": 104,
+            "Div": 1,
+            "MaxPool": 3,
+            "Mul": 98,
+            "Reshape": 5,
+            "Resize": 2,
+            "Sigmoid": 98,
+            "Slice": 2,
+            "Softmax": 1,
+            "Split": 9,
+            "Sub": 2,
+            "Transpose": 2
+          },
+          "num_nodes": 366,
+          "problems": []
+        },
+        "metadata_semantics": {
+          "model_id": "det",
+          "task": "detect",
+          "input_size": [
+            640,
+            640
+          ],
+          "input": "NCHW float32 RGB 0..1, letterbox 114",
+          "output_format": "yolov8",
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "source_classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "export_device": "cpu",
+          "export_threads": 2,
+          "torch_threads": 2,
+          "torch_interop_threads": 2,
+          "simplified_by": "onnxslim",
+          "versions": {
+            "ultralytics": "8.3.221",
+            "torch": "2.8.0",
+            "torchvision": "0.23.0",
+            "onnx": "1.23.2",
+            "onnxslim": "0.1.98",
+            "onnxruntime": "1.31.0",
+            "numpy": "2.4.6",
+            "opencv-python": "4.11.0.86",
+            "opencv-python-headless": "4.11.0.86"
+          },
+          "opset": {
+            "ai.onnx": 12
+          },
+          "inputs": {
+            "images": [
+              1,
+              3,
+              640,
+              640
+            ]
+          },
+          "outputs": {
+            "output0": [
+              1,
+              84,
+              8400
+            ]
+          },
+          "ort_output_shapes": [
+            [
+              1,
+              84,
+              8400
+            ]
+          ],
+          "problems": []
+        },
+        "source_claim": "https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8x.pt"
+      }
+    },
+    "coverage": {
+      "samples_per_model": 600,
+      "models": 2,
+      "certain_events": 4,
+      "uncertain_events": 3,
+      "positive_exposure_s_per_model": 120,
+      "independent_clean_exposure_s": 0
+    },
+    "attribution": {
+      "baseline": {
+        "late_samples": 60,
+        "late_track_samples": 60,
+        "late_violation_samples": 59,
+        "late_new_events": 0,
+        "event": {
+          "id": "9435b1c945cf4ecca075ddbb18c8e54a",
+          "track_id": 3,
+          "started_at": 38.20483333333333,
+          "confirmed_at": 40.206833333333336,
+          "ended_at": null
+        },
+        "independent_evaluator_cli_exact_match": true,
+        "sqlite_readback_events": 5
+      },
+      "candidate": {
+        "late_samples": 60,
+        "late_track_samples": 60,
+        "late_violation_samples": 60,
+        "late_new_events": 0,
+        "event": {
+          "id": "8238678b21344dfc8591aa26fbf90b19",
+          "track_id": 4,
+          "started_at": 38.405033333333336,
+          "confirmed_at": 42.20883333333333,
+          "ended_at": null
+        },
+        "independent_evaluator_cli_exact_match": true,
+        "sqlite_readback_events": 4
+      }
+    },
+    "limitations": [
+      "No actor identities in GT",
+      "Late FN overlaps a still-open incident; raw track and violation are present",
+      "Outer time command returned1 due sandbox sysctl, model wrapper oktrue/returncode0 is authoritative",
+      "These experiments precede main temporal/lifecycle changes"
+    ]
+  },
+  "ppe_images": {
+    "images_per_model": 141,
+    "split": "Construction-PPE test only",
+    "conf_op": 0.35,
+    "iou": 0.5,
+    "threshold_tuning_on_test": false,
+    "training_overlap": "unknown",
+    "runs": {
+      "coco-n-640": {
+        "status": "complete",
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "registry_input_size": [
+          640,
+          640
+        ],
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/yolov8n-640.onnx",
+            "bytes": 12851095,
+            "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99"
+          },
+          "config": {
+            "path": "data/validation_snapshots_20261024/d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c/models.yaml",
+            "bytes": 716,
+            "sha256": "d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c",
+            "source_path_at_capture": "configs/models.yaml",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/det.json",
+            "bytes": 4054,
+            "sha256": "bfd32113a5e24e46fe9d0add4ea52f97dcad6c8023e18cb98506e7048980bd5e"
+          },
+          "revision": null,
+          "candidate_profile": null,
+          "source_manifest": null,
+          "license_provenance": null,
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249/run_ppe_onnx.py",
+            "bytes": 19011,
+            "sha256": "06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "class_names_source": "onnx_metadata_via_backend",
+          "inspection": {
+            "checker": "passed",
+            "input_shape": [
+              1,
+              3,
+              640,
+              640
+            ],
+            "output_shape": [
+              1,
+              84,
+              8400
+            ],
+            "input_dtype": "float32",
+            "output_dtype": "float32",
+            "grid_count": 8400,
+            "classes": [
+              "person",
+              "bicycle",
+              "car",
+              "motorcycle",
+              "airplane",
+              "bus",
+              "train",
+              "truck",
+              "boat",
+              "traffic light",
+              "fire hydrant",
+              "stop sign",
+              "parking meter",
+              "bench",
+              "bird",
+              "cat",
+              "dog",
+              "horse",
+              "sheep",
+              "cow",
+              "elephant",
+              "bear",
+              "zebra",
+              "giraffe",
+              "backpack",
+              "umbrella",
+              "handbag",
+              "tie",
+              "suitcase",
+              "frisbee",
+              "skis",
+              "snowboard",
+              "sports ball",
+              "kite",
+              "baseball bat",
+              "baseball glove",
+              "skateboard",
+              "surfboard",
+              "tennis racket",
+              "bottle",
+              "wine glass",
+              "cup",
+              "fork",
+              "knife",
+              "spoon",
+              "bowl",
+              "banana",
+              "apple",
+              "sandwich",
+              "orange",
+              "broccoli",
+              "carrot",
+              "hot dog",
+              "pizza",
+              "donut",
+              "cake",
+              "chair",
+              "couch",
+              "potted plant",
+              "bed",
+              "dining table",
+              "toilet",
+              "tv",
+              "laptop",
+              "mouse",
+              "remote",
+              "keyboard",
+              "cell phone",
+              "microwave",
+              "oven",
+              "toaster",
+              "sink",
+              "refrigerator",
+              "book",
+              "clock",
+              "vase",
+              "scissors",
+              "teddy bear",
+              "hair drier",
+              "toothbrush"
+            ],
+            "metadata": {
+              "description": "Ultralytics YOLOv8n model trained on coco.yaml",
+              "author": "Ultralytics",
+              "date": "2026-10-24T03:36:39.328432",
+              "version": "8.3.221",
+              "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+              "docs": "https://docs.ultralytics.com",
+              "stride": "32",
+              "task": "detect",
+              "batch": "1",
+              "imgsz": "[640, 640]",
+              "names": "{0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light', 10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench', 14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow', 20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack', 25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee', 30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat', 35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket', 39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon', 45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli', 51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair', 57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv', 63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone', 68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}",
+              "args": "{'batch': 1, 'half': False, 'dynamic': False, 'simplify': False, 'opset': 12, 'nms': False}",
+              "channels": "3"
+            },
+            "metadata_checks": {
+              "imgsz": "matched",
+              "names": "matched"
+            }
+          }
+        },
+        "wall_seconds": 9.106518083019182,
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.757,
+            "p": 0.736,
+            "r": 0.78,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.0,
+            "p": 0.0,
+            "r": 0.0
+          },
+          "vest": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.252,
+          "coverage": {
+            "model_supported_classes": [
+              "person"
+            ],
+            "model_unsupported_classes": [
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": false,
+                "n_gt": 192,
+                "status": "unsupported"
+              },
+              "no_helmet": {
+                "model_supported": false,
+                "n_gt": 40,
+                "status": "unsupported"
+              },
+              "vest": {
+                "model_supported": false,
+                "n_gt": 178,
+                "status": "unsupported"
+              },
+              "no_vest": {
+                "model_supported": false,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person"
+              ],
+              "unsupported_classes": [
+                "helmet",
+                "vest"
+              ],
+              "supported_fraction": 0.3333333333333333
+            }
+          }
+        },
+        "class_map": {
+          "person": "person",
+          "bicycle": null,
+          "car": null,
+          "motorcycle": null,
+          "airplane": null,
+          "bus": null,
+          "train": null,
+          "truck": null,
+          "boat": null,
+          "traffic light": null,
+          "fire hydrant": null,
+          "stop sign": null,
+          "parking meter": null,
+          "bench": null,
+          "bird": null,
+          "cat": null,
+          "dog": null,
+          "horse": null,
+          "sheep": null,
+          "cow": null,
+          "elephant": null,
+          "bear": null,
+          "zebra": null,
+          "giraffe": null,
+          "backpack": null,
+          "umbrella": null,
+          "handbag": null,
+          "tie": null,
+          "suitcase": null,
+          "frisbee": null,
+          "skis": null,
+          "snowboard": null,
+          "sports ball": null,
+          "kite": null,
+          "baseball bat": null,
+          "baseball glove": null,
+          "skateboard": null,
+          "surfboard": null,
+          "tennis racket": null,
+          "bottle": null,
+          "wine glass": null,
+          "cup": null,
+          "fork": null,
+          "knife": null,
+          "spoon": null,
+          "bowl": null,
+          "banana": null,
+          "apple": null,
+          "sandwich": null,
+          "orange": null,
+          "broccoli": null,
+          "carrot": null,
+          "hot dog": null,
+          "pizza": null,
+          "donut": null,
+          "cake": null,
+          "chair": null,
+          "couch": null,
+          "potted plant": null,
+          "bed": null,
+          "dining table": null,
+          "toilet": null,
+          "tv": null,
+          "laptop": null,
+          "mouse": null,
+          "remote": null,
+          "keyboard": null,
+          "cell phone": null,
+          "microwave": null,
+          "oven": null,
+          "toaster": null,
+          "sink": null,
+          "refrigerator": null,
+          "book": null,
+          "clock": null,
+          "vase": null,
+          "scissors": null,
+          "teddy bear": null,
+          "hair drier": null,
+          "toothbrush": null
+        },
+        "latency_ms": {
+          "mean": 62.54929109684568,
+          "p50": 60.85820798762143,
+          "p95": 67.50150001607835,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "report": {
+          "path": "data/heavy_model_evaluation_20261024/coco-n-640/20261024T101747Z-56682502/report.json",
+          "bytes": 10636,
+          "sha256": "6f593ab2ddf4e80967232670e07bf6c9d674f624342507c230316e31034dde0e"
+        }
+      },
+      "coco-x-640": {
+        "status": "complete",
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "registry_input_size": [
+          640,
+          640
+        ],
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8x-640/yolov8x-640.onnx",
+            "bytes": 273089535,
+            "sha256": "f77f5f8650facf4c2d4c67719aa0043b0cb02ab989d3c2e28182fa552830ae1a"
+          },
+          "config": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.yolov8x-640.yaml",
+            "bytes": 422,
+            "sha256": "a1fc1e558f64597938f572772e82295a2a651bfd06f803af2910029d6fa06203"
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8x-640/det.json",
+            "bytes": 3981,
+            "sha256": "38b89ff8df1a0e4a26b04e4963871d126f596ff632e81ca3aee92d2a923408ee"
+          },
+          "revision": null,
+          "candidate_profile": null,
+          "source_manifest": null,
+          "license_provenance": null,
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249/run_ppe_onnx.py",
+            "bytes": 19011,
+            "sha256": "06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "class_names_source": "onnx_metadata_via_backend",
+          "inspection": {
+            "checker": "passed",
+            "input_shape": [
+              1,
+              3,
+              640,
+              640
+            ],
+            "output_shape": [
+              1,
+              84,
+              8400
+            ],
+            "input_dtype": "float32",
+            "output_dtype": "float32",
+            "grid_count": 8400,
+            "classes": [
+              "person",
+              "bicycle",
+              "car",
+              "motorcycle",
+              "airplane",
+              "bus",
+              "train",
+              "truck",
+              "boat",
+              "traffic light",
+              "fire hydrant",
+              "stop sign",
+              "parking meter",
+              "bench",
+              "bird",
+              "cat",
+              "dog",
+              "horse",
+              "sheep",
+              "cow",
+              "elephant",
+              "bear",
+              "zebra",
+              "giraffe",
+              "backpack",
+              "umbrella",
+              "handbag",
+              "tie",
+              "suitcase",
+              "frisbee",
+              "skis",
+              "snowboard",
+              "sports ball",
+              "kite",
+              "baseball bat",
+              "baseball glove",
+              "skateboard",
+              "surfboard",
+              "tennis racket",
+              "bottle",
+              "wine glass",
+              "cup",
+              "fork",
+              "knife",
+              "spoon",
+              "bowl",
+              "banana",
+              "apple",
+              "sandwich",
+              "orange",
+              "broccoli",
+              "carrot",
+              "hot dog",
+              "pizza",
+              "donut",
+              "cake",
+              "chair",
+              "couch",
+              "potted plant",
+              "bed",
+              "dining table",
+              "toilet",
+              "tv",
+              "laptop",
+              "mouse",
+              "remote",
+              "keyboard",
+              "cell phone",
+              "microwave",
+              "oven",
+              "toaster",
+              "sink",
+              "refrigerator",
+              "book",
+              "clock",
+              "vase",
+              "scissors",
+              "teddy bear",
+              "hair drier",
+              "toothbrush"
+            ],
+            "metadata": {
+              "description": "Ultralytics YOLOv8x model trained on coco.yaml",
+              "author": "Ultralytics",
+              "date": "2026-10-24T12:55:24.319131",
+              "version": "8.3.221",
+              "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+              "docs": "https://docs.ultralytics.com",
+              "stride": "32",
+              "task": "detect",
+              "batch": "1",
+              "imgsz": "[640, 640]",
+              "names": "{0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light', 10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench', 14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow', 20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack', 25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee', 30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat', 35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket', 39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon', 45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli', 51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair', 57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv', 63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone', 68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}",
+              "args": "{'batch': 1, 'half': False, 'dynamic': False, 'simplify': False, 'opset': 12, 'nms': False}",
+              "channels": "3"
+            },
+            "metadata_checks": {
+              "imgsz": "matched",
+              "names": "matched"
+            }
+          }
+        },
+        "wall_seconds": 194.38413108303212,
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.761,
+            "p": 0.682,
+            "r": 0.809,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.0,
+            "p": 0.0,
+            "r": 0.0
+          },
+          "vest": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.254,
+          "coverage": {
+            "model_supported_classes": [
+              "person"
+            ],
+            "model_unsupported_classes": [
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": false,
+                "n_gt": 192,
+                "status": "unsupported"
+              },
+              "no_helmet": {
+                "model_supported": false,
+                "n_gt": 40,
+                "status": "unsupported"
+              },
+              "vest": {
+                "model_supported": false,
+                "n_gt": 178,
+                "status": "unsupported"
+              },
+              "no_vest": {
+                "model_supported": false,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person"
+              ],
+              "unsupported_classes": [
+                "helmet",
+                "vest"
+              ],
+              "supported_fraction": 0.3333333333333333
+            }
+          }
+        },
+        "class_map": {
+          "person": "person",
+          "bicycle": null,
+          "car": null,
+          "motorcycle": null,
+          "airplane": null,
+          "bus": null,
+          "train": null,
+          "truck": null,
+          "boat": null,
+          "traffic light": null,
+          "fire hydrant": null,
+          "stop sign": null,
+          "parking meter": null,
+          "bench": null,
+          "bird": null,
+          "cat": null,
+          "dog": null,
+          "horse": null,
+          "sheep": null,
+          "cow": null,
+          "elephant": null,
+          "bear": null,
+          "zebra": null,
+          "giraffe": null,
+          "backpack": null,
+          "umbrella": null,
+          "handbag": null,
+          "tie": null,
+          "suitcase": null,
+          "frisbee": null,
+          "skis": null,
+          "snowboard": null,
+          "sports ball": null,
+          "kite": null,
+          "baseball bat": null,
+          "baseball glove": null,
+          "skateboard": null,
+          "surfboard": null,
+          "tennis racket": null,
+          "bottle": null,
+          "wine glass": null,
+          "cup": null,
+          "fork": null,
+          "knife": null,
+          "spoon": null,
+          "bowl": null,
+          "banana": null,
+          "apple": null,
+          "sandwich": null,
+          "orange": null,
+          "broccoli": null,
+          "carrot": null,
+          "hot dog": null,
+          "pizza": null,
+          "donut": null,
+          "cake": null,
+          "chair": null,
+          "couch": null,
+          "potted plant": null,
+          "bed": null,
+          "dining table": null,
+          "toilet": null,
+          "tv": null,
+          "laptop": null,
+          "mouse": null,
+          "remote": null,
+          "keyboard": null,
+          "cell phone": null,
+          "microwave": null,
+          "oven": null,
+          "toaster": null,
+          "sink": null,
+          "refrigerator": null,
+          "book": null,
+          "clock": null,
+          "vase": null,
+          "scissors": null,
+          "teddy bear": null,
+          "hair drier": null,
+          "toothbrush": null
+        },
+        "latency_ms": {
+          "mean": 1376.7411223520253,
+          "p50": 1339.0885409899056,
+          "p95": 1505.9134589973837,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "report": {
+          "path": "data/heavy_model_evaluation_20261024/coco-x-640/20261024T101758Z-0db02336/report.json",
+          "bytes": 10701,
+          "sha256": "decf9e909ed290f690cb3e1edcb8d336410507775b1643e5da4b90887ce04f1d"
+        }
+      },
+      "buildvision": {
+        "status": "complete",
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "registry_input_size": [
+          640,
+          640
+        ],
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/buildvision-hazards-v0.3/buildvision-hazards-v0.3.onnx",
+            "bytes": 44766819,
+            "sha256": "55f4dd2f53158eac4ff093d938b9fbda80c99454a03672145bbc36f539988249"
+          },
+          "config": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.ppe-candidate.yaml",
+            "bytes": 1149,
+            "sha256": "b148eff4ec6f6a39ed01c181c6703e85b48a49c31954e70b4a50d031d2ee58b1"
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/buildvision-hazards-v0.3/ppe.json",
+            "bytes": 2545,
+            "sha256": "b4017f2655f324ad771f53b4848ec6b9513424144b34d2cc5d46a8ed30ec8974"
+          },
+          "revision": "79673cff5a8bb249fc8ec9cca3daa19e2ef95191",
+          "candidate_profile": "buildvision",
+          "source_manifest": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/buildvision-hazards-v0.3/source.json",
+            "bytes": 4048,
+            "sha256": "5318b4b8500e2c8c291827ba92aa19b8f479d0e11f68b82673bf83a653833b6e"
+          },
+          "license_provenance": null,
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249/run_ppe_onnx.py",
+            "bytes": 19011,
+            "sha256": "06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "class_names_source": "registry",
+          "inspection": {
+            "checker": "passed",
+            "inputs": [
+              {
+                "name": "images",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  3,
+                  640,
+                  640
+                ]
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output0",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  18,
+                  8400
+                ]
+              }
+            ],
+            "source_classes": [
+              "person",
+              "hardhat",
+              "no-hardhat",
+              "safety vest",
+              "no-safety vest",
+              "no-mask",
+              "gloves",
+              "safety shoes",
+              "excavator",
+              "wheel loader",
+              "dump truck",
+              "goggles",
+              "no-goggles",
+              "no-gloves"
+            ],
+            "classes": [
+              "person",
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest",
+              "no-mask",
+              "gloves",
+              "safety shoes",
+              "excavator",
+              "wheel loader",
+              "dump truck",
+              "goggles",
+              "no-goggles",
+              "no-gloves"
+            ],
+            "class_map": {
+              "hardhat": "helmet",
+              "no-hardhat": "no_helmet",
+              "safety vest": "vest",
+              "no-safety vest": "no_vest"
+            },
+            "opsets": {
+              "": 12
+            },
+            "metadata": {
+              "description": "Construction site safety hazards detector v0.3",
+              "author": "Ultralytics",
+              "date": "2026-10-01T19:47:10.803031+00:00",
+              "version": "8.4.171",
+              "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+              "docs": "https://docs.ultralytics.com",
+              "stride": "32",
+              "task": "detect",
+              "head": "Detect",
+              "batch": "1",
+              "imgsz": "[640, 640]",
+              "names": "{0: 'person', 1: 'hardhat', 2: 'no-hardhat', 3: 'safety vest', 4: 'no-safety vest', 5: 'no-mask', 6: 'gloves', 7: 'safety shoes', 8: 'excavator', 9: 'wheel loader', 10: 'dump truck', 11: 'goggles', 12: 'no-goggles', 13: 'no-gloves'}",
+              "args": "{'data': None, 'batch': 1, 'fraction': 1.0, 'quantize': None, 'nms': None, 'dynamic': False, 'simplify': True, 'opset': 12}",
+              "channels": "3",
+              "end2end": "False"
+            }
+          }
+        },
+        "wall_seconds": 23.27432275004685,
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.791,
+            "p": 0.79,
+            "r": 0.797,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.895,
+            "p": 0.917,
+            "r": 0.859,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.136,
+            "p": 0.25,
+            "r": 0.2,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.369,
+            "p": 0.469,
+            "r": 0.375
+          },
+          "vest": {
+            "ap50": 0.847,
+            "p": 0.905,
+            "r": 0.803,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.844,
+          "coverage": {
+            "model_supported_classes": [
+              "person",
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "model_unsupported_classes": [],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": true,
+                "n_gt": 192,
+                "status": "evaluated"
+              },
+              "no_helmet": {
+                "model_supported": true,
+                "n_gt": 40,
+                "status": "evaluated"
+              },
+              "vest": {
+                "model_supported": true,
+                "n_gt": 178,
+                "status": "evaluated"
+              },
+              "no_vest": {
+                "model_supported": true,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "unsupported_classes": [],
+              "supported_fraction": 1.0
+            }
+          }
+        },
+        "class_map": {
+          "person": "person",
+          "helmet": "helmet",
+          "no_helmet": "no_helmet",
+          "vest": "vest",
+          "no_vest": "no_vest",
+          "no-mask": null,
+          "gloves": null,
+          "safety shoes": null,
+          "excavator": null,
+          "wheel loader": null,
+          "dump truck": null,
+          "goggles": null,
+          "no-goggles": null,
+          "no-gloves": null
+        },
+        "latency_ms": {
+          "mean": 163.22458267677575,
+          "p50": 161.81341698393226,
+          "p95": 168.66875009145588,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "report": {
+          "path": "data/heavy_model_evaluation_20261024/buildvision/20261024T102113Z-a877e923/report.json",
+          "bytes": 8161,
+          "sha256": "8300378440b5dbe35fede2e5b93a963d91f55852d137f98d6edaa8008cd96a49"
+        }
+      },
+      "vyra": {
+        "status": "complete",
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "registry_input_size": [
+          640,
+          640
+        ],
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/vyra-yolo-ppe-detection/best.onnx",
+            "bytes": 103655282,
+            "sha256": "b99fed37bae1d111ddb622a0ef9077d42918a4daebd4a0bffbd8faaba273f246"
+          },
+          "config": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.ppe-vyra.yaml",
+            "bytes": 1249,
+            "sha256": "5298eae0211bea7d6d612e03b6a4a520170e3d7d6b0d716a5b67253adaaaa28b"
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/vyra-yolo-ppe-detection/ppe.json",
+            "bytes": 2668,
+            "sha256": "494187a9b610fc1731295ce9ac644794b8b7bc5d74b538c261f65e027d4509e8"
+          },
+          "revision": "08895b33d95d2587423ebe4f7c1b9c41beebd642",
+          "candidate_profile": "vyra",
+          "source_manifest": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/vyra-yolo-ppe-detection/source.json",
+            "bytes": 3976,
+            "sha256": "c72079c2b56d0194f47c0440ec28c573691abdd7ec93ee7087d1dc2b4aabcb10"
+          },
+          "license_provenance": {
+            "hub": "cc-by-4.0",
+            "onnx_metadata": "AGPL-3.0 License (https://ultralytics.com/license)",
+            "status": "conflicting_metadata",
+            "review_required": true
+          },
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249/run_ppe_onnx.py",
+            "bytes": 19011,
+            "sha256": "06e7f812c387c8d03b3521b1d8f6a9a2b586869e584e625c13e8effefe216249",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "class_names_source": "registry",
+          "inspection": {
+            "checker": "passed",
+            "inputs": [
+              {
+                "name": "images",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  3,
+                  640,
+                  640
+                ]
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output0",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  18,
+                  8400
+                ]
+              }
+            ],
+            "source_classes": [
+              "Fall-Detected",
+              "Gloves",
+              "Goggles",
+              "Hardhat",
+              "Ladder",
+              "Mask",
+              "NO-Gloves",
+              "NO-Goggles",
+              "NO-Hardhat",
+              "NO-Mask",
+              "NO-Safety Vest",
+              "Person",
+              "Safety Cone",
+              "Safety Vest"
+            ],
+            "classes": [
+              "Fall-Detected",
+              "Gloves",
+              "Goggles",
+              "helmet",
+              "Ladder",
+              "Mask",
+              "NO-Gloves",
+              "NO-Goggles",
+              "no_helmet",
+              "NO-Mask",
+              "no_vest",
+              "person",
+              "Safety Cone",
+              "vest"
+            ],
+            "class_map": {
+              "Hardhat": "helmet",
+              "NO-Hardhat": "no_helmet",
+              "NO-Safety Vest": "no_vest",
+              "Person": "person",
+              "Safety Vest": "vest"
+            },
+            "opsets": {
+              "": 20
+            },
+            "metadata": {
+              "description": "Ultralytics best model trained on ppe_dataset/data.yaml",
+              "author": "Ultralytics",
+              "date": "2026-02-18T11:10:42.388292",
+              "version": "8.4.14",
+              "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+              "docs": "https://docs.ultralytics.com",
+              "stride": "32",
+              "task": "detect",
+              "batch": "1",
+              "imgsz": "[640, 640]",
+              "names": "{0: 'Fall-Detected', 1: 'Gloves', 2: 'Goggles', 3: 'Hardhat', 4: 'Ladder', 5: 'Mask', 6: 'NO-Gloves', 7: 'NO-Goggles', 8: 'NO-Hardhat', 9: 'NO-Mask', 10: 'NO-Safety Vest', 11: 'Person', 12: 'Safety Cone', 13: 'Safety Vest'}",
+              "args": "{'batch': 1, 'fraction': 1.0, 'half': True, 'int8': False, 'dynamic': False, 'simplify': True, 'nms': False}",
+              "channels": "3",
+              "end2end": "False"
+            }
+          }
+        },
+        "wall_seconds": 59.937182749970816,
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.026,
+            "p": 1.0,
+            "r": 0.004,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.543,
+            "p": 0.621,
+            "r": 0.401,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.054,
+            "p": 0.167,
+            "r": 0.05,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.304,
+            "p": 0.417,
+            "r": 0.125
+          },
+          "vest": {
+            "ap50": 0.586,
+            "p": 0.947,
+            "r": 0.202,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.385,
+          "coverage": {
+            "model_supported_classes": [
+              "person",
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "model_unsupported_classes": [],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": true,
+                "n_gt": 192,
+                "status": "evaluated"
+              },
+              "no_helmet": {
+                "model_supported": true,
+                "n_gt": 40,
+                "status": "evaluated"
+              },
+              "vest": {
+                "model_supported": true,
+                "n_gt": 178,
+                "status": "evaluated"
+              },
+              "no_vest": {
+                "model_supported": true,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "unsupported_classes": [],
+              "supported_fraction": 1.0
+            }
+          }
+        },
+        "class_map": {
+          "Fall-Detected": null,
+          "Gloves": null,
+          "Goggles": null,
+          "helmet": "helmet",
+          "Ladder": null,
+          "Mask": null,
+          "NO-Gloves": null,
+          "NO-Goggles": null,
+          "no_helmet": "no_helmet",
+          "NO-Mask": null,
+          "no_vest": "no_vest",
+          "person": "person",
+          "Safety Cone": null,
+          "vest": "vest"
+        },
+        "latency_ms": {
+          "mean": 423.41159546998796,
+          "p50": 419.79545808862895,
+          "p95": 444.73433296661824,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "report": {
+          "path": "data/heavy_model_evaluation_20261024/vyra/20261024T102138Z-c63ae6f7/report.json",
+          "bytes": 8243,
+          "sha256": "e193befbb5b6e5876558d88684a6214a5fd3c28a82e564269b5b3734f1b9b817"
+        }
+      }
+    },
+    "limitations": [
+      "No no_vest ground truth",
+      "Mixed head/face no_helmet boxes and possible incomplete GT",
+      "Image AP does not prove event quality or TPU quantization parity"
+    ]
+  },
+  "yolov8x_1280": {
+    "export": "ONNX checker and real zero-input ORT passed",
+    "quality": "not completed; intentionally interrupted to prioritize user request for merge and external TPU",
+    "cancellation": {
+      "path": "data/heavy_model_evaluation_20261024/steering-cancel.json",
+      "bytes": 451,
+      "sha256": "8e66c04b58318a5617bc8658f99badf47c2ed4de7bdd24466d1d8648392ec08d"
+    },
+    "onnx_sha256": "e73ccbd6a300207e04abd3d05c6f7a72a33012ccf9d06531077ddfda3699f5b0"
+  },
+  "newer_candidate": {
+    "name": "YOLO11x",
+    "weights": {
+      "path": "data/model_research/yolo11x-source-20261024.json",
+      "bytes": 871,
+      "sha256": "27666a4db359a1760d94fded06f5f9964be015172e947ffb23ddaa3b0319472a"
+    },
+    "status": "official pinned weights; static ONNX checker and real zero-input ORT passed; no quality or TPU claim"
+  },
+  "production_promotion": {
+    "new_candidates_promoted": false,
+    "reason": "No proven event quality gain; external TPU compilation/quantization/acceptance not completed"
+  },
+  "external_tpu_acceptance": {
+    "status": "deferred_by_user_after_network_probe",
+    "fresh_probe": "Ubuntu linq-vpn service start; two Connection reset responses, no tunnel; own attempt stopped",
+    "existing_profile": "~/Downloads/LinQ/Hakathon.ovpn",
+    "cpu_fallback": "disabled by default for selected TPU; explicit opt-in only",
+    "historical_main_tpu_results": "retained separately; not fresh acceptance",
+    "current_scope": "continue local development and validation, target deployment remains server/external TPU"
+  },
+  "artifacts": [
+    {
+      "path": "data/heavy_model_evaluation_20261024/vyra.log",
+      "bytes": 121,
+      "sha256": "7cf6bcc9ea672d7f2d8666131054ff1da5186a1bdf411e9d833ed1a27981d463"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-1280.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/steering-cancel.json",
+      "bytes": 451,
+      "sha256": "8e66c04b58318a5617bc8658f99badf47c2ed4de7bdd24466d1d8648392ec08d"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/buildvision.log",
+      "bytes": 128,
+      "sha256": "9a7983b9f716d008ecffc8d3b488655d8cd56b08ee3596d6d37152264c927572"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-640.log",
+      "bytes": 127,
+      "sha256": "2d72bac502e812c1d4bdc32d47ae4d0b1fd8ca6f3dd11f09452e50ee15c298ab"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/run-results.json",
+      "bytes": 6337,
+      "sha256": "5df0b9189e315e7dfbf66c5cfe1baef0aaa17c41acb943a0e5de8c49935dfa2f"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-n-640.log",
+      "bytes": 127,
+      "sha256": "13ee3ad0551a31d534ea513dc4e573d1530f23c14b105a89a011ad4b743b9228"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/export-x1280.log",
+      "bytes": 1127,
+      "sha256": "0aee1462bca8ba0e3f21687e832eeb20671ef2377a2d386f352201fe23d7fbd1"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-n-640/20261024T101747Z-56682502/report.json",
+      "bytes": 10636,
+      "sha256": "6f593ab2ddf4e80967232670e07bf6c9d674f624342507c230316e31034dde0e"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-n-640/20261024T101747Z-56682502/predictions.jsonl",
+      "bytes": 3271442,
+      "sha256": "7fa5e0292da2585effdd6d22d9664a220c1c9c9890c6e689f6f4089b5bddf307"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-n-640/20261024T101747Z-56682502/semantic-smoke.json",
+      "bytes": 284,
+      "sha256": "0d238a9af81e6835a1792a900a72ac2558ef7113db1c13b532736626335a0892"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-n-640/20261024T101747Z-56682502/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-640/20261024T101758Z-0db02336/report.json",
+      "bytes": 10701,
+      "sha256": "decf9e909ed290f690cb3e1edcb8d336410507775b1643e5da4b90887ce04f1d"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-640/20261024T101758Z-0db02336/predictions.jsonl",
+      "bytes": 1424788,
+      "sha256": "bbcf38d5fb9a4811fbf238525a57f877c46fb3425eab84e46165c8a9bff848bd"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-640/20261024T101758Z-0db02336/semantic-smoke.json",
+      "bytes": 284,
+      "sha256": "0d238a9af81e6835a1792a900a72ac2558ef7113db1c13b532736626335a0892"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-640/20261024T101758Z-0db02336/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/buildvision/20261024T102113Z-a877e923/report.json",
+      "bytes": 8161,
+      "sha256": "8300378440b5dbe35fede2e5b93a963d91f55852d137f98d6edaa8008cd96a49"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/buildvision/20261024T102113Z-a877e923/predictions.jsonl",
+      "bytes": 1406586,
+      "sha256": "6417109b15f16eea99c6dd2dcf2da3f445f0c40143d95829c48a226e9311173b"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/buildvision/20261024T102113Z-a877e923/semantic-smoke.json",
+      "bytes": 133897,
+      "sha256": "f542994ad4dcaefdc14d048543880532975c3a5fd5440d17c4bee85f937e1197"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/buildvision/20261024T102113Z-a877e923/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-1280/20261024T102239Z-9595dbdf/report.json",
+      "bytes": 865,
+      "sha256": "86de470b673da2f99be1a2877bf7a18037665a9ebf20067c82711cebe4f0d9f0"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-1280/20261024T102239Z-9595dbdf/predictions.jsonl",
+      "bytes": 54187,
+      "sha256": "005cc2efe068070933895a2c5744abb8888a06e47933693f1ec6a4223c31be60"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/coco-x-1280/20261024T102239Z-9595dbdf/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/vyra/20261024T102138Z-c63ae6f7/report.json",
+      "bytes": 8243,
+      "sha256": "e193befbb5b6e5876558d88684a6214a5fd3c28a82e564269b5b3734f1b9b817"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/vyra/20261024T102138Z-c63ae6f7/predictions.jsonl",
+      "bytes": 275779,
+      "sha256": "fc4f4c72637f875e0ca67ad94bac2d408145097740227c9376e6375696ef04ac"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/vyra/20261024T102138Z-c63ae6f7/semantic-smoke.json",
+      "bytes": 29604,
+      "sha256": "a4a14443be76036ed1824cf4dc46cdabf7cf70d5c77413f73021c3178ead3e4e"
+    },
+    {
+      "path": "data/heavy_model_evaluation_20261024/vyra/20261024T102138Z-c63ae6f7/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/model_comparison/20261024T095758Z-58d6c67e/report.json",
+      "bytes": 136994,
+      "sha256": "237cc39cbc1b79a619c34880564e390305b098d69576779c68cfc06346918fc6"
+    },
+    {
+      "path": "data/model_research/heavy-s1-attribution-20261024.json",
+      "bytes": 830,
+      "sha256": "8a77df583e678504c8d5c4cbc4da64b8e0b438ce7040805cfac9af730e8a02f7"
+    },
+    {
+      "path": "data/model_research/yolov8x-weights-source-20261024.json",
+      "bytes": 274,
+      "sha256": "e77cd7a2b49249022226224c49ffaa2ea9bb2aa7fe402f2712b2ce707e74fbd3"
+    },
+    {
+      "path": "data/model_research/yolo11x-source-20261024.json",
+      "bytes": 871,
+      "sha256": "27666a4db359a1760d94fded06f5f9964be015172e947ffb23ddaa3b0319472a"
+    }
+  ]
+}

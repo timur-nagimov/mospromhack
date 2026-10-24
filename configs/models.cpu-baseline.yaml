@@ -1,0 +1,20 @@
+# Минимальный реестр моделей (A3) до полного configs/models.yaml от A2.
+# onnx_path — относительно GUARD_MODELS_DIR. Пустые classes берутся из
+# <GUARD_MODELS_DIR>/<model_id>.json (пишет ml/export_onnx.py) или из метаданных ONNX.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: yolov8n-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.25
+    iou_threshold: 0.5
+  - model_id: pose
+    task: pose
+    onnx_path: yolov8n-pose-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8-pose
+    conf_threshold: 0.3
+    iou_threshold: 0.5

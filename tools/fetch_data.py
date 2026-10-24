@@ -2,7 +2,7 @@
 """Воспроизводимая загрузка демо- и тестовых данных по манифесту tools/data_manifest.json.
 
 Что делает (по шагам, каждый можно включить отдельно):
-  download — скачивает исходники в <data>/raw/ (кэш, повторно не качает, сверяет sha256);
+  download — скачивает исходники в <data>/raw/ (кэш, повторно не качает, проверяет заданные sha256 и bytes);
   encode   — режет и перекодирует в <data>/videos/<name>: H.264, ≤1280×720, 25 fps, CRF 28, без звука,
              +faststart. Ролики из нескольких отрезков склеиваются в один файл (кадр 1280×720 с полями);
   labels   — пишет разметку <data>/labels/<stem>.json (формат ml/eval/events_eval.py) и <data>/durations.json;
@@ -28,7 +28,9 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -68,32 +70,91 @@ def raw_path(data: Path, sid: str, src: dict) -> Path:
     return data / "raw" / f"{sid}{ext}"
 
 
+YTDLP_HOSTS = ("youtube.com", "youtu.be", "vimeo.com")
+# Видео без звука; avc1 — чтобы OpenCV и ffmpeg из imageio читали без av1-декодера
+YTDLP_FORMAT = "bv*[height<=720][vcodec^=avc1]/bv*[height<=720][ext=mp4]/b[height<=720]/b"
+
+
+def is_ytdlp(src: dict) -> bool:
+    host = urllib.parse.urlparse(src["url"]).netloc
+    return bool(src.get("ytdlp")) or any(host == h or host.endswith("." + h) for h in YTDLP_HOSTS)
+
+
+def download_ytdlp(out: Path, src: dict) -> None:
+    exe = shutil.which("yt-dlp")
+    if not exe:
+        sys.exit("yt-dlp не найден: brew install yt-dlp")
+    cmd = [exe, "-q", "--no-warnings", "--no-playlist", "--ffmpeg-location", ffmpeg_exe(),
+           "-f", src.get("format", YTDLP_FORMAT), "--remux-video", "mp4",
+           "-o", str(out.with_suffix("")) + ".%(ext)s", src["url"]]
+    subprocess.run(cmd, check=True, timeout=900)
+    if not out.exists():
+        sys.exit(f"yt-dlp не создал {out}")
+
+
+class SourceIntegrityError(ValueError):
+    """A source does not match its manifest identity; do not encode or publish it."""
+
+
+def verify_source(path: Path, sid: str, src: dict) -> tuple[str, int]:
+    """Check every supplied pin; legacy unpinned sources still require nonempty data."""
+    size = path.stat().st_size
+    want_size = src.get("bytes")
+    if want_size is not None and size != want_size:
+        raise SourceIntegrityError(f"{sid}: размер не совпадает с манифестом ({size} != {want_size} байт)")
+    if not size:
+        raise SourceIntegrityError(f"{sid}: пустой исходный файл {path}")
+    digest = sha256(path)
+    want_sha = src.get("sha256")
+    if want_sha and digest != want_sha:
+        raise SourceIntegrityError(f"{sid}: sha256 не совпадает с манифестом ({digest} != {want_sha})")
+    return digest, size
+
+
 def download(data: Path, sid: str, src: dict, retries: int = 3) -> Path:
+    if retries < 1:
+        raise ValueError("retries must be at least 1")
     out = raw_path(data, sid, src)
     out.parent.mkdir(parents=True, exist_ok=True)
-    if out.exists() and out.stat().st_size > 0:
+    if out.exists() and (out.stat().st_size > 0 or src.get("sha256") or src.get("bytes") is not None):
+        digest, size = verify_source(out, sid, src)
         status = "кэш"
+    elif is_ytdlp(src):
+        t0 = time.time()
+        with tempfile.TemporaryDirectory(dir=out.parent, prefix=out.name + ".") as folder:
+            pending = Path(folder) / out.name
+            download_ytdlp(pending, src)
+            digest, size = verify_source(pending, sid, src)
+            pending.replace(out)
+        status = f"скачан yt-dlp за {time.time() - t0:.0f} с"
     else:
         for attempt in range(1, retries + 1):
+            tmp = None
             try:
                 t0 = time.time()
                 req = urllib.request.Request(src["url"], headers={"User-Agent": UA})
-                tmp = out.with_suffix(out.suffix + ".part")
-                with urllib.request.urlopen(req, timeout=120) as r, tmp.open("wb") as f:
-                    shutil.copyfileobj(r, f, 1 << 20)
+                # The temporary file lives on the same filesystem. Only a
+                # complete, verified source may replace the published cache.
+                with tempfile.NamedTemporaryFile(dir=out.parent, prefix=out.name + ".", suffix=".part", delete=False) as f:
+                    tmp = Path(f.name)
+                    with urllib.request.urlopen(req, timeout=120) as r:
+                        shutil.copyfileobj(r, f, 1 << 20)
+                digest, size = verify_source(tmp, sid, src)
                 tmp.replace(out)
                 status = f"скачан за {time.time() - t0:.0f} с"
                 break
+            except SourceIntegrityError:
+                # A changed source is not a transient transport failure.
+                raise
             except Exception as e:  # noqa: BLE001
                 log(f"  ! {sid}: попытка {attempt}: {e}")
                 if attempt == retries:
                     raise
                 time.sleep(3 * attempt)
-    digest = sha256(out)
-    want = src.get("sha256")
-    if want and want != digest:
-        log(f"  ! {sid}: sha256 не совпадает с манифестом ({digest[:12]} != {want[:12]}) — источник изменился?")
-    log(f"  {sid}: {out.name} {out.stat().st_size / 1e6:.1f} МБ, {status}, sha256 {digest[:12]}")
+            finally:
+                if tmp is not None:
+                    tmp.unlink(missing_ok=True)
+    log(f"  {sid}: {out.name} {size / 1e6:.1f} МБ, {status}, sha256 {digest[:12]}")
     return out
 
 
@@ -104,6 +165,10 @@ def encode(data: Path, video: dict, manifest: dict, heavy: str | None, force: bo
     if out.exists() and not force:
         log(f"  {video['name']}: уже есть (--force для перекодирования)")
         return out
+    # --steps encode may run without download. Reject changed raw inputs
+    # before invoking ffmpeg, including forced re-encoding of an existing video.
+    for sid in dict.fromkeys(seg["source"] for seg in video["segments"]):
+        verify_source(raw_path(data, sid, manifest["sources"][sid]), sid, manifest["sources"][sid])
     w, h, fps = enc["width"], enc["height"], enc["fps"]
     segs = video["segments"]
     cmd = [ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y"]
@@ -152,8 +217,9 @@ def probe(path: Path) -> dict:
     return info
 
 
-def write_labels(data: Path, videos: list[dict], manifest: dict) -> None:
-    labels = data / "labels"
+def write_labels(data: Path, videos: list[dict], manifest: dict, labels: Path | None = None) -> None:
+    # Отдельный каталог для отложенных выборок: run_offline требует, чтобы сценарии покрывали все *.json каталога
+    labels = labels or data / "labels"
     labels.mkdir(parents=True, exist_ok=True)
     durations_path = data / "durations.json"
     durations = json.loads(durations_path.read_text()) if durations_path.exists() else {}
@@ -292,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--manifest", type=Path, default=MANIFEST)
     ap.add_argument("--data-dir", type=Path, default=Path(os.environ.get("GUARD_DATA_DIR", ROOT / "data")))
+    ap.add_argument("--labels-dir", type=Path, default=None, help="куда писать разметку (по умолчанию <data>/labels)")
     ap.add_argument("--only", nargs="*", help="имена роликов без .mp4, например s1_01 clean_02")
     ap.add_argument("--steps", nargs="*", choices=STEPS, default=list(STEPS))
     ap.add_argument("--heavy", default=os.environ.get("GUARD_HEAVY_SH", str(ROOT / "tools" / "heavy.sh")),
@@ -325,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
             encode(data, v, manifest, heavy, args.force)
     if "labels" in args.steps:
         log("== labels")
-        write_labels(data, videos, manifest)
+        write_labels(data, videos, manifest, args.labels_dir)
     if "frames" in args.steps:
         log("== frames")
         frames(data, videos)

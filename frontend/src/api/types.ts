@@ -1,4 +1,5 @@
 import type {
+  AnalyticsResponse,
   CameraConfig,
   EventPage,
   EventPatch,
@@ -29,6 +30,16 @@ export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
 export interface StatsQuery {
   group_by: StatsGroupBy;
+  type?: string;
+  camera_id?: string;
+  zone_id?: string;
+  status?: string;
+  severity?: string;
+  from?: number;
+  to?: number;
+}
+
+export interface AnalyticsQuery {
   from?: number;
   to?: number;
 }
@@ -106,6 +117,7 @@ export interface GuardApi {
   getEvent(id: string): Promise<GuardEvent>;
   patchEvent(id: string, patch: EventPatch): Promise<GuardEvent>;
   getStats(query: StatsQuery): Promise<StatsResponse>;
+  getAnalytics(query: AnalyticsQuery, signal?: AbortSignal): Promise<AnalyticsResponse>;
   getMetrics(): Promise<MetricsSnapshot>;
   /** Подписка на WS /ws/events; возвращает функцию отписки */
   subscribe(subscription: Subscription): () => void;

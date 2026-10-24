@@ -1,0 +1,1474 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "purpose": "Personal model-quality research; hackathon videos are historical diagnostic references",
+  "production_configuration": false,
+  "status_scope": "Research metadata plus explicitly referenced local inspection reports from the parent task. No inference or TPU result is inferred from another process being active.",
+  "evidence_policy": {
+    "hashes": "Expected SHA256 and sizes are public HF LFS metadata, independently rechecked against pinned revisions. D-FINE ONNX additionally has a parent local payload/hash/graph report. Other payload hashes have not been verified locally. null means unknown, never an invented pin. Extended RF2XL payload additionally verified by actual SHA256/restricted checkpoint inspection; native inference and graph export remain pending.",
+    "quality": "Author benchmark results are not promotion gates or measurements on our data.",
+    "licensing": "Record provenance; no license-based selection gate in this personal experiment.",
+    "model_semantics": "Frame observations, pose, clip actions, temporal transitions and sustained events remain distinct.",
+    "tpu": "Operator risks are source-derived hypotheses until actual graph inspection, LinQ compile and target readback. No CPU fallback acceptance."
+  },
+  "local_context": {
+    "read_sources": [
+      "docs/QUALITY.md",
+      "docs/MODELS.md",
+      "tools/data_manifest.json",
+      "tpu/compile.py"
+    ],
+    "known_failed_candidate": "keremberke/yolov8s-forklift-detection already rejected locally; not proposed again",
+    "reference_limits": "Historical 13videos/535seconds same-data tuned evaluation; no actor GT or independent holdout established.",
+    "canonical_classes": "Only labels already supported by the runtime may map directly. null denotes a new observation/action schema or no direct map; never force unknown to false.",
+    "role_ids": "Existing det/ppe/pose/fire role identifiers remain unchanged.",
+    "latest_quality_evidence": ".orchestra/metrics/model-followup-20261024.json"
+  },
+  "candidates": [
+    {
+      "id": "safetyvision_v2_896",
+      "family": "YOLOv8s",
+      "proposed_role": "runtime_candidate_after_local_validation",
+      "target_scenarios": [
+        "S3",
+        "PPE"
+      ],
+      "sources": [
+        "https://huggingface.co/ayushgupta7777/safetyvision-yolov8"
+      ],
+      "artifacts": [
+        {
+          "format": "onnx",
+          "repository": "ayushgupta7777/safetyvision-yolov8",
+          "revision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10",
+          "path": "v2/best_896.onnx",
+          "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/resolve/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/v2/best_896.onnx",
+          "bytes": 44926046,
+          "sha256": "b250353639e01800f9cbe79c6002b8b041bdae7560328b8e18ad4a42dc3844e1",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        },
+        {
+          "format": "onnx",
+          "repository": "ayushgupta7777/safetyvision-yolov8",
+          "revision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10",
+          "path": "v2/best_640.onnx",
+          "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/resolve/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/v2/best_640.onnx",
+          "bytes": 44764727,
+          "sha256": "ea18ae903a566e8fa76f3ee1c503075522dca269269315e9c862efa170430b35",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "0": "Fall-Detected",
+        "1": "Gloves",
+        "2": "Goggles",
+        "3": "Hardhat",
+        "4": "Mask",
+        "5": "NO-Gloves",
+        "6": "NO-Goggles",
+        "7": "NO-Hardhat",
+        "8": "NO-Mask",
+        "9": "NO-Safety Vest",
+        "10": "No_Harness",
+        "11": "Person",
+        "12": "Safety Vest"
+      },
+      "canonical_mapping": {
+        "11": "person",
+        "3": "helmet",
+        "12": "vest",
+        "0": null,
+        "7": "no_helmet",
+        "9": "no_vest"
+      },
+      "io": {
+        "evidence": "author card; graph not inspected",
+        "input": "static float32 RGB NCHW [1,3,896,896] or [1,3,640,640]; reproduce author letterbox and scaling",
+        "output": "17 channels x 16464 (896) or x 8400 (640); confirm layout and names from ONNX",
+        "opset": 20,
+        "postprocess": "external NMS; class 0 stays a frame-level posture observation, not a fall event"
+      },
+      "training_and_evaluation": {
+        "data": "80304 images from five Roboflow datasets; MD5 deduplication and stratified 85/10/5 split",
+        "counts": {
+          "train": 68253,
+          "validation": 8025,
+          "test": 4026
+        },
+        "sources": [
+          "ppe-combined-9bprl-mmcaf v1",
+          "hardhat-safetyvest v1",
+          "fall-detection-ca3o8 v4",
+          "safety_ppe v1",
+          "construction-safety-gears-vcbdq v1"
+        ],
+        "limits": "Subject/source-disjoint splits not established; overlap with GMDCSA24 and Mixkit not audited."
+      },
+      "linq_tpu_risks": [
+        "opset20 differs from current baseline opset12",
+        "Existing YOLOv8 cut names still require inspection at this artifact/resolution",
+        "896 increases IO and feature-map memory",
+        "Fall-Detected is not temporal transition or immobility proof"
+      ],
+      "license_provenance": {
+        "card": "AGPL-3.0"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "forklift_person_yolo11s",
+      "family": "YOLO11s",
+      "proposed_role": "runtime_candidate_requires_safe_export",
+      "target_scenarios": [
+        "S4"
+      ],
+      "sources": [
+        "https://huggingface.co/mustafahacioglu/yolo11s-forklift-person-detection"
+      ],
+      "artifacts": [
+        {
+          "format": "pytorch_checkpoint",
+          "repository": "mustafahacioglu/yolo11s-forklift-person-detection",
+          "revision": "931258e2715f401f8a0535daa814c27d39ab4129",
+          "path": "best.pt",
+          "url": "https://huggingface.co/mustafahacioglu/yolo11s-forklift-person-detection/resolve/931258e2715f401f8a0535daa814c27d39ab4129/best.pt",
+          "bytes": 19190682,
+          "sha256": "d4b860cc05942531284a8242524da96bb2ec4cc86e24833f9f2a9b7c5709fc6f",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "0": "forklift",
+        "1": "person"
+      },
+      "canonical_mapping": {
+        "0": "forklift",
+        "1": "person"
+      },
+      "io": {
+        "evidence": "author card; no published ONNX found",
+        "input": "640 image inference; exact export/preprocess/IO not yet established",
+        "postprocess": "Do not inherit author occupancy threshold as a proximity event rule."
+      },
+      "training_and_evaluation": {
+        "initialization": "COCO-pretrained YOLO11s",
+        "epochs": 150,
+        "counts": {
+          "train": 3928,
+          "validation": 433,
+          "test": 221
+        },
+        "sources": [
+          "mohamed-traore-2ekkp/forklift-dsitv v1",
+          "etri/map_up v4"
+        ],
+        "limits": "Scene/subject-disjoint split and overlap with our Mixkit clips unknown; author reports occluded/seated operator misses and machinery OOD limits."
+      },
+      "linq_tpu_risks": [
+        "PT-only artifact; no pickle load performed",
+        "C3k2/C2PSA, different Detect layer and attention operations need new graph review",
+        "Forklift presence is not dangerous proximity; preserve actor/vehicle association"
+      ],
+      "license_provenance": {
+        "card": "AGPL-3.0"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "cigarette_yolo11m",
+      "family": "YOLO11m",
+      "proposed_role": "runtime_candidate_requires_safe_export",
+      "target_scenarios": [
+        "S7"
+      ],
+      "sources": [
+        "https://huggingface.co/Beehzod/best_smoke_cigarette-detection"
+      ],
+      "artifacts": [
+        {
+          "format": "pytorch_checkpoint",
+          "repository": "Beehzod/best_smoke_cigarette-detection",
+          "revision": "8dd44e25a69b243e53f66b30c0e50889033dc391",
+          "path": "best.pt",
+          "url": "https://huggingface.co/Beehzod/best_smoke_cigarette-detection/resolve/8dd44e25a69b243e53f66b30c0e50889033dc391/best.pt",
+          "bytes": 40518316,
+          "sha256": "1d69b30f6a3b76112f1cdbff6dc3951a977dfb2828c9a9a756953e895f5d3d2d",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "0": "cigarette"
+      },
+      "canonical_mapping": {
+        "0": null
+      },
+      "io": {
+        "evidence": "author card; no published ONNX found",
+        "input": "640 images; exact export IO not yet established",
+        "output": "single-frame cigarette box; proposed research label cigarette, not an existing runtime class map",
+        "postprocess": "person association and hand/mouth temporal evidence required before smoking event"
+      },
+      "training_and_evaluation": {
+        "initialization": "official YOLO11m COCO weights",
+        "epochs": 100,
+        "sources": [
+          "richie-lab/smoking-tasfx v2"
+        ],
+        "counts": {
+          "train": 12046,
+          "validation": 318,
+          "test": 122
+        },
+        "limits": "Small validation/test sets; source-level leakage and Mixkit overlap not audited; tiny-object scale/domain shift."
+      },
+      "linq_tpu_risks": [
+        "No ONNX artifact inspected",
+        "C2PSA attention and changed node names",
+        "Small cigarette quantization loss and low-resolution visibility",
+        "Cigarette presence cannot alone establish smoking"
+      ],
+      "license_provenance": {
+        "card": "MIT",
+        "base_model": "Ultralytics YOLO11; preserve original model and dataset provenance independently"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "wardy_fall_transition_gru",
+      "family": "TemporalFallGRU",
+      "proposed_role": "temporal_research_auxiliary",
+      "target_scenarios": [
+        "S3"
+      ],
+      "sources": [
+        "https://huggingface.co/mumallaeng/wardy-m4-fall",
+        "https://huggingface.co/mumallaeng/wardy-m4-fall/blob/df40ae0310d2ccd38fb39a0a7311a7df420fe4b7/metadata.json"
+      ],
+      "artifacts": [
+        {
+          "format": "onnx",
+          "repository": "mumallaeng/wardy-m4-fall",
+          "revision": "df40ae0310d2ccd38fb39a0a7311a7df420fe4b7",
+          "path": "model.onnx",
+          "url": "https://huggingface.co/mumallaeng/wardy-m4-fall/resolve/df40ae0310d2ccd38fb39a0a7311a7df420fe4b7/model.onnx",
+          "bytes": 132803,
+          "sha256": "5ba44fbd8dde2f8632b299bb29b342cf2f1da64d708341fc1c7339b05b4f1922",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "target": "fall_transition"
+      },
+      "canonical_mapping": {
+        "target": null
+      },
+      "io": {
+        "evidence": "author metadata.json; graph not inspected",
+        "input": {
+          "name": "features",
+          "shape": [
+            "batch",
+            20,
+            80
+          ],
+          "sampling_fps": 10,
+          "window_seconds": 2
+        },
+        "features": "17 COCO xy (34), confidence (17), visibility (17), 12 kinematic features; exact ordering, normalization and missingness must match metadata",
+        "output": {
+          "name": "logits",
+          "shape": null
+        },
+        "bbox_provider": "torchvision_ssdlite320_coco",
+        "pose_model_sha256": "a6c2f6a3896a4d51131d14d7a80a3d08b50f559af5a58a45d5b098aef510a70f"
+      },
+      "training_and_evaluation": {
+        "data": "URFD pose sequences",
+        "limits": "Public card does not establish subject-disjoint train/validation/test or full metrics. Declared corpus differs from our GMDCSA24 source, but payload-level overlap audit not performed."
+      },
+      "linq_tpu_risks": [
+        "GRU/opset/state support unverified; freeze B1 only after parity check",
+        "Current 5fps sampling cannot be silently substituted for required10fps",
+        "Provider shift from SSDLite/author pose to current detector/pose",
+        "Cannot recover people missing from detector; transition is not sustained immobility"
+      ],
+      "license_provenance": {
+        "dataset": "URFD CC BY-NC-SA-4.0 as declared by model card"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "dfine_x_obj2coco",
+      "family": "D-FINE DETR + HGNetv2",
+      "proposed_role": "runtime_candidate_and_offline_detector_teacher",
+      "target_scenarios": [
+        "S3",
+        "S6"
+      ],
+      "sources": [
+        "https://github.com/Peterande/D-FINE",
+        "https://huggingface.co/ustc-community/dfine-xlarge-obj2coco",
+        "https://huggingface.co/onnx-community/dfine_x_obj2coco-ONNX",
+        "https://github.com/Peterande/D-FINE/blob/956d1709314c2c6a4df6f34de232054578a7449f/tools/deployment/export_onnx.py",
+        "https://github.com/Peterande/D-FINE/blob/956d1709314c2c6a4df6f34de232054578a7449f/src/zoo/dfine/utils.py"
+      ],
+      "artifacts": [
+        {
+          "format": "onnx",
+          "repository": "onnx-community/dfine_x_obj2coco-ONNX",
+          "revision": "4d3a85a6c29f55a5346fabaf9728f5f3751f947a",
+          "path": "onnx/model.onnx",
+          "url": "https://huggingface.co/onnx-community/dfine_x_obj2coco-ONNX/resolve/4d3a85a6c29f55a5346fabaf9728f5f3751f947a/onnx/model.onnx",
+          "bytes": 251138448,
+          "sha256": "486ee1cba40b25f3ea8d6783f664eca88b7c12d01078984834d36834d9b2c802",
+          "pin_evidence": "HF LFS metadata at pinned revision plus parent source.json reports downloaded payload bytes and SHA256 match; graph inspection report read separately"
+        },
+        {
+          "format": "safetensors",
+          "repository": "ustc-community/dfine-xlarge-obj2coco",
+          "revision": "15f18d917eaddcedf9e3ffb082adcfb97a0b2d4d",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/ustc-community/dfine-xlarge-obj2coco/resolve/15f18d917eaddcedf9e3ffb082adcfb97a0b2d4d/model.safetensors",
+          "bytes": 251619400,
+          "sha256": "19246b6d70c175d552752c8b7fac9b37516d8b14df2476a2cfd174837fc4df37",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        },
+        {
+          "format": "pytorch_checkpoint",
+          "url": "https://github.com/Peterande/storage/releases/download/dfinev1.0/dfine_x_obj2coco.pth",
+          "release_tag": "dfinev1.0",
+          "bytes": 252140594,
+          "sha256": null,
+          "pin_evidence": "official release API size only; digest absent; not byte-pinned"
+        }
+      ],
+      "labels_or_targets": {
+        "vocabulary": "80 COCO classes; selected ids below",
+        "0": "person",
+        "67": "cell phone",
+        "forklift": null
+      },
+      "canonical_mapping": {
+        "0": "person",
+        "67": "cell phone"
+      },
+      "io": {
+        "evidence": "Pinned HF config/processor and parent local ONNX inspection report; actual graph contract recorded below",
+        "community_processor_url": "https://huggingface.co/onnx-community/dfine_x_obj2coco-ONNX/resolve/4d3a85a6c29f55a5346fabaf9728f5f3751f947a/preprocessor_config.json",
+        "preprocess": "RGB, direct bilinear resize640x640, NCHW float32 /255; do_pad=false, do_normalize=false; NOT letterbox",
+        "expected_hf_raw_input": "pixel_values [1,3,640,640]",
+        "expected_hf_raw_output": [
+          "logits [1,300,80]",
+          "pred_boxes [1,300,4] normalized cxcywh"
+        ],
+        "hf_raw_io_status": "Confirmed by parent ONNX inspection report; batch/height/width are dynamic in published graph",
+        "postprocess": "sigmoid scores, query/class topK, cxcywh to xyxy and scale to original dimensions; confirm threshold/ranking and no implicit YOLO NMS",
+        "official_exporter_contract": {
+          "inputs": [
+            "images",
+            "orig_target_sizes"
+          ],
+          "outputs": [
+            "labels",
+            "boxes",
+            "scores"
+          ],
+          "opset": 16,
+          "default_export_example_batch": 32,
+          "dynamic_batch": true
+        },
+        "source_code_revision": "956d1709314c2c6a4df6f34de232054578a7449f",
+        "observed_inputs": [
+          {
+            "name": "pixel_values",
+            "dtype": "FLOAT",
+            "shape": [
+              "batch_size",
+              3,
+              "height",
+              "width"
+            ]
+          }
+        ],
+        "observed_outputs": [
+          {
+            "name": "logits",
+            "dtype": "FLOAT",
+            "shape": [
+              "batch_size",
+              300,
+              80
+            ]
+          },
+          {
+            "name": "pred_boxes",
+            "dtype": "FLOAT",
+            "shape": [
+              "batch_size",
+              300,
+              4
+            ]
+          }
+        ],
+        "observed_opset": 16
+      },
+      "training_and_evaluation": {
+        "data": "Objects365 pretraining, COCO train2017 fine-tuning; author COCO val2017 evaluation",
+        "parameters_approx_millions": 62,
+        "limits": "COCO metrics are not S3 event metrics. No forklift class in this checkpoint; Objects365 pretraining does not preserve its larger vocabulary after COCO fine-tuning. GMDCSA/Mixkit overlap not audited. Community ONNX vs original checkpoint parity not established."
+      },
+      "linq_tpu_risks": [
+        "Actual parent-inspected graph has GridSample18, MatMul123, ScatterND12, Erf1, Softmax20; LinQ support/compile still unverified",
+        "MatMul/Softmax/LayerNorm, dynamic sampling and TopK need LinQ compiler verification",
+        "Do not replace default decoder with discrete sampling without accuracy/parity experiment",
+        "Different input/output contract from current YOLO adapter and model22 graph cuts",
+        "INT8 attention/coordinate quality and memory require fresh calibration"
+      ],
+      "license_provenance": {
+        "original_code": "Apache-2.0",
+        "hf_card": "Apache-2.0",
+        "pretraining_data": "Objects365; separate dataset provenance retained"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": true,
+        "local_inference_validated": true,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false,
+        "payload_available_in_parent_workspace": true,
+        "parent_payload_hash_verified": true
+      },
+      "external_local_evidence": {
+        "source_report": "models/candidates/dfine-x-obj2coco/source.json",
+        "inspection_report": "models/candidates/dfine-x-obj2coco/inspection.json",
+        "report_scope": "Reports read from parent shared checkout, not this worktree; payload downloaded/inspected by parent task. Model payload is not committed.",
+        "inspection": {
+          "inputs": [
+            {
+              "name": "pixel_values",
+              "dtype": "FLOAT",
+              "shape": [
+                "batch_size",
+                3,
+                "height",
+                "width"
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "logits",
+              "dtype": "FLOAT",
+              "shape": [
+                "batch_size",
+                300,
+                80
+              ]
+            },
+            {
+              "name": "pred_boxes",
+              "dtype": "FLOAT",
+              "shape": [
+                "batch_size",
+                300,
+                4
+              ]
+            }
+          ],
+          "opsets": {
+            "": 16
+          },
+          "nodes": 2328,
+          "ops": {
+            ":Conv": 222,
+            ":Mul": 293,
+            ":Add": 447,
+            ":Relu": 114,
+            ":Pad": 2,
+            ":MaxPool": 1,
+            ":Concat": 84,
+            ":Shape": 55,
+            ":Gather": 79,
+            ":Slice": 32,
+            ":Unsqueeze": 134,
+            ":Range": 32,
+            ":Reshape": 159,
+            ":Cast": 16,
+            ":Transpose": 59,
+            ":MatMul": 123,
+            ":Expand": 68,
+            ":Sin": 2,
+            ":Cos": 2,
+            ":Softmax": 20,
+            ":ReduceMean": 43,
+            ":Sub": 53,
+            ":Pow": 21,
+            ":Sqrt": 21,
+            ":Div": 44,
+            ":Erf": 1,
+            ":Resize": 2,
+            ":Sigmoid": 64,
+            ":Split": 16,
+            ":Equal": 12,
+            ":Where": 13,
+            ":ScatterND": 12,
+            ":ConstantOfShape": 3,
+            ":Greater": 2,
+            ":Less": 1,
+            ":And": 1,
+            ":Not": 2,
+            ":Log": 2,
+            ":ReduceSum": 7,
+            ":ReduceMax": 1,
+            ":TopK": 2,
+            ":Tile": 2,
+            ":GatherElements": 2,
+            ":Clip": 15,
+            ":GridSample": 18,
+            ":Squeeze": 24
+          },
+          "functions": 0,
+          "external_tensors": [],
+          "checker": "passed"
+        },
+        "parity_with_original_weights": "not verified"
+      },
+      "local_quality_report": ".orchestra/metrics/model-followup-20261024.json"
+    },
+    {
+      "id": "rtdetr_v2_r101vd",
+      "family": "RT-DETRv2 ResNet101VD",
+      "proposed_role": "alternative_detector_family_reference",
+      "target_scenarios": [
+        "S3",
+        "S6"
+      ],
+      "sources": [
+        "https://github.com/lyuwenyu/RT-DETR",
+        "https://huggingface.co/PekingU/rtdetr_v2_r101vd"
+      ],
+      "artifacts": [
+        {
+          "format": "safetensors",
+          "repository": "PekingU/rtdetr_v2_r101vd",
+          "revision": "2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/PekingU/rtdetr_v2_r101vd/resolve/2c5dbbd2d4d8c8814827a3b42737ba1afce3cf2a/model.safetensors",
+          "bytes": 307332000,
+          "sha256": "fa2d79aa50064eb2d41abdc1acaa5ca20fc9d95347851c93ab6aad30a8974ee0",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "vocabulary": "80 COCO classes",
+        "0": "person",
+        "67": "cell phone"
+      },
+      "canonical_mapping": {
+        "0": "person",
+        "67": "cell phone"
+      },
+      "io": {
+        "evidence": "pinned HF processor/config; no graph/export inspected",
+        "preprocess": "direct resize640x640 RGB float32 /255; no normalization and no padding",
+        "expected_raw_output": [
+          "logits [B,300,80]",
+          "pred_boxes [B,300,4] normalized cxcywh"
+        ],
+        "decoder_method": "default"
+      },
+      "training_and_evaluation": {
+        "data": "COCO detector checkpoint; exact checkpoint recipe must be read before comparison",
+        "limits": "Alternative to D-FINE within DETR lineage, not a forklift/smoking/fall-action specialist; sample overlap not audited."
+      },
+      "linq_tpu_risks": [
+        "Default deformable sampling support and ONNX exporter must be verified",
+        "No ready ONNX artifact selected in this research",
+        "Existing YOLO output parser/cuts do not apply"
+      ],
+      "license_provenance": {
+        "repository": "Apache-2.0; record selected weights and data card separately"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "videomae_kinetics",
+      "family": "VideoMAE ViT video transformer",
+      "proposed_role": "offline_action_teacher_then_temporal_candidate",
+      "target_scenarios": [
+        "S7",
+        "S6_texting_subset"
+      ],
+      "sources": [
+        "https://github.com/MCG-NJU/VideoMAE",
+        "https://huggingface.co/MCG-NJU/videomae-large-finetuned-kinetics",
+        "https://huggingface.co/MCG-NJU/videomae-base-finetuned-kinetics",
+        "https://huggingface.co/docs/transformers/model_doc/videomae"
+      ],
+      "artifacts": [
+        {
+          "format": "safetensors",
+          "repository": "MCG-NJU/videomae-large-finetuned-kinetics",
+          "revision": "0f6adcd5f6902900aa0281f9daacfe52bb3c4ad4",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/MCG-NJU/videomae-large-finetuned-kinetics/resolve/0f6adcd5f6902900aa0281f9daacfe52bb3c4ad4/model.safetensors",
+          "bytes": 1217128032,
+          "sha256": "92d33bedfe4f171705af418b5ddf059a2beb8ef4d1532621c2ae0a6693dbb8bc",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        },
+        {
+          "format": "safetensors",
+          "repository": "MCG-NJU/videomae-base-finetuned-kinetics",
+          "revision": "488eb9a0565f257b32866000305c8178965eb9f6",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/MCG-NJU/videomae-base-finetuned-kinetics/resolve/488eb9a0565f257b32866000305c8178965eb9f6/model.safetensors",
+          "bytes": 346161616,
+          "sha256": "065cfde56f97671da4d196e1a3a6d3cf9304dcad92eb671e3632a6c6cdd04f73",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "vocabulary": "400 Kinetics classes",
+        "316": "smoking",
+        "317": "smoking hookah",
+        "355": "texting",
+        "fall_transition": null,
+        "phone_at_ear": null
+      },
+      "canonical_mapping": {
+        "316": null,
+        "317": null,
+        "355": null
+      },
+      "io": {
+        "evidence": "author model cards and configs; no ONNX artifact selected",
+        "input": "pixel_values [B,16,3,224,224]; RGB and ImageNet mean/std; resize/center crop as processor",
+        "output": "clip logits [B,400]",
+        "architecture": "base 12layers/768hidden/12heads; large24layers/1024hidden/16heads; patch16,tubelet2",
+        "sampling": "16 frames alone does not define seconds; preserve recipe sampling cadence and record real timestamps",
+        "onnx_export_status": "No ready author ONNX located. No VideoMAE entry found in reviewed current Optimum-ONNX model_configs.py; do not assume turnkey CLI support; explicit static eager export and parity still needed."
+      },
+      "training_and_evaluation": {
+        "data": "Kinetics400 self-supervised pretraining1600epochs and supervised fine-tuning per model cards",
+        "limits": "Trimmed web-video action classification, not calibrated multi-actor CCTV temporal detection. Subject/video-level overlap with evaluation media unknown. Texting covers only part of phone use; no explicit falling/lying target in this vocabulary."
+      },
+      "linq_tpu_risks": [
+        "Conv3D tubelets, attention MatMul/Softmax, GELU/LayerNorm and 5D input",
+        "Large temporal token memory and operator support unknown",
+        "Keep fixed clip tensor and move sampling/crop/windowing outside TPU",
+        "Softmax closed-set ranking is not an event probability; need negative/background validation",
+        "A person crop/domain shift may change semantics and needs separate evaluation"
+      ],
+      "license_provenance": {
+        "author_hf_card": "CC-BY-NC-4.0"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "vitpose_family",
+      "family": "ViTPose / ViTPose++ top-down transformer",
+      "proposed_role": "offline_pose_teacher_with_base_runtime_reference",
+      "target_scenarios": [
+        "S3",
+        "S6"
+      ],
+      "sources": [
+        "https://github.com/ViTAE-Transformer/ViTPose",
+        "https://huggingface.co/usyd-community/vitpose-plus-large",
+        "https://huggingface.co/onnx-community/vitpose-base-simple",
+        "https://github.com/huggingface/optimum-onnx/blob/main/optimum/exporters/onnx/model_configs.py"
+      ],
+      "artifacts": [
+        {
+          "format": "safetensors",
+          "repository": "usyd-community/vitpose-plus-large",
+          "revision": "e211df377e49c89dba508ab3e83ddef13c0832b4",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/usyd-community/vitpose-plus-large/resolve/e211df377e49c89dba508ab3e83ddef13c0832b4/model.safetensors",
+          "bytes": 1737705492,
+          "sha256": "8b249f74fca7c90b94adb1ebcdbb32cb424fb4fb3c8c40f54a050ccce972643f",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        },
+        {
+          "format": "onnx",
+          "repository": "onnx-community/vitpose-base-simple",
+          "revision": "bbebbddd612af2728539103dd5b903a4f5a2da4c",
+          "path": "onnx/model.onnx",
+          "url": "https://huggingface.co/onnx-community/vitpose-base-simple/resolve/bbebbddd612af2728539103dd5b903a4f5a2da4c/onnx/model.onnx",
+          "bytes": 343893670,
+          "sha256": "47af35f9acd4f6b36323c145c55e0618a5460a242eb28105ac30d34ddb1d584f",
+          "pin_evidence": "Hugging Face public model API LFS metadata; payload not downloaded or hashed locally"
+        }
+      ],
+      "labels_or_targets": {
+        "output": "17 COCO human keypoints for selected human head; no event classes"
+      },
+      "canonical_mapping": {
+        "output": null
+      },
+      "io": {
+        "evidence": "HF configs/processors; base ONNX card; graphs not inspected",
+        "input": "one affine person crop RGB [B,3,256,192] with ImageNet normalization; requires external person boxes",
+        "expected_output": "heatmaps [B,17,64,48], exact ONNX names/shapes/opset not inspected",
+        "postprocess": "heatmap decoding, affine inverse, confidence and left/right joint order must match source; not YOLO pose [1,56,N]",
+        "large_architecture": "24 layers,1024 hidden,16heads,6 dataset experts; selected human head",
+        "export_status": "Optimum-ONNX has VitPoseOnnxConfig for keypoint-detection; large/MoE export parity remains untested",
+        "source_code_revision": "c050ed29112da7704797cc1a65af0234b525010d"
+      },
+      "training_and_evaluation": {
+        "data": "ViTPose++ author model zoo: COCO+AIC+MPII+AP10K+APT36K+WholeBody; base-simple is a separate converted artifact, not the same checkpoint",
+        "limits": "Pose quality does not recover absent person boxes. Original repo explicitly notes potential CrowdPose training/other-dataset validation duplicate images. Our video overlap and checkpoint conversion parity not audited; source metrics not event metrics."
+      },
+      "linq_tpu_risks": [
+        "Attention MatMul/Softmax, GELU, LayerNorm, decoder upsampling, and large-model dataset-expert indexing",
+        "Top-down variable number of people needs fixedB1 scheduling",
+        "1.74GB large weights are an offline teacher first; not an immediate TPU deployment assumption",
+        "Do not use ONNX Community INT8/4-bit graphs as LinQ INT8 proof"
+      ],
+      "license_provenance": {
+        "author_code_and_hf": "Apache-2.0"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "id": "rtmpose_l_body7",
+      "family": "RTMPose CSPNeXt + RTMCC/SimCC",
+      "proposed_role": "pose_runtime_candidate_after_io_and_compile_validation",
+      "target_scenarios": [
+        "S3",
+        "S6"
+      ],
+      "sources": [
+        "https://github.com/open-mmlab/mmpose/tree/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/projects/rtmpose",
+        "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/projects/rtmpose/rtmpose/body_2d_keypoint/rtmpose-l_8xb256-420e_coco-256x192.py",
+        "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/mmpose/models/heads/coord_cls_heads/rtmcc_head.py",
+        "https://github.com/open-mmlab/mmpose/blob/759b39c13fea6ba094afc1fa932f51dc1b11cbf9/projects/rtmpose/examples/onnxruntime/main.py"
+      ],
+      "artifacts": [
+        {
+          "format": "onnx_sdk_zip",
+          "url": "https://download.openmmlab.com/mmpose/v1/projects/rtmposev1/onnx_sdk/rtmpose-l_simcc-body7_pt-body7_420e-256x192-4dba18fc_20230504.zip",
+          "bytes": null,
+          "sha256": null,
+          "pin_evidence": "Official pinned source README links exact dated filename; filename token4dba18fc is NOT asserted as full payload SHA256; payload acquisition/hash pending"
+        }
+      ],
+      "labels_or_targets": {
+        "output": "17 COCO human keypoints; body7 checkpoint, NOT halpe26 or wholebody variant"
+      },
+      "canonical_mapping": {
+        "output": null
+      },
+      "io": {
+        "evidence": "pinned official source config/head/ONNXRuntime demo; SDK payload not inspected",
+        "input": "affine person crop [B,3,256,192]; config bgr_to_rgb=true, mean[123.675,116.28,103.53],std[58.395,57.12,57.375]; verify SDK pipeline channel order",
+        "expected_output": [
+          "SimCC x [B,17,384]",
+          "SimCC y [B,17,512]"
+        ],
+        "postprocess": "axis argmax /2.0, confidence reduction and inverse affine; confirm actual graph output names/dtypes; no heatmap or YOLO pose decoder",
+        "source_code_revision": "759b39c13fea6ba094afc1fa932f51dc1b11cbf9"
+      },
+      "training_and_evaluation": {
+        "data": "Body7: COCO,AIC,CrowdPose,MPII,sub-JHMDB,Halpe,PoseTrack18; declared official source table",
+        "limits": "Not a fall/action classifier; source/table COCO pose metrics do not establish bed/snow coverage or actor association. Dataset/video overlap not audited."
+      },
+      "linq_tpu_risks": [
+        "CSPNeXt conv backbone may be a practical compiler candidate; this is an inference, not measured compatibility",
+        "RTMCC head includes GAU/gated attention, Linear and ScaleNorm; not a purely convolutional graph",
+        "Need staticB1, SimCC decode and per-person scheduling",
+        "Top-down input still depends on detector; missing actor cannot be recovered by pose alone",
+        "Official SDK archive lacks a full SHA256 in reviewed metadata; pin actual bytes before run"
+      ],
+      "license_provenance": {
+        "repository": "Apache-2.0"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "family": "RF-DETR / DINOv2 windowed transformer",
+      "proposed_role": "detector candidate after graph and local quality validation",
+      "target_scenarios": [
+        "person coverage",
+        "S3 actor misses",
+        "PPE actor association"
+      ],
+      "sources": [
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/config.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/assets/model_weights.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/export/_runtime/preprocess.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/export/_runtime/decode.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/docs/exports/onnx.md"
+      ],
+      "canonical_mapping": {
+        "head": "Sparse class IDs require explicit source map; never apply YOLO80 map or drop last logit automatically"
+      },
+      "io": {
+        "source_code_revision": "5b22dfc0940697ce1abdfa681a5f7392b3eddbfb",
+        "preprocessing": "RGB float /255, torch bilinear direct resize align_corners=False antialias=False, ImageNet mean/std; PIL resizing is not equivalent",
+        "export": "Static batch1 FP32 opset17 is a candidate recipe; actual graph and parity pending",
+        "expected_outputs": {
+          "dets": "normalized cxcywh boxes",
+          "labels": "raw class logits, despite its output name"
+        },
+        "postprocess": "sigmoid and global top-k query/class pairs; no YOLO NMS; actual query/class counts require graph inspection"
+      },
+      "training_and_evaluation": {
+        "limits": "Official COCO metrics do not establish our event quality; public overlap and actor identities unresolved"
+      },
+      "linq_tpu_risks": [
+        "Attention, LayerNorm/Softmax, deformable sampling and positional operations require actual graph inventory and compiler check",
+        "YOLO DFL cuts are inapplicable automatically",
+        "Static FP32 parity, INT8 calibration and target acceptance are independent gates"
+      ],
+      "license_provenance": {
+        "selection_policy": "User personal experimental project; provenance only, no license-based shortlist gate"
+      },
+      "id": "rfdetr_large_2026_704",
+      "artifacts": [
+        {
+          "format": "pytorch_checkpoint",
+          "url": "https://repo.roboflow.com/rfdetr/rf-detr-large-2026.pth",
+          "bytes": 135954129,
+          "sha256": null,
+          "md5_from_official_registry_and_head": "5cb72153541cbcb9aa6efa26222acc75",
+          "pin_evidence": "Official source registry plus HTTP200 HEAD; payload not downloaded; MD5 not represented as SHA256"
+        }
+      ],
+      "labels_or_targets": {
+        "declared_config_classes": 90,
+        "input_size": [
+          704,
+          704
+        ],
+        "queries": 300,
+        "num_select": 300,
+        "variant": "Current2026 small-backbone Large, not legacy Large129M"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      }
+    },
+    {
+      "family": "RF-DETR / DINOv2 windowed transformer",
+      "proposed_role": "detector candidate after graph and local quality validation",
+      "target_scenarios": [
+        "person coverage",
+        "S3 actor misses",
+        "PPE actor association"
+      ],
+      "sources": [
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/config.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/assets/model_weights.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/export/_runtime/preprocess.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/src/rfdetr/export/_runtime/decode.py",
+        "https://raw.githubusercontent.com/roboflow/rf-detr/5b22dfc0940697ce1abdfa681a5f7392b3eddbfb/docs/exports/onnx.md",
+        "https://files.pythonhosted.org/packages/4d/70/d2be010436a065b3b42096da156e6fbd986fb5f5d1eaa1050147d72b01b2/rfdetr_plus-1.1.0-py3-none-any.whl"
+      ],
+      "canonical_mapping": {
+        "head": "Sparse class IDs require explicit source map; never apply YOLO80 map or drop last logit automatically"
+      },
+      "io": {
+        "source_code_revision": "5b22dfc0940697ce1abdfa681a5f7392b3eddbfb",
+        "preprocessing": "RGB float /255, torch bilinear direct resize align_corners=False antialias=False, ImageNet mean/std; PIL resizing is not equivalent",
+        "export": "Static batch1 FP32 opset17 is a candidate recipe; actual graph and parity pending",
+        "expected_outputs": {
+          "dets": "normalized cxcywh boxes",
+          "labels": "raw class logits, despite its output name"
+        },
+        "postprocess": "sigmoid and global top-k query/class pairs; no YOLO NMS; actual query/class counts require graph inspection"
+      },
+      "training_and_evaluation": {
+        "limits": "Official COCO metrics do not establish our event quality; public overlap and actor identities unresolved",
+        "local_quality": {
+          "report": ".orchestra/metrics/rfdetr-quality-20261024.json",
+          "images": 141,
+          "person_gt": 236,
+          "native": {
+            "ap50": 0.769,
+            "n_gt": 236,
+            "p": 0.62,
+            "r": 0.856
+          },
+          "onnx": {
+            "ap50": 0.769,
+            "n_gt": 236,
+            "p": 0.62,
+            "r": 0.856
+          },
+          "scope": "person AP50/P/R only, conf0.35 IoU0.5; public training overlap unknown; no event/actor quality",
+          "raw_numeric_parity": "failed",
+          "production_promotion": false,
+          "target_tpu_verified": false
+        }
+      },
+      "linq_tpu_risks": [
+        "Attention, LayerNorm/Softmax, deformable sampling and positional operations require actual graph inventory and compiler check",
+        "YOLO DFL cuts are inapplicable automatically",
+        "Static FP32 parity, INT8 calibration and target acceptance are independent gates"
+      ],
+      "license_provenance": {
+        "selection_policy": "User personal experimental project; provenance only, no license-based shortlist gate"
+      },
+      "id": "rfdetr_2xlarge_880",
+      "artifacts": [
+        {
+          "format": "pytorch_checkpoint",
+          "source_url": "https://storage.googleapis.com/rfdetr/platform-licensed/rf-detr-xxlarge.pth",
+          "source_code_revision": "5b22dfc0940697ce1abdfa681a5f7392b3eddbfb",
+          "expected_bytes": 507831201,
+          "expected_md5": "e3204689c1f0280427e4c33e6a2ac6cd",
+          "payload_sha256_before_download": null,
+          "license_policy": "personal experimental project; provenance only",
+          "status": "payload_verified",
+          "response_headers": {
+            "Content-Length": "507831201",
+            "ETag": "\"e3204689c1f0280427e4c33e6a2ac6cd\"",
+            "x-goog-hash": "crc32c=x8DlaQ==",
+            "Last-Modified": "Wed, 14 Jan 2026 02:01:34 GMT"
+          },
+          "bytes": 507831201,
+          "sha256": "bf418652d5e07ad441599acfadc65bb1767029079e7a343a6d61675ec5d553ae",
+          "md5": "e3204689c1f0280427e4c33e6a2ac6cd",
+          "path": "models/candidates/rfdetr-2xlarge-880/rf-detr-xxlarge.pth",
+          "pin_evidence": "Actual payload bytes/SHA256 verified locally; MD5 equals official registry/HTTPHEAD"
+        }
+      ],
+      "labels_or_targets": {
+        "input_size": [
+          880,
+          880
+        ],
+        "actual_head_logits": 91,
+        "class_embed_weight_shape": [
+          91,
+          512
+        ],
+        "state_dict_tensor_numel_including_buffers": 126903202,
+        "package_default_classes": 365,
+        "actual_class_mapping": "Explicit source sparseCOCO91 mapping verified; person1, cellphone77, toothbrush90; no background logit removal"
+      },
+      "checkpoint_inspection": {
+        "report": {
+          "path": "models/candidates/rfdetr-2xlarge-880/inspection.json",
+          "bytes": 16646,
+          "sha256": "b52c8554226038a0b253e163fc8cedb196927741788c46a7664a8713feaa6c71"
+        },
+        "restricted_load": "torch.load weights_only=True,mmap=True,map_location=cpu",
+        "safe_globals": [
+          "argparse.Namespace"
+        ],
+        "state_dict_keys": 531,
+        "plus_wheel": {
+          "version": "1.1.0",
+          "url": "https://files.pythonhosted.org/packages/4d/70/d2be010436a065b3b42096da156e6fbd986fb5f5d1eaa1050147d72b01b2/rfdetr_plus-1.1.0-py3-none-any.whl",
+          "bytes": 10637,
+          "sha256": "bf73c8b003c0327357947f50eb678efddceeafa7350e953b764f463f68573133",
+          "inspection": "ZIP members read in memory only; no installation, importing or model execution"
+        },
+        "inference": "not_attempted",
+        "export": "not_attempted"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": true,
+        "graph_inspected": true,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false,
+        "local_inference_executed": true
+      },
+      "static_export": {
+        "asset": {
+          "bytes": 460466535,
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/rfdetr-2xlarge-880/static-fp32-880/model.onnx",
+          "sha256": "cd7a94b8c524905349a9639e78c72b66c04a223bbaf369c5d18811cc754aefa4"
+        },
+        "inspection": {
+          "checker": "passed",
+          "custom_operators": false,
+          "external_data": false,
+          "initializer_count": 406,
+          "inputs": {
+            "images": [
+              1,
+              3,
+              880,
+              880
+            ]
+          },
+          "nodes": 1767,
+          "operators": {
+            "ai.onnx:Add": 199,
+            "ai.onnx:And": 1,
+            "ai.onnx:Cast": 40,
+            "ai.onnx:Concat": 26,
+            "ai.onnx:Constant": 521,
+            "ai.onnx:ConstantOfShape": 7,
+            "ai.onnx:Conv": 9,
+            "ai.onnx:Cos": 4,
+            "ai.onnx:Div": 39,
+            "ai.onnx:Equal": 6,
+            "ai.onnx:Erf": 12,
+            "ai.onnx:Exp": 3,
+            "ai.onnx:Expand": 9,
+            "ai.onnx:Gather": 4,
+            "ai.onnx:GatherElements": 2,
+            "ai.onnx:Gemm": 5,
+            "ai.onnx:Greater": 2,
+            "ai.onnx:GridSample": 5,
+            "ai.onnx:LayerNormalization": 55,
+            "ai.onnx:Less": 1,
+            "ai.onnx:MatMul": 162,
+            "ai.onnx:Mul": 126,
+            "ai.onnx:Not": 3,
+            "ai.onnx:ReduceMax": 1,
+            "ai.onnx:ReduceSum": 6,
+            "ai.onnx:Relu": 10,
+            "ai.onnx:Reshape": 152,
+            "ai.onnx:Shape": 29,
+            "ai.onnx:Sigmoid": 8,
+            "ai.onnx:Sin": 4,
+            "ai.onnx:Slice": 70,
+            "ai.onnx:Softmax": 22,
+            "ai.onnx:Split": 1,
+            "ai.onnx:Sqrt": 51,
+            "ai.onnx:Sub": 5,
+            "ai.onnx:Tile": 2,
+            "ai.onnx:TopK": 1,
+            "ai.onnx:Transpose": 137,
+            "ai.onnx:Unsqueeze": 19,
+            "ai.onnx:Where": 8
+          },
+          "opset": 17,
+          "outputs": {
+            "dets": [
+              1,
+              300,
+              4
+            ],
+            "labels": [
+              1,
+              300,
+              91
+            ]
+          },
+          "target_tpu": "not_compiled_or_verified"
+        },
+        "class_layout": {
+          "background_class_id": null,
+          "logit_count": 91,
+          "logit_index_to_name": [
+            null,
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            null,
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            null,
+            "backpack",
+            "umbrella",
+            null,
+            null,
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            null,
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            null,
+            "dining table",
+            null,
+            null,
+            "toilet",
+            null,
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            null,
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "policy": "raw91 logits preserved; unnamed sparse slots stay unnamed; no last-logit removal or YOLO80 remap",
+          "valid_coco_category_ids": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            27,
+            28,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            67,
+            70,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90
+          ]
+        },
+        "strict_state_coverage": {
+          "all_checkpoint_tensors_equal_after_load": true,
+          "checkpoint_keys": 531,
+          "checkpoint_numel": 126903202,
+          "derived_stateless_buffers": {
+            "_kp_active_mask": {
+              "dtype": "torch.bool",
+              "numel": 0,
+              "reason": "pinned source disabled-keypoint deterministic empty buffer",
+              "shape": [
+                0,
+                0
+              ]
+            }
+          },
+          "missing_keys": [],
+          "model_state_keys": 532,
+          "strict": true,
+          "unexpected_keys": []
+        },
+        "parity": "failed",
+        "fixed_gate": {
+          "atol": 0.0001,
+          "rtol": 0.001,
+          "policy": "Unchanged after failure; any allclose failure blocks successful parity"
+        },
+        "report": ".orchestra/metrics/rfdetr-export-20261024.json",
+        "production_promotion": false
+      }
+    },
+    {
+      "id": "deimv2_x_dinov3_640",
+      "family": "DEIMv2-X / DINOv3",
+      "proposed_role": "detector and offline teacher candidate",
+      "target_scenarios": [
+        "person coverage",
+        "forklift/PPE/phone research"
+      ],
+      "sources": [
+        "https://huggingface.co/Intellindust/DEIMv2_DINOv3_X_COCO",
+        "https://github.com/Intellindust-AI-Lab/DEIMv2"
+      ],
+      "artifacts": [
+        {
+          "format": "safetensors",
+          "repository": "Intellindust/DEIMv2_DINOv3_X_COCO",
+          "revision": "b1d81486dce5686b2afcd38a231d086d142c996d",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/Intellindust/DEIMv2_DINOv3_X_COCO/resolve/b1d81486dce5686b2afcd38a231d086d142c996d/model.safetensors",
+          "bytes": 205313972,
+          "sha256": "c15e1860118e6841f8f803219507dbfb630c2aa0164ab723c339b94e554bae7f",
+          "pin_evidence": "HF pinned revision public LFS metadata; payload not acquired"
+        }
+      ],
+      "training_and_evaluation": {
+        "limits": "No measured local quality; source/subject overlap unverified"
+      },
+      "license_provenance": {
+        "selection_policy": "Provenance only for personal experiment"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      },
+      "labels_or_targets": {
+        "head": "80 contiguous COCO classes; actual graph not inspected"
+      },
+      "canonical_mapping": {
+        "person": "person",
+        "cell phone": "cell phone",
+        "ppe": null,
+        "forklift": null
+      },
+      "io": {
+        "source_code_revision": "f005f50ce565e63f6c298feccb51901a98c3d035",
+        "validation_preprocessing": "Direct resize640x640 + ImageNet normalization",
+        "demo_preprocessing": "Letterbox; not interchangeable with validation recipe",
+        "official_export_inputs": [
+          "images",
+          "orig_target_sizes"
+        ],
+        "official_export_outputs": [
+          "labels",
+          "boxes",
+          "scores"
+        ],
+        "export_limits": "Official dynamic batch/random initialization fallback must be replaced with strict safetensors full-state coverage and staticB1"
+      },
+      "linq_tpu_risks": [
+        "Actual DINOv3 attention, GridSample/indexing operator inventory pending",
+        "New normalization and postprocessed output contract; existing D-FINE adapter cannot be reused implicitly",
+        "No compile/INT8/target result"
+      ]
+    },
+    {
+      "id": "grounding_dino_base_teacher",
+      "family": "Grounding DINO / Swin-B + text encoder",
+      "proposed_role": "open-vocabulary teacher for manual-reviewed annotations",
+      "target_scenarios": [
+        "person coverage",
+        "forklift/PPE/phone research"
+      ],
+      "sources": [
+        "https://huggingface.co/IDEA-Research/grounding-dino-base",
+        "https://github.com/IDEA-Research/GroundingDINO"
+      ],
+      "artifacts": [
+        {
+          "format": "safetensors",
+          "repository": "IDEA-Research/grounding-dino-base",
+          "revision": "12bdfa3120f3e7ec7b434d90674b3396eccf88eb",
+          "path": "model.safetensors",
+          "url": "https://huggingface.co/IDEA-Research/grounding-dino-base/resolve/12bdfa3120f3e7ec7b434d90674b3396eccf88eb/model.safetensors",
+          "bytes": 933400872,
+          "sha256": "5548f844c928c4b6f411fa8cbcc2bfa8dbbba437cb1d513975519f93c2a9ed21",
+          "pin_evidence": "HF pinned revision public LFS metadata; payload not acquired"
+        }
+      ],
+      "training_and_evaluation": {
+        "limits": "No measured local quality; source/subject overlap unverified"
+      },
+      "license_provenance": {
+        "selection_policy": "Provenance only for personal experiment"
+      },
+      "status": {
+        "discovered": true,
+        "metadata_reviewed": true,
+        "weights_downloaded_by_this_research": false,
+        "graph_inspected": false,
+        "local_inference_validated": false,
+        "target_tpu_compiled": false,
+        "target_tpu_accepted": false
+      },
+      "labels_or_targets": {
+        "head": "900 query boxes + token logits; phrase prompts, not fixed class IDs"
+      },
+      "canonical_mapping": {
+        "phrases": null,
+        "missing helmet": "Absence of detection remains unknown; teacher prompt does not prove a negative PPE class"
+      },
+      "io": {
+        "transformers_reference_commit": "8cb5963cc22174954e7dca2c0a3320b7dc2f4edc",
+        "preprocessing": "RGB shortest800/max1333 + padding + ImageNet normalization; tokenizer, lower-case period-delimited prompts",
+        "raw_validation": "Boxes and valid-token logits finite; reference masked/padded token logits may be -inf. Reject NaN/+inf and unexpected mask violations",
+        "postprocess": "Phrase/token-aligned scores and normalized boxes; tokenizer/text-mask are part of the fixed profile"
+      },
+      "linq_tpu_risks": [
+        "Dynamic image/text dimensions, attention and deformable operators; static text/image profiling required",
+        "Current blanket finite checks and COCO class-index decoder incompatible",
+        "Teacher-only until graph/quality/target acceptance; annotations need manual review"
+      ]
+    }
+  ],
+  "extended_family_source_evidence": {
+    "path": "data/model_research/extended_families_20261024/next-generation-source-evidence.json",
+    "bytes": 307649,
+    "sha256": "0624e48909bb3ba0ff4c1411011ee1c4fd66c9f53d3e83527ed3bb21150fb33d"
+  }
+}

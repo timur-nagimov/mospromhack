@@ -7,29 +7,47 @@
 from __future__ import annotations
 
 import os
+import math
 from dataclasses import dataclass, field
 from pathlib import Path
 
 CODE_ROOT = Path(__file__).resolve().parents[2]
+_BACKEND_ALIASES = {"onnx": "onnx-cpu", "cpu": "onnx-cpu", "ort": "onnx-cpu", "tpu": "linq-tpu", "linq": "linq-tpu"}
 
 
-def load_dotenv_guard(start: Path = CODE_ROOT) -> Path | None:
+def normalize_backend_name(name: str) -> str:
+    """Configuration-only normalization; importing Settings must not load ML."""
+    key = name.strip().lower().replace("_", "-")
+    return _BACKEND_ALIASES.get(key, key)
+
+
+def project_root() -> Path:
+    """Portable shared asset/environment root; code/config defaults stay CODE_ROOT."""
+    return Path(os.environ.get("GUARD_ROOT") or CODE_ROOT).expanduser()
+
+
+def find_dotenv(start: Path | None = None) -> Path | None:
+    start = Path(start) if start is not None else project_root()
+    return next((directory / ".env" for directory in (start, *start.parents)
+                 if (directory / ".env").is_file()), None)
+
+
+def load_dotenv_guard(start: Path | None = None) -> Path | None:
     """Найти .env вверх от start и загрузить только GUARD_* (секреты в окружение не тянем).
 
     Уже заданные переменные окружения не перезаписываются."""
-    for d in (start, *start.parents):
-        env = d / ".env"
-        if env.is_file():
-            for line in env.read_text(encoding="utf-8").splitlines():
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, value = line.partition("=")
-                key = key.strip().removeprefix("export ").strip()
-                if key.startswith("GUARD_"):
-                    os.environ.setdefault(key, value.strip().strip("'\""))
-            return env
-    return None
+    env = find_dotenv(start)
+    if env is None:
+        return None
+    for line in env.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip().removeprefix("export ").strip()
+        if key.startswith("GUARD_"):
+            os.environ.setdefault(key, value.strip().strip("'\""))
+    return env
 
 
 def _env_bool(name: str, default: bool) -> bool:
@@ -59,12 +77,17 @@ class Settings:
     media_dir: Path
     frontend_dist: Path
     backend: str = "onnx-cpu"
+    mode: str = "local"
+    edge_id: str | None = None
+    rabbit_url: str | None = field(default=None, repr=False)
+    preview_fps: float = 1.0
+    preview_max_width: int = 480
+    preview_stale_after_s: float = 10.0
+    telemetry_interval_s: float = 2.0
     autostart: bool = True
     # режим запуска (D-005): local — всё в одном процессе; edge — конвейер у TPU, публикует
     # event/frame_meta/metrics в транспорт; gateway — API/UI/журнал/клипы на ноутбуке
-    mode: str = "local"
     transport: str = "rabbit"  # memory | rabbit | log
-    rabbit_url: str | None = None
     publish_frame_meta: bool = True
     clips_enabled: bool = True  # на edge выключено: клипы собирает gateway из своего буфера
     edge_snapshot_width: int = 640
@@ -74,6 +97,7 @@ class Settings:
     batching: bool = True
     max_batch: int = 8
     batch_timeout_ms: float = 4.0
+    ppe_input_mode: str = "full_frame"
     # клипы и кольцевой буфер
     clip_pre_s: float = 5.0
     clip_post_s: float = 5.0
@@ -103,6 +127,24 @@ class Settings:
     flywheel_allow_train: bool = False  # задачи train и deploy из UI
     flywheel_edge_kbps: float = 4.0  # edge: прибавка трафика на камеру, КБ/с (контракт — не больше 10)
 
+    def __post_init__(self) -> None:
+        if self.ppe_input_mode not in {"full_frame", "person_crop"}:
+            raise ValueError("GUARD_PPE_INPUT_MODE must be full_frame or person_crop")
+        if self.mode not in {"local", "edge", "gateway"}:
+            raise ValueError("GUARD_MODE must be local, edge or gateway")
+        if self.mode != "local" and not self.edge_id:
+            raise ValueError("GUARD_EDGE_ID is required for edge and gateway")
+        if self.edge_id and (len(self.edge_id) > 100 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in self.edge_id)):
+            raise ValueError("Invalid GUARD_EDGE_ID")
+        if not math.isfinite(self.preview_fps) or not 0 < self.preview_fps <= 1:
+            raise ValueError("GUARD_PREVIEW_FPS must be in (0, 1]")
+        if not 1 <= self.preview_max_width <= 480:
+            raise ValueError("GUARD_PREVIEW_MAX_WIDTH must be in [1, 480]")
+        if not math.isfinite(self.preview_stale_after_s) or self.preview_stale_after_s <= 0:
+            raise ValueError("GUARD_PREVIEW_STALE_AFTER_S must be positive")
+        if not math.isfinite(self.telemetry_interval_s) or self.telemetry_interval_s <= 0:
+            raise ValueError("GUARD_TELEMETRY_INTERVAL_S must be positive")
+
     @property
     def root(self) -> Path:
         return self.data_dir.parent
@@ -114,10 +156,8 @@ class Settings:
     @classmethod
     def from_env(cls) -> Settings:
         load_dotenv_guard()
-        from guard.inference import backend_name_from_env
-
-        data_dir = Path(os.environ.get("GUARD_DATA_DIR") or CODE_ROOT / "data").expanduser()
-        models_dir = Path(os.environ.get("GUARD_MODELS_DIR") or CODE_ROOT / "models").expanduser()
+        data_dir = Path(os.environ.get("GUARD_DATA_DIR") or project_root() / "data").expanduser()
+        models_dir = Path(os.environ.get("GUARD_MODELS_DIR") or project_root() / "models").expanduser()
         return cls(
             data_dir=data_dir,
             models_dir=models_dir,
@@ -126,16 +166,25 @@ class Settings:
             db_path=Path(os.environ.get("GUARD_DB_PATH") or data_dir / "guard.db"),
             media_dir=Path(os.environ.get("GUARD_MEDIA_DIR") or data_dir / "media"),
             frontend_dist=Path(os.environ.get("GUARD_FRONTEND_DIST") or CODE_ROOT / "frontend" / "dist"),
-            backend=backend_name_from_env(),
+            backend=normalize_backend_name(os.environ.get("GUARD_BACKEND") or "onnx-cpu"),
+            edge_id=os.environ.get("GUARD_EDGE_ID") or None,
+            preview_fps=_env_float("GUARD_PREVIEW_FPS", 1.0),
+            preview_max_width=_env_int("GUARD_PREVIEW_MAX_WIDTH", 480),
+            preview_stale_after_s=_env_float("GUARD_PREVIEW_STALE_AFTER_S", 10.0),
+            telemetry_interval_s=_env_float("GUARD_TELEMETRY_INTERVAL_S", 2.0),
             autostart=_env_bool("GUARD_AUTOSTART", True),
             mode=(os.environ.get("GUARD_MODE") or "local").strip().lower(),
             transport=(os.environ.get("GUARD_TRANSPORT") or "rabbit").strip().lower(),
             rabbit_url=os.environ.get("GUARD_RABBIT_URL") or None,
             publish_frame_meta=_env_bool("GUARD_FRAME_META", True),
             clips_enabled=_env_bool("GUARD_CLIPS", (os.environ.get("GUARD_MODE") or "local").strip().lower() != "edge"),
+            edge_snapshot_width=_env_int("GUARD_EDGE_SNAPSHOT_WIDTH", 640),
+            edge_snapshot_quality=_env_int("GUARD_EDGE_SNAPSHOT_QUALITY", 70),
+            edge_snapshot_max_kb=_env_int("GUARD_EDGE_SNAPSHOT_MAX_KB", 60),
             batching=_env_bool("GUARD_BATCHING", True),
             max_batch=_env_int("GUARD_MAX_BATCH", 8),
             batch_timeout_ms=_env_float("GUARD_BATCH_TIMEOUT_MS", 4.0),
+            ppe_input_mode=(os.environ.get("GUARD_PPE_INPUT_MODE") or "full_frame").strip().lower(),
             clip_pre_s=_env_float("GUARD_CLIP_PRE_S", 5.0),
             clip_post_s=_env_float("GUARD_CLIP_POST_S", 5.0),
             clip_fps=_env_float("GUARD_CLIP_FPS", 10.0),

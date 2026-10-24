@@ -1,0 +1,1385 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "scope": "local_cpu_model_research",
+  "status": "complete",
+  "user_priority": "model_quality",
+  "ticket_mode": "no_ticket",
+  "integration_branch": "feature/implementation-batch",
+  "implementation_source_commit": "6772a0a05086f4fc7844fce53cdd7ca158e3d853",
+  "features": [
+    {
+      "branch": "feature/model-quality-comparison",
+      "commit": "5bdc0e5421dc1959f74fa2ac98ab0d6ef60a8aa2"
+    },
+    {
+      "branch": "feature/ppe-evaluation-metrics",
+      "commit": "e48f225ad1a36871cad3decda04a3cbbc4663833"
+    },
+    {
+      "branch": "feature/ppe-model-candidate",
+      "commit": "adc4d61bdc3d299cf22daf2c8d97de3920893340"
+    }
+  ],
+  "decisions": {
+    "default_detector": "YOLOv8n-640",
+    "default_registry_changed": false,
+    "candidate_yolov8s_promoted": false,
+    "ppe_candidate_status": "opt_in_experimental",
+    "training_started": false,
+    "thresholds_tuned_on_test": false,
+    "reason": "s gives no S1 event improvement with 2.71x video-loop cost; PPE negative classes/GT and temporal quality need target data"
+  },
+  "paired_s1": {
+    "report": {
+      "path": "data/model_comparison/20261024T023007Z-c3e2ac19/report.json",
+      "bytes": 129032,
+      "sha256": "1080ab439fc526649a72977f6132f9213fc0d91e844f130f100c43dd32348f48"
+    },
+    "tested_code_git": {
+      "head": "e309987ace105f66b5e7a8bcc9ab05d453e8dd36",
+      "tracked_changes": []
+    },
+    "coverage": {
+      "models": 2,
+      "videos_per_model": 2,
+      "samples_per_model": 600,
+      "positive_video_exposure_s_per_model": 120,
+      "certain_labels": 4,
+      "uncertain_labels": 3,
+      "independent_clean_exposure_s": 0
+    },
+    "runs": {
+      "baseline": {
+        "report": {
+          "path": "data/model_comparison/20261024T023007Z-c3e2ac19/baseline/report.json",
+          "bytes": 23276,
+          "sha256": "bcb36a4d200ca46bf5e8f6d6bdc5d4979c3185f8cfd6f3f29ea43d252c25e97e"
+        },
+        "metrics": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 1,
+          "ignored_uncertain": 1,
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.8571428571428571,
+          "latency_median_s": 2.2050333333333327,
+          "latency_p95_s": 2.571948333333334,
+          "false_alarms_per_hour": 0.0
+        },
+        "strict": {
+          "precision_denominator_evaluator": 3,
+          "raw_predictions": 5,
+          "precision_denominator_strict": 4,
+          "recall_denominator": 4,
+          "strict_precision": 0.75,
+          "alarms_false_or_duplicate_per_hour": 30.0,
+          "positive_video_exposure_s": 120.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 1
+        },
+        "timing": {
+          "stages_ms": {
+            "infer": {
+              "n": 600,
+              "sum_ms": 34483.044073567726,
+              "mean_ms": 57.47174012261288,
+              "p50_ms": 55.87943748105317,
+              "p95_ms": 63.14194344449788,
+              "max_ms": 202.05608301330358
+            },
+            "postprocess": {
+              "n": 600,
+              "sum_ms": 572.2848841687664,
+              "mean_ms": 0.9538081402812774,
+              "p50_ms": 0.9489579824730754,
+              "p95_ms": 1.1112402658909555,
+              "max_ms": 2.6838749181479216
+            },
+            "preprocess": {
+              "n": 600,
+              "sum_ms": 628.664150252007,
+              "mean_ms": 1.0477735837533448,
+              "p50_ms": 1.01597944740206,
+              "p95_ms": 1.2455836171284318,
+              "max_ms": 2.5718749966472387
+            },
+            "queue": {
+              "n": 600,
+              "sum_ms": 0.0,
+              "mean_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0,
+              "max_ms": 0.0
+            },
+            "transfer": {
+              "n": 600,
+              "sum_ms": 0.0,
+              "mean_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0,
+              "max_ms": 0.0
+            }
+          },
+          "sample_denominator": 600,
+          "instrumented_stage_sum_ms": {
+            "n": 600,
+            "sum_ms": 35683.9931079885,
+            "mean_ms": 59.4733218466475,
+            "p50_ms": 57.89650051156059,
+            "p95_ms": 65.28336457558908,
+            "max_ms": 205.61587496194988
+          },
+          "video_loop_wall_s": 37.25413599901367,
+          "amortized_video_loop_ms_per_frame": 62.09022666502278,
+          "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+          "unmeasured_individual_stages": [
+            "decode",
+            "tracking",
+            "rules",
+            "alert",
+            "total"
+          ]
+        },
+        "run_wall_s": 37.69288925000001
+      },
+      "candidate": {
+        "report": {
+          "path": "data/model_comparison/20261024T023007Z-c3e2ac19/candidate/report.json",
+          "bytes": 22175,
+          "sha256": "8163152e35511833668c23821e6c7ed19bc666f06ec117e2c49114d91e635072"
+        },
+        "metrics": {
+          "tp": 3,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 1,
+          "ignored_uncertain": 0,
+          "precision": 1.0,
+          "recall": 0.75,
+          "f1": 0.8571428571428571,
+          "latency_median_s": 2.2050333333333327,
+          "latency_p95_s": 2.752128333333333,
+          "false_alarms_per_hour": 0.0
+        },
+        "strict": {
+          "precision_denominator_evaluator": 3,
+          "raw_predictions": 4,
+          "precision_denominator_strict": 4,
+          "recall_denominator": 4,
+          "strict_precision": 0.75,
+          "alarms_false_or_duplicate_per_hour": 30.0,
+          "positive_video_exposure_s": 120.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 0
+        },
+        "timing": {
+          "stages_ms": {
+            "infer": {
+              "n": 600,
+              "sum_ms": 98231.8754887674,
+              "mean_ms": 163.719792481279,
+              "p50_ms": 160.8394999639131,
+              "p95_ms": 168.68658504099585,
+              "max_ms": 383.1622919533402
+            },
+            "postprocess": {
+              "n": 600,
+              "sum_ms": 617.8567541064695,
+              "mean_ms": 1.0297612568441157,
+              "p50_ms": 1.0222705313935876,
+              "p95_ms": 1.2747961620334536,
+              "max_ms": 3.9727090625092387
+            },
+            "preprocess": {
+              "n": 600,
+              "sum_ms": 624.4849154027179,
+              "mean_ms": 1.0408081923378631,
+              "p50_ms": 1.0173129849135876,
+              "p95_ms": 1.1915818031411616,
+              "max_ms": 4.771959036588669
+            },
+            "queue": {
+              "n": 600,
+              "sum_ms": 0.0,
+              "mean_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0,
+              "max_ms": 0.0
+            },
+            "transfer": {
+              "n": 600,
+              "sum_ms": 0.0,
+              "mean_ms": 0.0,
+              "p50_ms": 0.0,
+              "p95_ms": 0.0,
+              "max_ms": 0.0
+            }
+          },
+          "sample_denominator": 600,
+          "instrumented_stage_sum_ms": {
+            "n": 600,
+            "sum_ms": 99474.21715827659,
+            "mean_ms": 165.790361930461,
+            "p50_ms": 162.8515215124935,
+            "p95_ms": 170.9170747140888,
+            "max_ms": 387.1463758405298
+          },
+          "video_loop_wall_s": 101.02571800118312,
+          "amortized_video_loop_ms_per_frame": 168.37619666863853,
+          "definition": "full raw samples, no rolling window; video-loop wall includes decode, tracking, rules, journal and trace IO",
+          "unmeasured_individual_stages": [
+            "decode",
+            "tracking",
+            "rules",
+            "alert",
+            "total"
+          ]
+        },
+        "run_wall_s": 101.49423870909959
+      }
+    },
+    "per_video_raw_changes": {
+      "s1_01.mp4": {
+        "paired_samples": 300,
+        "sample_fingerprints": {
+          "baseline": "64e1d1861b0c7ee3b100726e9a48d861a3f6e71de66d14a90ba3cad834e46198",
+          "candidate": "64e1d1861b0c7ee3b100726e9a48d861a3f6e71de66d14a90ba3cad834e46198"
+        },
+        "frames_detection_count_changed": 38,
+        "frames_raw_detections_changed": 232,
+        "frames_track_count_changed": 3,
+        "frames_violation_presence_changed": 1,
+        "boundary_example_definition": "first 12 changed source frames within 2s of any annotated boundary; descriptive, not new matching/actor labels"
+      },
+      "s1_02.mp4": {
+        "paired_samples": 300,
+        "sample_fingerprints": {
+          "baseline": "66a996cb94de445fd0bd7c1a14170a1987daf9fa3a5f80ae53dd44d5eeb0dd2f",
+          "candidate": "66a996cb94de445fd0bd7c1a14170a1987daf9fa3a5f80ae53dd44d5eeb0dd2f"
+        },
+        "frames_detection_count_changed": 300,
+        "frames_raw_detections_changed": 300,
+        "frames_track_count_changed": 23,
+        "frames_violation_presence_changed": 19,
+        "boundary_example_definition": "first 12 changed source frames within 2s of any annotated boundary; descriptive, not new matching/actor labels"
+      }
+    },
+    "independent_readback": {
+      "baseline": {
+        "independent_evaluator_cli_exact_match": true,
+        "sqlite_events": 5,
+        "report_predictions": 5
+      },
+      "candidate": {
+        "independent_evaluator_cli_exact_match": true,
+        "sqlite_events": 4,
+        "report_predictions": 4
+      }
+    },
+    "code_after_successful_run": "Subsequent changes harden timeout subtree cleanup and content fingerprint only; successful inference results retain their original code and wrapper hashes.",
+    "video_loop_cost_ratio_s_over_n": 2.711798711527167,
+    "attribution": {
+      "late_fn_s1_02": {
+        "baseline_late_track_samples": 60,
+        "baseline_late_violations": 59,
+        "candidate_late_track_samples": 60,
+        "candidate_late_violations": 60,
+        "late_samples_denominator": 60,
+        "candidate_event_start_s": 38.605233,
+        "candidate_event_confirmed_s": 42.008633,
+        "late_interval_s": [
+          48,
+          60
+        ],
+        "new_late_events": 0,
+        "reason": "Existing start..confirmed matcher and continuous active event; actor identities unknown"
+      },
+      "s1_01_uncertain_difference": {
+        "baseline_iou_to_old_event": 0.295018989,
+        "candidate_iou_to_old_event": 0.335771432,
+        "spatial_merge_threshold": 0.3,
+        "candidate_reopened_prior_tp": true,
+        "meaning": "Fewer uncertain event IDs is spatial cooldown merge, not demonstrated quality gain"
+      }
+    }
+  },
+  "ppe": {
+    "dataset": {
+      "test_images": 141,
+      "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+      "gt_counts": {
+        "person": 236,
+        "helmet": 192,
+        "vest": 178,
+        "no_helmet": 40,
+        "no_vest": 0
+      },
+      "training_overlap_with_candidate": "unverified",
+      "source": {
+        "path": "data/model_research/construction-ppe-test/source.json",
+        "bytes": 86825,
+        "sha256": "5102580c27b0bc307719bd3d42869026b18740857b1475504e80393a69920242"
+      }
+    },
+    "runs": {
+      "coco-n": {
+        "report": {
+          "path": "data/ppe_evaluation/coco-n/20261024T093035Z-7ba71617/report.json",
+          "bytes": 8258,
+          "sha256": "6eaeb500d4f49efe836e01a3999ed8f8ec6ebb73aa56c63963e83119cca6583b"
+        },
+        "predictions": {
+          "path": "data/ppe_evaluation/coco-n/20261024T093035Z-7ba71617/predictions.jsonl",
+          "bytes": 3271448,
+          "sha256": "cc52486548ee0ebfdc801bd9f459cc9269f6d5aa6bba16e0305a42dd36c1f7da"
+        },
+        "inputs": {
+          "path": "data/ppe_evaluation/coco-n/20261024T093035Z-7ba71617/inputs.json",
+          "bytes": 82531,
+          "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+        },
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.757,
+            "p": 0.736,
+            "r": 0.78,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.0,
+            "p": 0.0,
+            "r": 0.0
+          },
+          "vest": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.252,
+          "coverage": {
+            "model_supported_classes": [
+              "person"
+            ],
+            "model_unsupported_classes": [
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": false,
+                "n_gt": 192,
+                "status": "unsupported"
+              },
+              "no_helmet": {
+                "model_supported": false,
+                "n_gt": 40,
+                "status": "unsupported"
+              },
+              "vest": {
+                "model_supported": false,
+                "n_gt": 178,
+                "status": "unsupported"
+              },
+              "no_vest": {
+                "model_supported": false,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person"
+              ],
+              "unsupported_classes": [
+                "helmet",
+                "vest"
+              ],
+              "supported_fraction": 0.3333333333333333
+            }
+          }
+        },
+        "latency_ms": {
+          "mean": 61.612394236272586,
+          "p50": 60.990958008915186,
+          "p95": 65.6151669099927,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "wall_seconds": 8.986222375067882,
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/yolov8n-640.onnx",
+            "bytes": 12851095,
+            "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99"
+          },
+          "config": {
+            "path": "data/validation_snapshots_20261024/d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c/models.yaml",
+            "bytes": 716,
+            "sha256": "d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c",
+            "source_path_at_capture": "configs/models.yaml",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/det.json",
+            "bytes": 4054,
+            "sha256": "bfd32113a5e24e46fe9d0add4ea52f97dcad6c8023e18cb98506e7048980bd5e"
+          },
+          "revision": null,
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215/run_ppe_onnx.py",
+            "bytes": 15150,
+            "sha256": "24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "inspection": {
+            "checker": "passed",
+            "input_shape": [
+              1,
+              3,
+              640,
+              640
+            ],
+            "output_shape": [
+              1,
+              84,
+              8400
+            ],
+            "classes": [
+              "person",
+              "bicycle",
+              "car",
+              "motorcycle",
+              "airplane",
+              "bus",
+              "train",
+              "truck",
+              "boat",
+              "traffic light",
+              "fire hydrant",
+              "stop sign",
+              "parking meter",
+              "bench",
+              "bird",
+              "cat",
+              "dog",
+              "horse",
+              "sheep",
+              "cow",
+              "elephant",
+              "bear",
+              "zebra",
+              "giraffe",
+              "backpack",
+              "umbrella",
+              "handbag",
+              "tie",
+              "suitcase",
+              "frisbee",
+              "skis",
+              "snowboard",
+              "sports ball",
+              "kite",
+              "baseball bat",
+              "baseball glove",
+              "skateboard",
+              "surfboard",
+              "tennis racket",
+              "bottle",
+              "wine glass",
+              "cup",
+              "fork",
+              "knife",
+              "spoon",
+              "bowl",
+              "banana",
+              "apple",
+              "sandwich",
+              "orange",
+              "broccoli",
+              "carrot",
+              "hot dog",
+              "pizza",
+              "donut",
+              "cake",
+              "chair",
+              "couch",
+              "potted plant",
+              "bed",
+              "dining table",
+              "toilet",
+              "tv",
+              "laptop",
+              "mouse",
+              "remote",
+              "keyboard",
+              "cell phone",
+              "microwave",
+              "oven",
+              "toaster",
+              "sink",
+              "refrigerator",
+              "book",
+              "clock",
+              "vase",
+              "scissors",
+              "teddy bear",
+              "hair drier",
+              "toothbrush"
+            ]
+          }
+        }
+      },
+      "coco-s": {
+        "report": {
+          "path": "data/ppe_evaluation/coco-s/20261024T093045Z-b6496940/report.json",
+          "bytes": 8319,
+          "sha256": "ee308de218810682f50465fa83ab5a797a0df7c3ebc6b19ad92c8277c0a11cb6"
+        },
+        "predictions": {
+          "path": "data/ppe_evaluation/coco-s/20261024T093045Z-b6496940/predictions.jsonl",
+          "bytes": 2434627,
+          "sha256": "5c530a56586a701b8e4e9773a7dbf3dae727f9359e4db2fc4ff56ca16d7e51bc"
+        },
+        "inputs": {
+          "path": "data/ppe_evaluation/coco-s/20261024T093045Z-b6496940/inputs.json",
+          "bytes": 82531,
+          "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+        },
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.727,
+            "p": 0.694,
+            "r": 0.78,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.0,
+            "p": 0.0,
+            "r": 0.0
+          },
+          "vest": {
+            "ap50": 0.0,
+            "p": 0.0,
+            "r": 0.0,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.242,
+          "coverage": {
+            "model_supported_classes": [
+              "person"
+            ],
+            "model_unsupported_classes": [
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": false,
+                "n_gt": 192,
+                "status": "unsupported"
+              },
+              "no_helmet": {
+                "model_supported": false,
+                "n_gt": 40,
+                "status": "unsupported"
+              },
+              "vest": {
+                "model_supported": false,
+                "n_gt": 178,
+                "status": "unsupported"
+              },
+              "no_vest": {
+                "model_supported": false,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person"
+              ],
+              "unsupported_classes": [
+                "helmet",
+                "vest"
+              ],
+              "supported_fraction": 0.3333333333333333
+            }
+          }
+        },
+        "latency_ms": {
+          "mean": 174.62760840578943,
+          "p50": 168.01104100886732,
+          "p95": 188.6392500018701,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "wall_seconds": 24.913708958076313,
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8s-640/yolov8s-640.onnx",
+            "bytes": 44869889,
+            "sha256": "ddac89c188b95f774e40c0f76b40a48e3ea3752059d95f87acaccedc2009a0dd"
+          },
+          "config": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.yolov8s-640.yaml",
+            "bytes": 353,
+            "sha256": "68467f8c0fff4e65df692e7a70a8a0fbeae5b4d66c966bc12dc6c4c40ee52dee"
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolov8s-640/det.json",
+            "bytes": 3978,
+            "sha256": "6998b4b48ea61e3745b19722c4ba9d6c10c14698eeecee39bf7c1ca58e7862cb"
+          },
+          "revision": null,
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215/run_ppe_onnx.py",
+            "bytes": 15150,
+            "sha256": "24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "inspection": {
+            "checker": "passed",
+            "input_shape": [
+              1,
+              3,
+              640,
+              640
+            ],
+            "output_shape": [
+              1,
+              84,
+              8400
+            ],
+            "classes": [
+              "person",
+              "bicycle",
+              "car",
+              "motorcycle",
+              "airplane",
+              "bus",
+              "train",
+              "truck",
+              "boat",
+              "traffic light",
+              "fire hydrant",
+              "stop sign",
+              "parking meter",
+              "bench",
+              "bird",
+              "cat",
+              "dog",
+              "horse",
+              "sheep",
+              "cow",
+              "elephant",
+              "bear",
+              "zebra",
+              "giraffe",
+              "backpack",
+              "umbrella",
+              "handbag",
+              "tie",
+              "suitcase",
+              "frisbee",
+              "skis",
+              "snowboard",
+              "sports ball",
+              "kite",
+              "baseball bat",
+              "baseball glove",
+              "skateboard",
+              "surfboard",
+              "tennis racket",
+              "bottle",
+              "wine glass",
+              "cup",
+              "fork",
+              "knife",
+              "spoon",
+              "bowl",
+              "banana",
+              "apple",
+              "sandwich",
+              "orange",
+              "broccoli",
+              "carrot",
+              "hot dog",
+              "pizza",
+              "donut",
+              "cake",
+              "chair",
+              "couch",
+              "potted plant",
+              "bed",
+              "dining table",
+              "toilet",
+              "tv",
+              "laptop",
+              "mouse",
+              "remote",
+              "keyboard",
+              "cell phone",
+              "microwave",
+              "oven",
+              "toaster",
+              "sink",
+              "refrigerator",
+              "book",
+              "clock",
+              "vase",
+              "scissors",
+              "teddy bear",
+              "hair drier",
+              "toothbrush"
+            ]
+          }
+        }
+      },
+      "ppe-candidate": {
+        "report": {
+          "path": "data/ppe_evaluation/ppe-candidate/20261024T093111Z-5942440f/report.json",
+          "bytes": 7509,
+          "sha256": "17b9b1742c377bfc1e2ce390ac740b9bade03b486d4a8a8a798c4890d27f2a5d"
+        },
+        "predictions": {
+          "path": "data/ppe_evaluation/ppe-candidate/20261024T093111Z-5942440f/predictions.jsonl",
+          "bytes": 1406583,
+          "sha256": "75c40a27e4b035180bedc69efd69a38abba681b88d9977a84328a02ec3aa1504"
+        },
+        "inputs": {
+          "path": "data/ppe_evaluation/ppe-candidate/20261024T093111Z-5942440f/inputs.json",
+          "bytes": 82531,
+          "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+        },
+        "images_attempted": 141,
+        "images_succeeded": 141,
+        "errors": [],
+        "metrics": {
+          "ap_method": "coco_101_point",
+          "conf_op": 0.35,
+          "person": {
+            "ap50": 0.791,
+            "p": 0.79,
+            "r": 0.797,
+            "n_gt": 236
+          },
+          "helmet": {
+            "ap50": 0.895,
+            "p": 0.917,
+            "r": 0.859,
+            "n_gt": 192
+          },
+          "no_helmet": {
+            "ap50": 0.136,
+            "p": 0.25,
+            "r": 0.2,
+            "n_gt": 40
+          },
+          "no_helmet@iou0.3": {
+            "ap": 0.369,
+            "p": 0.469,
+            "r": 0.375
+          },
+          "vest": {
+            "ap50": 0.847,
+            "p": 0.905,
+            "r": 0.803,
+            "n_gt": 178
+          },
+          "no_vest": null,
+          "core_ap50(person,helmet,vest)": 0.844,
+          "coverage": {
+            "model_supported_classes": [
+              "person",
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest"
+            ],
+            "model_unsupported_classes": [],
+            "classes_without_gt": [
+              "no_vest"
+            ],
+            "per_class": {
+              "person": {
+                "model_supported": true,
+                "n_gt": 236,
+                "status": "evaluated"
+              },
+              "helmet": {
+                "model_supported": true,
+                "n_gt": 192,
+                "status": "evaluated"
+              },
+              "no_helmet": {
+                "model_supported": true,
+                "n_gt": 40,
+                "status": "evaluated"
+              },
+              "vest": {
+                "model_supported": true,
+                "n_gt": 178,
+                "status": "evaluated"
+              },
+              "no_vest": {
+                "model_supported": true,
+                "n_gt": 0,
+                "status": "no_ground_truth"
+              }
+            },
+            "core": {
+              "classes_with_gt": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "classes_without_gt": [],
+              "denominator": 3,
+              "supported_classes": [
+                "person",
+                "helmet",
+                "vest"
+              ],
+              "unsupported_classes": [],
+              "supported_fraction": 1.0
+            }
+          }
+        },
+        "latency_ms": {
+          "mean": 169.83122102988898,
+          "p50": 167.1212500659749,
+          "p95": 180.5482079507783,
+          "includes": "Detector preprocess+infer+postprocess"
+        },
+        "wall_seconds": 24.28020675003063,
+        "provenance": {
+          "model": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/buildvision-hazards-v0.3/buildvision-hazards-v0.3.onnx",
+            "bytes": 44766819,
+            "sha256": "55f4dd2f53158eac4ff093d938b9fbda80c99454a03672145bbc36f539988249"
+          },
+          "config": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.ppe-candidate.yaml",
+            "bytes": 1149,
+            "sha256": "b148eff4ec6f6a39ed01c181c6703e85b48a49c31954e70b4a50d031d2ee58b1"
+          },
+          "sidecar": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/buildvision-hazards-v0.3/ppe.json",
+            "bytes": 2545,
+            "sha256": "b4017f2655f324ad771f53b4848ec6b9513424144b34d2cc5d46a8ed30ec8974"
+          },
+          "revision": "79673cff5a8bb249fc8ec9cca3daa19e2ef95191",
+          "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+          "images": 141,
+          "runner": {
+            "path": "data/validation_snapshots_20261024/24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215/run_ppe_onnx.py",
+            "bytes": 15150,
+            "sha256": "24dacdfd79268061e872aeaf483feee896c59ef694c3cdfb2a8a13ba8b2dc215",
+            "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+            "publication_note": "Captured bytes preserved separately from the current working source."
+          },
+          "metrics": {
+            "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+            "bytes": 10674,
+            "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+          },
+          "versions": {
+            "numpy": "2.4.6",
+            "onnx": "1.23.2",
+            "onnxruntime": "1.31.0",
+            "pydantic": "2.14.1"
+          },
+          "inspection": {
+            "checker": "passed",
+            "inputs": [
+              {
+                "name": "images",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  3,
+                  640,
+                  640
+                ]
+              }
+            ],
+            "outputs": [
+              {
+                "name": "output0",
+                "dtype": 1,
+                "shape": [
+                  1,
+                  18,
+                  8400
+                ]
+              }
+            ],
+            "source_classes": [
+              "person",
+              "hardhat",
+              "no-hardhat",
+              "safety vest",
+              "no-safety vest",
+              "no-mask",
+              "gloves",
+              "safety shoes",
+              "excavator",
+              "wheel loader",
+              "dump truck",
+              "goggles",
+              "no-goggles",
+              "no-gloves"
+            ],
+            "classes": [
+              "person",
+              "helmet",
+              "no_helmet",
+              "vest",
+              "no_vest",
+              "no-mask",
+              "gloves",
+              "safety shoes",
+              "excavator",
+              "wheel loader",
+              "dump truck",
+              "goggles",
+              "no-goggles",
+              "no-gloves"
+            ],
+            "class_map": {
+              "hardhat": "helmet",
+              "no-hardhat": "no_helmet",
+              "safety vest": "vest",
+              "no-safety vest": "no_vest"
+            },
+            "opsets": {
+              "": 12
+            },
+            "metadata": {
+              "description": "Construction site safety hazards detector v0.3",
+              "author": "Ultralytics",
+              "date": "2026-10-01T19:47:10.803031+00:00",
+              "version": "8.4.171",
+              "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+              "docs": "https://docs.ultralytics.com",
+              "stride": "32",
+              "task": "detect",
+              "head": "Detect",
+              "batch": "1",
+              "imgsz": "[640, 640]",
+              "names": "{0: 'person', 1: 'hardhat', 2: 'no-hardhat', 3: 'safety vest', 4: 'no-safety vest', 5: 'no-mask', 6: 'gloves', 7: 'safety shoes', 8: 'excavator', 9: 'wheel loader', 10: 'dump truck', 11: 'goggles', 12: 'no-goggles', 13: 'no-gloves'}",
+              "args": "{'data': None, 'batch': 1, 'fraction': 1.0, 'quantize': None, 'nms': None, 'dynamic': False, 'simplify': True, 'opset': 12}",
+              "channels": "3",
+              "end2end": "False"
+            }
+          }
+        }
+      }
+    },
+    "independent_readback": {
+      "coco-n": {
+        "records": 141,
+        "unique_image_keys": 141,
+        "errors": 0,
+        "metrics_exact_match": true,
+        "inputs_exact_match": true
+      },
+      "coco-s": {
+        "records": 141,
+        "unique_image_keys": 141,
+        "errors": 0,
+        "metrics_exact_match": true,
+        "inputs_exact_match": true
+      },
+      "ppe-candidate": {
+        "records": 141,
+        "unique_image_keys": 141,
+        "errors": 0,
+        "metrics_exact_match": true,
+        "inputs_exact_match": true
+      }
+    },
+    "semantic_smoke": {
+      "status": "complete",
+      "frames": 141,
+      "conf": 0.35,
+      "people": 238,
+      "instantaneous_rule_hits": 52,
+      "unsupported_attributes": [
+        "respirator"
+      ],
+      "frames_with_unknown_helmet": 29,
+      "quality_evidence": false,
+      "temporal_event_evaluation": false,
+      "artifact": {
+        "path": "data/ppe_evaluation/ppe-candidate/20261024T093111Z-5942440f/semantic-smoke.json",
+        "bytes": 133897,
+        "sha256": "f542994ad4dcaefdc14d048543880532975c3a5fd5440d17c4bee85f937e1197"
+      }
+    },
+    "error_audit": {
+      "artifact": {
+        "path": "data/model_research/ppe-error-audit/audit.json",
+        "bytes": 1922049,
+        "sha256": "a1f78a4336fb67aa031eca9b6355c9bc9f0e88c556b3aa2a94118e53e7abe4c5"
+      },
+      "images": 141,
+      "gt_positive_images": 24,
+      "class": "no_helmet",
+      "n_gt": 40,
+      "working_predictions": 32,
+      "thresholds": {
+        "0.5": {
+          "iou": 0.5,
+          "working_conf": 0.35,
+          "tp": 8,
+          "fp": 24,
+          "fn": 32,
+          "gt_denominator": 40,
+          "prediction_denominator": 32,
+          "precision": 0.25,
+          "recall": 0.2,
+          "ap_existing_evaluator": 0.13560161114254252,
+          "fn_categories": {
+            "low_confidence_with_adequate_iou": 17,
+            "low_confidence_and_localization_error": 8,
+            "working_prediction_localization_error": 6,
+            "no_overlapping_nohelmet_prediction": 1
+          },
+          "fp_categories": {
+            "spatial_overlap_below_required_iou": 18,
+            "no_nohelmet_gt_in_image": 4,
+            "zero_overlap_with_nohelmet_gt": 2
+          }
+        },
+        "0.3": {
+          "iou": 0.3,
+          "working_conf": 0.35,
+          "tp": 15,
+          "fp": 17,
+          "fn": 25,
+          "gt_denominator": 40,
+          "prediction_denominator": 32,
+          "precision": 0.46875,
+          "recall": 0.375,
+          "ap_existing_evaluator": 0.36890140923838,
+          "fn_categories": {
+            "low_confidence_with_adequate_iou": 19,
+            "low_confidence_and_localization_error": 3,
+            "working_prediction_localization_error": 2,
+            "no_overlapping_nohelmet_prediction": 1
+          },
+          "fp_categories": {
+            "spatial_overlap_below_required_iou": 11,
+            "no_nohelmet_gt_in_image": 4,
+            "zero_overlap_with_nohelmet_gt": 2
+          }
+        }
+      },
+      "policy": {
+        "fn_priority": [
+          "greedy_matching_competition",
+          "low_confidence_with_adequate_iou",
+          "working_prediction_localization_error",
+          "low_confidence_and_localization_error",
+          "no_overlapping_nohelmet_prediction"
+        ],
+        "scope": "Only saved post-NMS single-label Detector predictions >=0.001; raw model anchor scores are unavailable.",
+        "overlap": "Positive geometric IoU only, not a human semantic judgement or proof of same-person association.",
+        "low_confidence": "A below-0.35 exported prediction has IoU >= the selected evaluation IoU; this does not authorize lowering the threshold.",
+        "unlabeled_fp": "FP means unmatched to original no_helmet GT; audit does not relabel images or assume all detections are semantically wrong."
+      },
+      "limitations": [
+        "Training overlap with model is unverified.",
+        "No no_vest GT in Construction-PPE; respirator unsupported.",
+        "Still-image object matching does not measure S2 person association or temporal event quality.",
+        "52 instantaneous S2 hits are semantic wiring observations, not quality evidence.",
+        "No new labels, model inference or threshold changes made."
+      ],
+      "sheets": [
+        {
+          "path": "data/model_research/ppe-error-audit/false-positives.png",
+          "bytes": 2245636,
+          "sha256": "5e37ae5ce64960c834402a43717044f0da73c05ea215331d7709ad529ddc5838"
+        },
+        {
+          "path": "data/model_research/ppe-error-audit/false-negatives.png",
+          "bytes": 2199517,
+          "sha256": "823376e71c7a08df1afc2b73ddde54431382769203ee7ffabd2c35fb1e2a3033"
+        }
+      ],
+      "evidence_note": {
+        "path": "data/model_research/ppe-error-audit/evidence-note.md",
+        "bytes": 8972,
+        "sha256": "476a887a94bd343c5192e1ffa4b742f645632928009fc5832e196acee23acd29"
+      },
+      "geometry_check": {
+        "path": "data/model_research/ppe-error-audit/dataset-geometry-check.json",
+        "bytes": 29296,
+        "sha256": "153d162f253a2a7084eba2e1d430a089b994ecc56c03ce8896048549392d39fe"
+      },
+      "gt_issue_example": {
+        "image": "test/image1239.jpg",
+        "original_class_id": 7,
+        "canonical_class": "no_helmet",
+        "bbox_xyxy": [
+          192.943616,
+          140.5166635,
+          265.855488,
+          192.1152645
+        ],
+        "observation": "Original box is on torso; bytes match pinned ZIP; no EXIF/orientation error; GT not changed"
+      },
+      "original_gt_unchanged": true
+    }
+  },
+  "metric_fixes": {
+    "source_commit": "e48f225ad1a36871cad3decda04a3cbbc4663833",
+    "ap_method": "101_point_precision_envelope_mean_at_single_iou",
+    "full_coco_map": false,
+    "reproduced_regressions": [
+      {
+        "gt": 2,
+        "perfect_tp": 1,
+        "old_ap": 0.75,
+        "new_ap": 0.504950495049505
+      },
+      {
+        "gt": 1,
+        "perfect_tp": 1,
+        "old_ap": 0.995,
+        "new_ap": 1.0
+      }
+    ],
+    "image_keys": "split-relative, including nested directories",
+    "core_denominator": "all person/helmet/vest classes with GT; unsupported model classes contribute zero",
+    "s1_evaluator_changed": false
+  },
+  "models": {
+    "coco_n": {
+      "path": "models/yolov8n-640.onnx",
+      "bytes": 12851095,
+      "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99"
+    },
+    "coco_s": {
+      "path": "models/candidates/yolov8s-640/yolov8s-640.onnx",
+      "bytes": 44869889,
+      "sha256": "ddac89c188b95f774e40c0f76b40a48e3ea3752059d95f87acaccedc2009a0dd"
+    },
+    "ppe": {
+      "path": "models/candidates/buildvision-hazards-v0.3/buildvision-hazards-v0.3.onnx",
+      "bytes": 44766819,
+      "sha256": "55f4dd2f53158eac4ff093d938b9fbda80c99454a03672145bbc36f539988249"
+    },
+    "ppe_source": {
+      "path": "models/candidates/buildvision-hazards-v0.3/source.json",
+      "bytes": 4048,
+      "sha256": "5318b4b8500e2c8c291827ba92aa19b8f479d0e11f68b82673bf83a653833b6e"
+    },
+    "yolov8s_export_metadata": {
+      "path": "models/candidates/yolov8s-640/det.json",
+      "bytes": 3978,
+      "sha256": "6998b4b48ea61e3745b19722c4ba9d6c10c14698eeecee39bf7c1ca58e7862cb"
+    }
+  },
+  "validation": {
+    "backend_tests": {
+      "command": ".venv/bin/python -m pytest -q",
+      "passed": 973,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "warnings": 1,
+      "warning": "StarletteDeprecationWarning: httpx in test client",
+      "wall_s": 9.81,
+      "tested_code_commit": "6772a0a05086f4fc7844fce53cdd7ca158e3d853",
+      "log": {
+        "path": "data/model_research/pytest-model-batch-20261024.log",
+        "bytes": 1649,
+        "sha256": "ad2588634b3e137037693f0b32dbd1d00325aae8fdb17f1e3ae0eb6eb18ccf4d"
+      }
+    },
+    "frontend_changed": false,
+    "frontend_rebuilt": false,
+    "astra_review": {
+      "ppe_metrics_and_candidate": "no material blockers found",
+      "comparator": "both P2 closed after scoped re-review",
+      "fix_commit": "5bdc0e5421dc1959f74fa2ac98ab0d6ef60a8aa2",
+      "fixes": [
+        "TERM/grace/KILL owns entire subtree even after leader exits",
+        "Content fingerprint guard/**/*.py and ml/**/*.py checked before/after each run and at finish"
+      ],
+      "regressions": [
+        "real SIGTERM-ignoring descendant",
+        "same-path content change",
+        "module addition",
+        "module removal"
+      ]
+    },
+    "runtime_and_default_configs_unchanged_from_previous_batch": true
+  },
+  "not_verified": [
+    "Independent target-site detector or S2 event quality",
+    "Reliable no_vest GT",
+    "Respirator",
+    "Pose/fire model artifacts in this copy",
+    "Cigarette smoking detection",
+    "TPU",
+    "Training or fine-tuning",
+    "Combined ML edge Rabbit gateway run",
+    "Long endurance"
+  ],
+  "pushed_to_github": false,
+  "stand_access_attempted": false,
+  "next": [
+    "Reconcile upstream model/scenario code while preserving frozen configs and evaluator",
+    "Build full-coverage S2/clean event baseline with current pinned PPE",
+    "Compare CX-016 temporal negative PPE evidence on the same fixed S2 data",
+    "Agree head/face box definition and audit negative-label completeness",
+    "Gather target-site footage with PPE present/absent/unknown and clean cases",
+    "Split train/validation/test by camera/site and audit training overlap",
+    "Calibrate/fine-tune negative PPE classes using train/validation, freeze test",
+    "Actor-aware S1 incidents and independent clean zones",
+    "Prepare opt-in pose/fire artifacts with separate evaluation"
+  ],
+  "git_context": {
+    "main_at_batch_start": "c0176140eb6514973d8a2fec00984fd3c06fa81e",
+    "main_at_finalization": "79a8920d49f0de35cc37d7deb4ed92e08c1af927",
+    "external_fetch_observed": "main reflog 2026-10-24 12:32:02 +0300: fetch origin main:main fast-forward",
+    "main_changed_by_this_batch": false,
+    "new_main_included_in_these_tests_or_inference": false,
+    "working_branch": "feature/implementation-batch"
+  },
+  "human_report": "docs/MODEL_RESEARCH_20261024.md",
+  "upstream_readonly_reconciliation": {
+    "main": "79a8920d49f0de35cc37d7deb4ed92e08c1af927",
+    "performed_by": "author",
+    "runtime_merge_or_live_test": false,
+    "same_ppe_candidate_family": "constructelligence BuildVision v0.3",
+    "useful_followups": [
+      "run_offline/scenarios S2 and clean evaluation",
+      "CX-016 temporal votes with unknown empty observations",
+      "opt-in pose/fire artifacts"
+    ],
+    "a9_metrics_context": {
+      "source_snapshot": "af0f04a",
+      "tp": 17,
+      "fp": 0,
+      "fn": 6,
+      "certain": 23,
+      "uncertain": 10,
+      "source_exposure_s": 535,
+      "tuning_variants_approx": 900,
+      "heldout": false,
+      "do_not_combine_with_this_batch": true
+    },
+    "integration_constraints": [
+      "Preserve fixed AP101/coverage/image keys",
+      "Keep upstream model registries opt-in; frozen S1 expects CPU configuration",
+      "Temporal votes require updating still-image semantic-smoke expectations",
+      "Adapt check_onnx MAIN_ROOT import and build_calib absolute paths before using them",
+      "RF100 hand-selected train+test images are diagnostic, not independent test"
+    ]
+  },
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

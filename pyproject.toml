@@ -11,9 +11,11 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest", "pytest-asyncio", "httpx"]
-# экспорт и оценка моделей (ml/export_onnx.py, ml/eval_ppe.py); ставит opencv-python поверх headless —
-# после установки: uv pip uninstall opencv-python && uv pip install --reinstall "opencv-python-headless<4.13"
-ml = ["ultralytics>=8.3", "onnxslim"]
+ml = [
+  "ultralytics==8.3.221", "torch==2.8.0", "torchvision==0.23.0", "onnxslim==0.1.98",
+  "onnx==1.23.2", "onnxruntime==1.31.0", "numpy==2.4.6",
+  "opencv-python==4.11.0.86", "opencv-python-headless==4.11.0.86",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

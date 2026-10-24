@@ -165,7 +165,7 @@
 - `tpu/bench.py` — замеры `net` и `tpu`; `--dry-run` работает на моках.
 - `tpu/make_calib.py` — калибровочные кадры из видео. Сейчас это 120 кадров из Intel sample-videos (worker-zone, people, store-aisle; CC BY 4.0), лежат в `models/tpu/calib_frames/SOURCES.json`.
 
-## 12. Транспорт «сервер Jupyter ↔ ноутбук» (для D-005, A3) [стенд, 24.10 01:10]
+## 12. Транспорт «сервер Jupyter ↔ ноутбук» (для D-005) [стенд, 24.10 01:10]
 
 **Ресурсы контейнера Jupyter.** DockerSpawner (`tini` PID 1, `start-notebook.py`), env `CPU_LIMIT=1.5` и `MEM_LIMIT=4294967296`, `cpu.max = 150000 100000`. Значит, **конвейеру доступно 1.5 ядра и 4 ГиБ**; «64 ядра / 187 ГБ» из `nproc` и `free` — это хост. torch и onnxruntime по умолчанию запускают 32–64 потока и проседают на квоте: ставить `OMP_NUM_THREADS=2`, `intra_op_num_threads=1..2`. Калибровка YOLO с 32 потоками шла >15 мин, с 2 потоками — 13 с.
 
@@ -182,7 +182,7 @@
    - Время жизни без активности измерим по маяку PID 5296.
 4. **Подводные камни jhub.**
    - У hub и single-user сервера разные cookie `_xsrf`: нужно брать cookie по пути.
-   - Websocket к ядру с Origin `http://127.0.0.1:8888` за nginx получает 403 «Cross origin websockets not allowed». Помогает не отправлять Origin (`suppress_origin=True`) и авторизоваться токеном. Для WS через proxy из браузера это может не сработать: проверить на A3 (`/ws/events`).
+   - Websocket к ядру с Origin `http://127.0.0.1:8888` за nginx получает 403 «Cross origin websockets not allowed». Помогает не отправлять Origin (`suppress_origin=True`) и авторизоваться токеном. Для WS через proxy из браузера это может не сработать: проверить на gateway (`/ws/events`).
 
 ## 13. YOLOv8n на TPU [стенд, 24.10 01:20–01:45]
 
@@ -244,7 +244,7 @@ python tpu/compile.py --onnx models/yolov8n-640.onnx --name yolov8n_640 --cut-pr
 
 ## 14. YOLOv8n-pose на TPU [стенд, 24.10 01:30–01:35]
 
-Срез `--cut-preset yolov8-pose` подогнан под экспорт A2 (ultralytics, opset 12). Узлов из вендорской сноски 6 на стр. 36 в нашем ONNX нет. На TPU уходят:
+Срез `--cut-preset yolov8-pose` подогнан под экспорт модели (ultralytics, opset 12). Узлов из вендорской сноски 6 на стр. 36 в нашем ONNX нет. На TPU уходят:
 - `/model.22/dfl/conv/Conv_output_0` — рамки;
 - `/model.22/Sigmoid_output_0` — score;
 - `/model.22/Slice_2_output_0` — сырые xy keypoint'ов;
@@ -273,7 +273,7 @@ python tpu/compile.py --onnx models/yolov8n-640.onnx --name yolov8n_640 --cut-pr
 
 Срез `yolov8-conv` (sigmoid и DFL на CPU) для det 480 почти не меняет недобор conf (Δconf −0.052, recall 0.89 против 0.87) и работает медленнее (34 против 46 к/с). Остаёмся на `yolov8`, а недобор компенсируем порогом.
 
-**Рекомендации для A3 (D-005):**
+**Рекомендации для backend (D-005):**
 1. Бэкенд: `get_backend("linq-tpu", raw=True)`. На стенде хост определяется сам (10.0.114.30), с ноутбука — 127.0.0.1.
 2. Модели: det `tpu/yolov8n_480/yolov8n_480_b1_o5_h1m.tpu`, pose `tpu/yolov8n_pose_480/yolov8n_pose_480_b1_o5_h1m.tpu`, т. е. `ModelSpec.tpu_program` относительно `GUARD_MODELS_DIR`. Бэкенд найдёт manifest в `models/tpu/<имя>/` и подставит URI `file:///auto/cache/hackathon10864/<имя>.tpu?raw=True`.
    - Если `model_id` в `configs/models.yaml` не совпадает с каталогом (`det`, `pose`), manifest ищется по имени файла программы.
@@ -287,7 +287,7 @@ python tpu/compile.py --onnx models/yolov8n-640.onnx --name yolov8n_640 --cut-pr
 
 ## 16. Отложенная проверка точности и fine-tune [стенд, 24.10 01:55]
 
-Набор: 30 кадров сценариев A5 (`data/images/{s1,s2,s3,s4,clean}`, по 6 штук). В калибровке они не участвовали. Режим raw, TPU сравнивается с CPU fp32.
+Набор: 30 кадров сценариев (`data/images/{s1,s2,s3,s4,clean}`, по 6 штук). В калибровке они не участвовали. Режим raw, TPU сравнивается с CPU fp32.
 
 | Модель | recall / precision, conf 0.35 | recall / precision, TPU 0.25 | IoU | Δconf |
 |---|---|---|---|---|
@@ -310,27 +310,27 @@ python tpu/compile.py --onnx models/yolov8n-640.onnx --name yolov8n_640 --cut-pr
 **Исправление** — `tpu/fix_thresholds.py`: слоям квантования с `min_value >= 0` и порогом < 1 (выходы Sigmoid/Softmax; у SiLU min < 0) выставляется 1.0, затем `compile.py --thresholds thresholds_sig1.json`. Шаг уверенности становится 1/127 ≈ 0.008. Программы `*_640s1` лежат в `/auto/cache/hackathon10864/` (новые файлы, старые не трогал) и в `models/tpu/{ppe,fire}_640s1/`.
 
 **Сверка TPU с CPU** (raw, `tpu/yolo_check.py`; совпадение — тот же класс и IoU ≥ 0.5). Наборы:
-- ppe: `ppe_check` — 43 кадра: 13 `samples_a2` и 30 кадров сценариев A5;
+- ppe: `ppe_check` — 43 кадра: 13 `samples_a2` и 30 кадров сценариев;
 - fire: `fire_check` — 28 кадров: 13 с огнём (10 Vertex-Test FireSmoke и `samples_a2` 11–13) и 15 без огня (12 кадров s7 с курением и `samples` 01, 02, 07).
 
 | Модель | CPU дет. при 0.4 | TPU 0.40: R / P | TPU 0.35: R / P | TPU 0.30: R / P | IoU | Δconf TPU−CPU |
 |---|---|---|---|---|---|---|
-| ppe_640 (A2) | 231 | 0.874 / 0.967 | **0.909 / 0.950** | 0.931 / 0.911 | 0.914 | −0.049 |
+| ppe_640 | 231 | 0.874 / 0.967 | **0.909 / 0.950** | 0.931 / 0.911 | 0.914 | −0.049 |
 | ppe_640s1 | 231 | 0.879 / 0.967 | 0.905 / 0.954 | 0.931 / 0.915 | 0.915 | −0.049 |
-| fire_640 (A2) | 30 | 0.833 / 0.926 | 0.867 / 0.929 | 0.900 / 0.900 | 0.905 | **−0.194** |
+| fire_640 | 30 | 0.833 / 0.926 | 0.867 / 0.929 | 0.900 / 0.900 | 0.905 | **−0.194** |
 | fire_640s1 | 30 | 0.833 / 0.926 | **0.867 / 0.929** | 0.900 / 0.900 | 0.918 | **−0.047** |
 
 - **fire:** огонь или дым найден TPU на всех 11 кадрах, где его видит CPU. На 15 негативных кадрах одно лишнее срабатывание (s7 t030.5) и одно общее с CPU (выдыхаемый дым s7 t024.5, `smoke`).
   - У исходной fire_640 сильный огонь получал не больше 0.42–0.57. При пороге 0.45 и выше она перестала бы видеть огонь на страйде 8.
   - s1 возвращает нормальные значения уверенности и лучше ставит рамки: IoU 0.918 против 0.905.
-- **ppe:** s1 и исходная практически равны: потолки 0.81–0.93 выше рабочего порога. Оставлена программа A2 — её уже использует живой edge.
+- **ppe:** s1 и исходная практически равны: потолки 0.81–0.93 выше рабочего порога. Оставлена исходная программа — её уже использует живой edge.
 
-**Скорость** (raw; Jupyter-контейнер, рядом работал живой edge A10 — CPU 1.5 ядра и очередь общие, цифры занижены):
+**Скорость** (raw; Jupyter-контейнер, рядом работал живой edge — CPU 1.5 ядра и очередь общие, цифры занижены):
 
 | Модель | к/с при окне 1 / 4 / 8 | total p50 при окне 1 | TPU (inference_time) | CPU ORT, тот же контейнер |
 |---|---|---|---|---|
 | ppe_640 (YOLOv8s) | 9.5 / 17.0 / 15.2 | 100 мс (p95 104) | 8.3 мс | 880 мс (1.1 к/с) |
 | fire_640s1 (YOLOv8n) | 14.1 / 19.0 / 30.5 | 65 мс (p95 117) | 8.7 мс | 300 мс (3.3 к/с) |
 
-**Реестр.** В `configs/models.yaml` вписаны `ppe → tpu/ppe_640/ppe_640_b1_o5_h1m.tpu` и `fire → tpu/fire_640s1/fire_640s1_b1_o5_h1m.tpu`. На TPU `conf_threshold` 0.35 при CPU 0.4; в `models.stand.yaml` у A10 так и стоит.
+**Реестр.** В `configs/models.yaml` вписаны `ppe → tpu/ppe_640/ppe_640_b1_o5_h1m.tpu` и `fire → tpu/fire_640s1/fire_640s1_b1_o5_h1m.tpu`. На TPU `conf_threshold` 0.35 при CPU 0.4; в `models.stand.yaml` так и стоит.
 - Det и pose можно пересобрать так же (`fix_thresholds.py` → `--thresholds`), чтобы убрать потолок 0.705 у det. На recall при пороге 0.25–0.35 это не влияет, поэтому живой edge не трогаем.
