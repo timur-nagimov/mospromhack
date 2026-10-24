@@ -19,6 +19,7 @@ frontend/dist/
 .orchestra/ITERATION.lock
 .DS_Store
 .orchestra/heavy.lock/
+.orchestra/heavy-*.lock/
 /data
 /models
 /vendor
