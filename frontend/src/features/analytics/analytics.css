@@ -16,6 +16,9 @@
   grid-template-columns: 1fr 1fr 1.6fr 1fr;
   gap: 10px;
 }
+.stat-row--employee {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
 .stat {
   display: grid;
   align-content: start;

@@ -16,6 +16,7 @@ import { useNow } from '../../hooks/useNow';
 import { liveActions, liveStore, useLive } from '../../state/live';
 import { useEventModal } from './useEventModal';
 import './event.css';
+import { IncidentEmployees } from '../employees/IncidentEmployees';
 
 const MockStream = lazy(() => import('../../components/media/MockStream'));
 
@@ -185,6 +186,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
         <EventMedia event={event} />
 
         <aside className="ev-side">
+          <IncidentEmployees key={event.id} eventId={event.id} />
           <dl className="ev-facts">
             <div>
               <dt>Камера</dt>

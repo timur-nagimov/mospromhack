@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { useAnalyticsStats, useCameraMap } from '../../api/queries';
 import { ChartCard, Legend } from '../../components/charts/ChartCard';
@@ -12,6 +13,7 @@ import { getViolationMeta } from '../../domain/violations';
 import { useNow } from '../../hooks/useNow';
 import { analyticsRange, criticalCount, fillDays, statusByType, sumStatuses, weekdayHourMatrix } from './aggregate';
 import './analytics.css';
+import { EmployeeReportPanel } from '../employees/EmployeeReportPanel';
 
 const PRESETS: PeriodPreset[] = ['today', '7d', '30d', 'all'];
 
@@ -94,13 +96,15 @@ function Heatmap({ matrix }: { matrix: number[][] }) {
 }
 
 export function AnalyticsPage() {
+  const [params] = useSearchParams();
+  const employeeId = params.get('employee') || undefined;
   const now = useNow();
   const [preset, setPreset] = useState<PeriodPreset>('30d');
   const minute = Math.floor(now / 60);
   const range = useMemo(() => analyticsRange(preset, minute * 60), [preset, minute]);
   const cameraMap = useCameraMap();
 
-  const stats = useAnalyticsStats(range.from, range.to);
+  const stats = useAnalyticsStats(range.from, range.to, employeeId);
   const typeRows = useMemo(
     () =>
       [...(stats.data?.types ?? [])]
@@ -167,9 +171,11 @@ export function AnalyticsPage() {
             </button>
           ))}
         </div>
-        <span className="muted">Все графики — за выбранный период · время МСК</span>
+        <span className="muted">{employeeId ? 'Только подтверждённые нарушения выбранного сотрудника' : 'Все графики — за выбранный период'} · время МСК</span>
         {loading && <span className="spinner" style={{ width: 14, height: 14 }} />}
       </div>
+
+      <EmployeeReportPanel period={range} />
 
       {stats.isError ? (
         <div className="panel empty" role="alert">
@@ -180,9 +186,9 @@ export function AnalyticsPage() {
         <div className="panel empty" role="status">Загружаем аналитику…</div>
       ) : (
         <>
-          <div className="stat-row reveal" style={{ ['--i' as string]: 1 }}>
+          <div className={`stat-row reveal${employeeId ? ' stat-row--employee' : ''}`} style={{ ['--i' as string]: 1 }}>
             <div className="stat">
-              <span className="stat__label">Нарушений</span>
+              <span className="stat__label">{employeeId ? 'Подтверждённых нарушений' : 'Нарушений'}</span>
               <span className="stat__value">{total}</span>
               <span className="stat__note">{PERIOD_LABELS[preset].toLowerCase()}</span>
             </div>
@@ -191,7 +197,7 @@ export function AnalyticsPage() {
               <span className="stat__value">{critical}</span>
               <span className="stat__note">падения, сближения с техникой и правила с критической важностью</span>
             </div>
-            <div className="stat stat--wide">
+            {!employeeId && <div className="stat stat--wide">
               <span className="stat__label">Точность системы по решениям оператора</span>
               <span className="stat__value">{precision != null ? formatPercent(precision) : '—'}</span>
               <div className="meter" aria-hidden="true">
@@ -200,12 +206,12 @@ export function AnalyticsPage() {
               <span className="stat__note">
                 подтверждено и передано мастеру из {reviewed} разобранных · ложных {reviewed ? formatPercent(statusTotals.false / reviewed) : '—'}
               </span>
-            </div>
-            <div className="stat">
+            </div>}
+            {!employeeId && <div className="stat">
               <span className="stat__label">Не разобрано</span>
               <span className="stat__value">{statusTotals.new}</span>
               <span className="stat__note">не попадают в оценку точности</span>
-            </div>
+            </div>}
           </div>
 
           <div className="analytics__grid">
@@ -213,7 +219,7 @@ export function AnalyticsPage() {
               className="reveal"
               style={{ ['--i' as string]: 2 } as React.CSSProperties}
               title="Нарушения по типам"
-              sub="Сколько раз сработало каждое правило"
+              sub={employeeId ? 'Подтверждённые нарушения выбранного сотрудника' : 'Сколько раз сработало каждое правило'}
               loading={loading}
               table={{ columns: ['Тип нарушения', 'Событий', 'Доля'], rows: typeRows.map((r) => [r.title, r.count, formatPercent(total ? r.count / total : 0)]) }}
             >
@@ -276,7 +282,7 @@ export function AnalyticsPage() {
               className="analytics__wide reveal"
               style={{ ['--i' as string]: 4 } as React.CSSProperties}
               title="Когда нарушают: день недели × час"
-              sub="Все события периода по московскому времени — для планирования обходов и инструктажей"
+              sub={employeeId ? 'Подтверждённые нарушения сотрудника по московскому времени' : 'Все события периода по московскому времени — для планирования обходов и инструктажей'}
               loading={loading}
               table={{
                 columns: ['День', ...Array.from({ length: 24 }, (_, h) => `${h}`)],
@@ -305,7 +311,7 @@ export function AnalyticsPage() {
               </ResponsiveContainer>
             </ChartCard>
 
-            <ChartCard
+            {!employeeId && <ChartCard
               className="reveal"
               style={{ ['--i' as string]: 6 } as React.CSSProperties}
               title="Решения оператора по типам"
@@ -345,7 +351,7 @@ export function AnalyticsPage() {
                   </div>
                 ))}
               </div>
-            </ChartCard>
+            </ChartCard>}
           </div>
         </>
       )}
