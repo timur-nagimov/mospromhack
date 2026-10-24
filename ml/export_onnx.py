@@ -71,6 +71,17 @@ def image_size(value: str) -> int:
     return number
 
 
+def package_versions(packages: Sequence[str]) -> dict[str, str | None]:
+    """Версии пакетов для метаданных; пакета нет в окружении (например, только opencv-python-headless) — None."""
+    versions: dict[str, str | None] = {}
+    for package in packages:
+        try:
+            versions[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            versions[package] = None
+    return versions
+
+
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
@@ -208,9 +219,8 @@ def export_one(
         "torch_threads": torch.get_num_threads(),
         "torch_interop_threads": torch.get_num_interop_threads(),
         "simplified_by": "onnxslim",
-        "versions": {package: importlib.metadata.version(package) for package in
-                     ("ultralytics", "torch", "torchvision", "onnx", "onnxslim", "onnxruntime", "numpy",
-                      "opencv-python", "opencv-python-headless")},
+        "versions": package_versions(("ultralytics", "torch", "torchvision", "onnx", "onnxslim", "onnxruntime",
+                                      "numpy", "opencv-python", "opencv-python-headless")),
         "export_s": round(time.time() - t0, 1),
         **info,
     }

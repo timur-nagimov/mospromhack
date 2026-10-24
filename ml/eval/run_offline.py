@@ -52,7 +52,7 @@ from guard.pipeline import settings as pipeline_settings
 from guard.pipeline.config import load_models
 from guard.pipeline.detector import Detector
 from guard.pipeline.settings import Settings
-from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES, object_detections
+from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES, object_detections, person_detections
 from guard.rules.base import RulePlugin, build_rules, load_plugins
 from guard.rules.geometry import validate_active_hours
 from ml.eval import events_eval
@@ -431,13 +431,9 @@ def run_video(
 
             # Та же последовательность и фильтры, что в CameraWorker.process.
             tracking_started = time.perf_counter()
-            if "det" in detections:
-                person_detections = [
-                    det for det in detections["det"] if det.cls in PERSON_CLASSES
-                ]
-            else:
-                person_detections = list(detections.get("pose", []))
-            people = person_tracker.update(person_detections, ts)
+            people = person_tracker.update(
+                person_detections(detections, pose_fill=settings.person_pose_fill), ts
+            )
             # Техника из всех моделей кадра, как в CameraWorker.process.
             objects = object_tracker.update(object_detections(detections), ts)
             compat.assign_attributes(people, detections, ts)
@@ -623,6 +619,7 @@ def run_evaluation(
         "models_dir": str(suite.models_dir),
         "required_models": sorted(model_ids),
         "tracker": _tracker_kwargs(settings),
+        "person_pose_fill": settings.person_pose_fill,
         "processing": {
             "frames_decoded": frames_decoded,
             "frames_analyzed": frames_analyzed,

@@ -124,9 +124,19 @@ def load_gt(images: list[Path], names: list[str]) -> dict[str, dict[str, np.ndar
     return {c: {k: np.array(v) for k, v in d.items()} for c, d in gts.items()}
 
 
+def output_format_for(channels: int, classes: list[str]) -> str:
+    """Формат выхода YOLOv8 по числу каналов: pose — рамка, скор person и 17 точек (56), иначе detect."""
+    if len(classes) == 1 and channels == 4 + 1 + 17 * 3:
+        return "yolov8-pose"
+    return "yolov8"
+
+
 def predict_onnx(onnx: Path, classes: list[str], images: list[Path], conf: float = 0.001,
                  iou: float = 0.6) -> dict[str, list]:
-    """Предсказания ONNX на CPU: {класс: [(кадр, conf, box xyxy)]}. Декодер — ml/yolo_decode (как в сверке ONNX)."""
+    """Предсказания ONNX на CPU: {класс: [(кадр, conf, box xyxy)]}. Декодер — ml/yolo_decode (как в сверке ONNX).
+
+    Pose-модель (выход 1×56×N, класс person) декодируется как pose: mAP считается по рамкам людей.
+    """
     import cv2
     import onnxruntime as ort
 
@@ -138,8 +148,10 @@ def predict_onnx(onnx: Path, classes: list[str], images: list[Path], conf: float
     sess = ort.InferenceSession(str(onnx), opts, providers=["CPUExecutionProvider"])
     inp = sess.get_inputs()[0]
     size = tuple(int(v) for v in inp.shape[2:4])
+    channels = sess.get_outputs()[0].shape[1]
+    output_format = output_format_for(channels if isinstance(channels, int) else 0, classes)
     spec = ModelSpec(model_id=onnx.stem, onnx_path=str(onnx), input_size=size, classes=classes,
-                     conf_threshold=conf, iou_threshold=iou)
+                     conf_threshold=conf, iou_threshold=iou, output_format=output_format)
     preds: dict[str, list] = defaultdict(list)
     for img_path in images:
         img = cv2.imread(str(img_path))
