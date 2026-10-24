@@ -112,6 +112,17 @@ def test_ring_budget_downscales_further():
     assert ring.stats()["mb"] <= 20 * 640 * 360 * 3 / 2**20 + 0.01
 
 
+def test_ring_restores_resolution_when_budget_grows():
+    """Удалили камеры -> бюджет буфера вырос -> кадры снова 640 px (раньше оставались мелкими навсегда)."""
+    ring = FrameRing(seconds=100, fps=10, max_width=640, budget_bytes=20 * 640 * 360 * 3, max_frames=150)
+    frame = np.zeros((360, 640, 3), np.uint8)
+    for i in range(100):
+        ring.push(frame, i * 0.1)
+    assert ring.max_width < 640
+    ring.set_budget(200 * 640 * 360 * 3)
+    assert ring.max_width == 640 and not ring.downscaled
+
+
 def test_write_clip_is_browser_h264(tmp_path):
     frames = [np.full((241, 321, 3), i * 10 % 255, np.uint8) for i in range(15)]  # нечётный размер
     path = tmp_path / "c.mp4"
