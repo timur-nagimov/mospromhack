@@ -23,6 +23,7 @@ import numpy as np
 
 from guard.contracts import CameraConfig, Event, Track
 from guard.events.media import MediaStore
+from guard.flywheel.wiring import attach_gateway_flywheel, start_flywheel, stop_flywheel
 from guard.metrics import MetricsRegistry
 from guard.pipeline import compat
 from guard.pipeline.bus import EventBus
@@ -235,11 +236,13 @@ class GatewayEngine(PipelineEngine):
         self.messages: dict[str, int] = defaultdict(int)
         self.message_errors = 0
         self._labels: dict[str, dict[int, str]] = defaultdict(dict)
+        attach_gateway_flywheel(self)  # маховик: сэмплы edge → своё хранилище (docs/FLYWHEEL.md)
 
     # ---- жизненный цикл ----
 
     def start(self) -> None:
         self.media.start()
+        start_flywheel(self)
         try:
             cams = load_cameras(self.settings.cameras_config)
         except Exception:  # noqa: BLE001
@@ -265,6 +268,7 @@ class GatewayEngine(PipelineEngine):
                 worker = self.workers.pop(cid)
                 worker.stop()
         self.media.stop()
+        stop_flywheel(self)
         close = getattr(self.journal, "close", None)
         if callable(close):
             close()

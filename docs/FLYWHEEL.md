@@ -170,7 +170,7 @@
 | Метод | Путь | Тело / параметры | Ответ |
 |---|---|---|---|
 | GET | `/api/flywheel/summary` | — | Сводка, поля ниже |
-| GET | `/api/flywheel/samples` | `status, source, camera_id, cls, holdout, limit (50), offset, order (-created_at)` | `{items: [Sample], total}` |
+| GET | `/api/flywheel/samples` | `status, source, camera_id, cls, holdout, event_id, limit (50), offset, order (-created_at)` | `{items: [Sample], total}`; `event_id` — сэмплы события, для карточки события в UI |
 | GET | `/api/flywheel/samples/{id}` | — | `Sample` |
 | GET | `/api/flywheel/samples/{id}/frame.jpg` | — | сырой JPEG |
 | PATCH | `/api/flywheel/samples/{id}` | `{status?: accepted\|rejected, labels?: [...]}` | `Sample`; ставит `reviewed_at`, у изменённых меток `origin = operator` |
@@ -180,6 +180,7 @@
 | GET | `/api/flywheel/models` | — | карточки из `ml/model_cards/`, новые сверху |
 | POST | `/api/flywheel/jobs` | `{kind: autolabel\|export\|train\|gate\|deploy, args: {...}}` | `{id, kind, status, log_url}` |
 | GET | `/api/flywheel/jobs`, `/api/flywheel/jobs/{id}` | — | статус и хвост лога |
+| GET | `/api/flywheel/jobs/{id}/log` | — | лог задачи текстом (`log_url`) |
 
 Поля ответа `/api/flywheel/summary`:
 - `total`;
@@ -196,7 +197,8 @@
 `deploy` разрешены, только если стоит `GUARD_FLYWHEEL_ALLOW_TRAIN=1`; иначе ответ 403 с объяснением. Обучение идёт
 через `HEAVY_LANE=train tools/heavy.sh`.
 
-WebSocket `/ws/events`: сообщение `{"type": "flywheel_sample", "sample": {...короткая форма...}}` при каждом новом сэмпле.
+WebSocket `/ws/events`: сообщение `{"kind": "flywheel_sample", "type": "flywheel_sample", "sample": {...короткая форма...}}`
+при каждом новом сэмпле. `kind` — как у остальных сообщений шины, `type` — для совместимости с первой версией контракта.
 UI обновляет по нему счётчики. Если UI его не обрабатывает, ничего не ломается.
 
 ## Настройки
@@ -236,3 +238,116 @@ UI обновляет по нему счётчики. Если UI его не о
    Кнопка «Дообучить» неактивна без `GUARD_FLYWHEEL_ALLOW_TRAIN` и показывает подсказку.
 
 Для разработки без бэкенда нужны моки в `frontend/src/api/mock` по образцу существующих.
+
+## Как устроено
+
+Бэкенд маховика — агент fw-core, 24.10. Ниже — фактическое поведение кода; отступления от контракта отмечены
+словом «отступление».
+
+### Модули
+
+| Что | Где |
+|---|---|
+| Хранилище: SQLite `flywheel.db` (WAL), кадры `frames/<camera_id>/<sample_id>.jpg`, версии датасетов | `guard/flywheel/store.py` (`FlywheelStore`) |
+| Отбор кадров: полоса уверенности, мигание трека, сверка TPU и CPU | `guard/flywheel/select.py` |
+| Сборщик в конвейере и фоновый писатель | `guard/flywheel/collector.py` (`FlywheelCollector`, `LocalWriter`) |
+| Подключение к движкам (одна строка в `PipelineEngine` и `GatewayEngine`) | `guard/flywheel/wiring.py` |
+| Отложенная выборка | `guard/flywheel/holdout.py` |
+| Карточки моделей, задачи | `guard/flywheel/cards.py`, `guard/flywheel/jobs.py` |
+| API | `guard/api/flywheel.py`, подключён в `guard/api/app.py` двумя строками |
+| Экспорт версии датасета | `ml/flywheel/export.py` |
+
+Хранилище по умолчанию — `<GUARD_DATA_DIR>/flywheel` (`data/flywheel`), меняется `GUARD_FLYWHEEL_DIR`.
+
+### Горячий путь
+
+- `PipelineEngine.handle_events`: после того как событие ушло в журнал, WS и транспорт, вызывается
+  `flywheel.on_event(ctx, ev)`. Он только кладёт в очередь ссылки на сырой кадр `ctx.frame`, детекции всех
+  моделей кадра и снимок треков. Снапшот события рисуется на копии кадра, поэтому `ctx.frame` остаётся без
+  оверлеев.
+- `CameraWorker.process`: в конце обработки кадра вызывается `flywheel.observe(worker, ctx)`, после
+  `handle_events` и `frame_meta`. В нём обновляется жизненный цикл треков (мигание) и, раз в период, ищется
+  неуверенная рамка.
+- Очередь писателя — 16 задач. Если она полна, сэмпл отбрасывается и растёт `dropped.queue`.
+- JPEG (≤ 1280 px, q90), файл, строка SQLite и сообщение WS делаются в потоке `flywheel-writer`.
+- `PATCH /api/events/{id}` со `status` сразу пишет `operator_label` в сэмпл `event`. Если оператор успел
+  раньше, чем фон записал сэмпл, писатель берёт статус события из журнала при вставке.
+
+Замер на синтетике (1280×720, 9 детекций на кадр, 600 кадров; `data/media/checks/flywheel_bench/hotpath-20261024.json`):
+
+| | без маховика | с маховиком |
+|---|---|---|
+| `CameraWorker.process`, p50 / p95 | 0.571 / 0.760 мс | 0.583 / 0.919 мс |
+| `flywheel.on_event` (в `handle_events`, после отправки события), p50 | — | 4.7 мкс |
+| `flywheel.observe` в кадре без отбора, p50 | — | 1.2 мкс |
+| запись сэмпла в фоне, p50 | — | 4.7 мс |
+
+Тест `tests/test_flywheel_latency.py`: при «зависшем» на 0.5 с диске `handle_events` возвращается сразу,
+событие уже в журнале, сэмпл дописывается позже.
+
+### Отбор
+
+- **Полоса уверенности — отступление.** Декодер отбрасывает детекции ниже `conf_threshold` модели, поэтому
+  полоса `[порог − 0.10, порог + 0.05]` считается от порога, который реально решает судьбу рамки:
+  - `min_conf` правила, если он есть (`zone_intrusion` 0.5, `smoking_fire` 0.5);
+  - для классов, которые ведёт трекер (человек и техника), — `tracker_high_thresh` (0.4);
+  - иначе — `conf_threshold` модели (ppe 0.4, fire 0.4, телефон 0.25).
+
+  Часть полосы ниже `conf_threshold` модели не видна. Пример: для ppe видна только часть [0.40, 0.45].
+- Целевые классы правил — `RULE_TARGETS` в `select.py`. Для `ppe_missing` берутся `required` и `no_*`,
+  для `vehicle_proximity` — `vehicle_classes`. Новый плагин может задать свои классы атрибутом
+  `flywheel_classes`.
+- Из рамок в полосе берётся ближайшая к порогу, причина — например `no_helmet conf 0.42 ∈ [0.30, 0.45], правило s2_ppe`.
+- Период `uncertain` и `flicker` считается от попытки и отдельно для каждого источника: не больше
+  1 сэмпла каждого вида за `GUARD_FLYWHEEL_PERIOD_S` на камеру.
+- Суточный лимит `GUARD_FLYWHEEL_DAILY_CAP` — по местным суткам. Он общий для всех источников, кроме `event`
+  и `operator`, а при старте счётчик читается из хранилища.
+- **Holdout — расширение контракта.** Отложенными считаются ролики всех `ml/eval/scenarios*.yaml`, а не только
+  `scenarios.yaml`: наборы `scenarios_<имя>.yaml` тоже оценочные. Совпадение ищется по имени ролика в пути
+  источника: `videos/s1_01.mp4`, субпоток стенда `data_360/videos/s1_01.mp4`, каталоги кадров `images/s2`.
+  **Все четыре демо-камеры `configs/cameras.yaml` — отложенные ролики**, их сэмплы имеют `holdout = 1` и без
+  `--include-holdout` в датасет не попадают.
+
+### API — уточнения
+
+- `GET /api/flywheel/samples`: фильтры через запятую (`source=event,uncertain`). `cls` ищет класс и в метках,
+  и в детекциях сэмпла. `holdout` — `0/1` или `true/false`. `order` — `-created_at`, `created_at`,
+  `-reviewed_at` или `reviewed_at`. `limit` — до 500.
+- `PATCH /api/flywheel/samples/{id}`: метка, совпавшая с прежней по классу и рамке, сохраняет `origin` и `conf`;
+  изменённые и новые получают `origin = operator`.
+- `GET /api/flywheel/summary`: поля контракта и ещё:
+  - `by_class` — классы итоговых меток, `by_detected_class` — классы детекций;
+  - `dropped` — число; `dropped_detail` — по причинам: `queue` (очередь полна), `cap` (суточный лимит);
+  - `collector` — счётчики сборщика, `writer` — счётчики писателя;
+  - `allow_train`, `mode`.
+- `POST /api/flywheel/capture/{camera_id}` (local) берёт последний обработанный кадр камеры и его детекции.
+- `POST /api/flywheel/datasets` → 201 с описанием версии. Если принятых сэмплов нет — 422.
+- `POST /api/flywheel/jobs`: `args` превращаются во флаги CLI (`{"limit": 10, "include_holdout": true}` →
+  `--limit 10 --include-holdout`). Хранилище CLI получает через `GUARD_FLYWHEEL_DIR`. Очереди tools/heavy.sh:
+  autolabel, gate и deploy — `default`, train — `train`; export идёт без очереди. Если модуля
+  `ml/flywheel/<kind>.py` нет, задача сразу получает `status = failed` и понятную ошибку. Описание задачи
+  лежит в `jobs/<id>.json` рядом с логом и переживает перезапуск сервиса.
+
+### Экспорт
+
+```bash
+python -m ml.flywheel.export [--include-holdout] [--classes person,forklift] [--val-ratio 0.2] \
+    [--mix forklift-rf=data/datasets/forklift-rf] [--flywheel-dir data/flywheel]
+```
+
+- Берутся только `accepted`. Принятые без рамок — hard negatives (пустой файл меток).
+- Разбиение: кадры камеры группируются окнами по 10 минут, окно целиком уходит в train или val по хэшу.
+  Если окно одно, его последние 20 % кадров идут в val.
+- Изображения — жёсткие ссылки на кадры хранилища. Результат — `data/flywheel/datasets/<версия>/`:
+  `images/`, `labels/`, `data.yaml`, `manifest.json`. В манифесте — классы, состав, sha256 списков файлов,
+  `holdout_contaminated` и открытые наборы смеси (`--mix`).
+
+### Проверено
+
+- Тесты: `tests/test_flywheel_{store,select,holdout,operator,latency,export,api}.py`.
+- Живой прогон 24.10 14:01, `uvicorn guard.api.app:app --port 8010`, демо-камеры `configs/cameras.yaml`,
+  onnx-cpu, 75 с. Журнал, медиа и хранилище маховика — отдельные, в `data/media/checks/flywheel_live_20261024-1401/`:
+  - 12 событий → 12 сэмплов `event`, 17 `uncertain`, 2 `flicker`, 0 отброшено;
+  - ручной захват `cam_s1` — 201;
+  - кадры `frame_event.jpg` (падение) и `frame_uncertain.jpg` — сырые, без рамок и зон;
+  - все сэмплы — `holdout = 1`: демо-камеры смотрят ролики оценки.

@@ -241,6 +241,9 @@ class CameraWorker:
         )
         self.frame_idx += 1
         self.engine.on_analysis(self, pkt, self.last)
+        flywheel = getattr(self.engine, "flywheel", None)
+        if flywheel is not None:  # маховик: мигание треков и неуверенные рамки; запись — в фоне
+            flywheel.observe(self, ctx)
         return ctx
 
     # ---- картинки для API ----
