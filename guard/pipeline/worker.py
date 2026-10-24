@@ -26,6 +26,19 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 PERSON_CLASSES = frozenset({"person"})
+# Короткие метки нарушений для оверлея (латиница: cv2.putText без кириллицы)
+SHORT_LABELS = {
+    "zone_intrusion": "ZONE",
+    "ppe_missing": "PPE",
+    "fall_immobile": "FALL",
+    "vehicle_proximity": "VEHICLE",
+    "running": "RUN",
+    "phone_usage": "PHONE",
+    "smoking_fire": "FIRE",
+    "fence_climb": "FENCE",
+    "height_no_harness": "HEIGHT",
+    "unsafe_carry": "CARRY",
+}
 OBJECT_CLASSES = frozenset(
     {"car", "truck", "bus", "forklift", "motorcycle", "bicycle", "train", "tractor", "excavator", "loader", "crane"}
 )
@@ -38,7 +51,7 @@ class AnalysisResult:
     frame: np.ndarray
     people: list[Track]
     objects: list[Track]
-    highlight: set[int]
+    highlight: dict[int, str]
     active_zones: set[str]
     done_mono: float = field(default_factory=time.monotonic)
 
@@ -212,10 +225,11 @@ class CameraWorker:
         timings["alert"] = (t3 - t2) * 1000.0
         timings["total"] = pkt.decode_ms + (t3 - t_start) * 1000.0
         self.metrics.record_frame(timings, capture_ts=ts)
-        highlight = {v.track_id for v in violations if v.track_id is not None}
-        for ev in self._open_events():
-            if ev.track_id is not None:
-                highlight.add(ev.track_id)
+        highlight = {
+            int(v.track_id): SHORT_LABELS.get(v.type, v.type[:8].upper())
+            for v in violations
+            if v.track_id is not None
+        }
         # снимки треков: трекер меняет свои объекты на следующих кадрах, а оверлей рисует этот кадр
         self.last = AnalysisResult(
             seq=pkt.seq, ts=ts, frame=frame,
@@ -226,13 +240,6 @@ class CameraWorker:
         )
         self.frame_idx += 1
         return ctx
-
-    def _open_events(self) -> list:
-        fn = getattr(self.engine.events, "open_events", None)
-        try:
-            return list(fn(self.cfg.camera_id)) if fn else []
-        except Exception:  # noqa: BLE001
-            return []
 
     # ---- картинки для API ----
 
@@ -270,7 +277,7 @@ class CameraWorker:
             return None
         people = res.people if fresh else []
         objects = res.objects if fresh else []
-        highlight = res.highlight if fresh else set()
+        highlight = res.highlight if fresh else {}
 
         def render() -> bytes:
             h, w = frame.shape[:2]

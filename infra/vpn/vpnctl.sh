@@ -42,7 +42,7 @@ case "${1:-status}" in
     [ -n "$tun" ] && echo "VPN: UP tun0=$tun" || { echo "VPN: туннель не поднят"; podman logs --tail 15 "$NAME"; exit 1; }
     podman exec "$NAME" nc -z -w 3 "${RABBIT_HOST:-10.0.114.30}" 5672 && echo "Rabbit 10.0.114.30:5672 (через туннель): OK" || echo "Rabbit: НЕДОСТУПЕН"
     echo "Jupyter DNS в VPN: $(podman exec "$NAME" sh -c 'nslookup hackathon.lin-q.ru 2>/dev/null | awk "/^Address/ && !/#/{print \$2}" | head -1')"
-    code=$(curl -s -o /dev/null -w '%{http_code}' -m 8 --socks5-hostname 127.0.0.1:1080 http://hackathon.lin-q.ru/ || true)
+    code=$(curl -s -o /dev/null -w '%{http_code}' -m 20 --socks5-hostname 127.0.0.1:1080 http://hackathon.lin-q.ru/ || true)
     echo "Jupyter через SOCKS 127.0.0.1:1080: HTTP $code"
     nc -z -G 3 127.0.0.1 5672 && echo "Rabbit проброс 127.0.0.1:5672: OK" || echo "Rabbit проброс: НЕТ"
     ;;

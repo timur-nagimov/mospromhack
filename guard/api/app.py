@@ -28,7 +28,9 @@ from guard.rules.geometry import LOCAL_TZ
 log = logging.getLogger(__name__)
 
 METRICS_PERIOD_S = 2.0
-STATS_GROUPS = {"type", "camera", "zone", "hour", "day", "severity", "status"}
+STATS_GROUPS = {"type", "camera", "zone", "severity", "status", "site", "hour", "day", "weekday_hour"}
+_PY_GROUPS = {"site", "weekday_hour"}  # журнал их не группирует — считаем здесь
+_STATS_SCAN_LIMIT = 100_000
 
 
 class EventPatch(BaseModel):
@@ -161,8 +163,15 @@ async def camera_stream(
     boundary = "frame"
 
     async def gen() -> AsyncIterator[bytes]:
+        nonlocal worker
+        engine = _engine(request)
         last_key = None
         while not await request.is_disconnected():
+            current = engine.workers.get(camera_id)
+            if current is None:  # камеру удалили или выключили — поток заканчивается, клиент переподключится
+                return
+            if current is not worker:  # горячий перезапуск камеры (PUT): переходим на новый воркер, иначе картинка замирает
+                worker, last_key = current, None
             item = await run_in_threadpool(worker.overlay_jpeg, mode, settings.stream_max_width, settings.jpeg_quality)
             if item is not None and item[0] != last_key:
                 last_key, data = item
@@ -273,8 +282,33 @@ def stats(
 ) -> dict[str, Any]:
     if group_by not in STATS_GROUPS:
         raise HTTPException(422, f"group_by must be one of {sorted(STATS_GROUPS)}")
-    items = _engine(request).journal.stats(group_by, ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"))
+    journal = _engine(request).journal
+    ts_from, ts_to = _parse_ts(from_, "from"), _parse_ts(to, "to")
+    if group_by in _PY_GROUPS:
+        items = _group_events(journal, group_by, ts_from, ts_to)
+    else:
+        items = journal.stats(group_by, ts_from=ts_from, ts_to=ts_to)
     return {"group_by": group_by, "items": items}
+
+
+def _group_events(journal: Any, group_by: str, ts_from: float | None, ts_to: float | None) -> list[dict[str, Any]]:
+    events, _ = journal.query(ts_from=ts_from, ts_to=ts_to, limit=_STATS_SCAN_LIMIT, offset=0, order="asc")
+    counts: dict[str, int] = {}
+    for ev in events:
+        if group_by == "site":
+            key = ev.site
+        else:  # weekday_hour: "<0-6>:<0-23>", понедельник = 0, время МСК
+            local = datetime.fromtimestamp(ev.confirmed_at, LOCAL_TZ)
+            key = f"{local.weekday()}:{local.hour}"
+        counts[key] = counts.get(key, 0) + 1
+
+    def order(key: str) -> tuple:
+        if group_by == "weekday_hour":
+            day, hour = key.split(":")
+            return (int(day), int(hour))
+        return (key,)
+
+    return [{"key": k, "count": counts[k]} for k in sorted(counts, key=order)]
 
 
 @router.get("/api/metrics")

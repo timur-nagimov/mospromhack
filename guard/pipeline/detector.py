@@ -17,6 +17,7 @@ import numpy as np
 
 from guard.contracts import Detection, ModelSpec
 from guard.inference.base import InferenceBackend
+from guard.metrics import RollingStats
 from guard.pipeline import compat
 
 log = logging.getLogger(__name__)
@@ -37,7 +38,7 @@ class BatchScheduler:
         self.model_id = model_id
         self.max_batch = max(1, max_batch)
         self.timeout_s = max(0.0, timeout_s)
-        self._q: queue.Queue[_Request | None] = queue.Queue()
+        self._q: queue.Queue[_Request | None] = queue.Queue(maxsize=self.max_batch * 8)
         self._stop = threading.Event()
         self._thread = threading.Thread(target=self._run, name=f"batch-{model_id}", daemon=True)
         self._thread.start()
@@ -46,8 +47,11 @@ class BatchScheduler:
         req = _Request(tensor=tensor, enqueued=time.perf_counter())
         if self._stop.is_set():
             req.future.set_exception(RuntimeError("scheduler stopped"))
-        else:
-            self._q.put(req)
+            return req.future
+        try:
+            self._q.put(req, timeout=1.0)
+        except queue.Full:
+            req.future.set_exception(RuntimeError(f"batch queue for {self.model_id} is full"))
         return req.future
 
     def _collect(self, first: _Request) -> list[_Request]:
@@ -109,6 +113,7 @@ class Detector:
         self.spec = spec
         self.backend = backend
         self.scheduler = scheduler
+        self.queue_stats = RollingStats()  # ожидание в батчере, мс
         if spec.output_format == "yolov8-pose":
             self._decode = compat.decode_yolov8_pose
         elif spec.output_format == "yolov8":
@@ -143,6 +148,7 @@ class Detector:
         if timings is not None:
             infer_ms = t.get("infer", (t2 - t1) * 1000.0)
             queue_ms = t.get("queue", 0.0)
+            self.queue_stats.add(queue_ms)
             transfer_ms = t.get("transfer", 0.0)
             timings["preprocess"] = timings.get("preprocess", 0.0) + (t1 - t0) * 1000.0
             timings["queue"] = timings.get("queue", 0.0) + queue_ms

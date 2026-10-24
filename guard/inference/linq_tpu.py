@@ -64,6 +64,15 @@ def _dotenv() -> dict[str, str]:
     return env
 
 
+def _default_host() -> str:
+    """Брокер по умолчанию: на стенде (single-user контейнер Jupyter) — 10.0.114.30 напрямую,
+    иначе — локальный проброс VPN-контейнера 127.0.0.1:5672 (infra/vpn). RABBIT_HOST из .env ноутбука
+    напрямую недоступен (системный VPN не поднимаем)."""
+    if os.environ.get("JUPYTERHUB_USER") or Path("/auto/cache").is_dir():
+        return "10.0.114.30"
+    return "127.0.0.1"
+
+
 def _cfg(*names: str, default: str | None = None) -> str | None:
     dot = None
     for n in names:
@@ -147,6 +156,67 @@ def deserialize_task(body: bytes) -> tuple[dict[str, np.ndarray], dict[str, Any]
         "data_path": msg.data_path,
     }
     return data, worker
+
+
+# ---------------------------------------------------------------- raw-кодек (упаковка как tpu_io, на numpy)
+
+
+class RawCodec:
+    """Упаковка user-тензоров в формат TPU и обратно по metadata.json программы (inputs/outputs).
+
+    Повторяет tpu_io.pack/unpack для int8 (tpu_framework.pdf стр. 7, 46-47): scale -> round -> int8,
+    паддинг по `padding` (отрицательный — обрезка), ось C делится на (C_outer, B), перестановка в tpu_order.
+    Сверка с tpu_io — tpu/raw_probe.py."""
+
+    def __init__(self, inputs: dict[str, dict], outputs: dict[str, dict]) -> None:
+        self.inputs, self.outputs = inputs, outputs
+
+    @staticmethod
+    def _scale(t: dict, ndim_order: list[str]) -> np.ndarray:
+        s = np.asarray(t["scales"], np.float32)
+        shp = t.get("scale_shape") or [1]
+        if s.size == 1:
+            return s.reshape(())
+        return s.reshape([1] * (len(ndim_order) - len(shp)) + list(shp))
+
+    def pack(self, name: str, x: np.ndarray) -> np.ndarray:
+        t = self.inputs[name]
+        if t.get("tpu_dtype") != "int8":
+            raise NotImplementedError(f"raw: tpu_dtype {t.get('tpu_dtype')}")
+        uo, to = list(t["user_order"]), list(t["tpu_order"])
+        q = np.rint(np.asarray(x, np.float32) * self._scale(t, uo))
+        q = np.clip(q, -128, 127).astype(np.int8)
+        pads = [tuple(p) for p in t.get("padding") or [[0, 0]] * q.ndim]
+        if any(a < 0 or b < 0 for a, b in pads):
+            raise NotImplementedError("raw: отрицательный паддинг на входе")
+        q = np.pad(q, pads)
+        B = t["tpu_shape"][to.index("B")]
+        ci = uo.index("C")
+        shp = list(q.shape)
+        q = q.reshape(shp[:ci] + [shp[ci] // B, B] + shp[ci + 1:])
+        axes_named = uo[:ci] + ["C", "B"] + uo[ci + 1:]
+        q = q.transpose([axes_named.index(a) for a in to])
+        return np.ascontiguousarray(q).reshape(-1).view(np.uint8)
+
+    def unpack(self, name: str, raw: np.ndarray) -> np.ndarray:
+        t = self.outputs[name]
+        uo, to = list(t["user_order"]), list(t["tpu_order"])
+        q = np.asarray(raw).reshape(-1)[: int(np.prod(t["tpu_shape"]))].view(np.int8).reshape(t["tpu_shape"])
+        # tpu_order -> user_order, где C = (C_outer, B)
+        perm = [to.index(a) if a != "C" else to.index("C") for a in uo]
+        ci = uo.index("C")
+        perm = perm[:ci] + [to.index("C"), to.index("B")] + perm[ci + 1:]
+        q = q.transpose(perm)
+        shp = list(q.shape)
+        q = q.reshape(shp[:ci] + [shp[ci] * shp[ci + 1]] + shp[ci + 2:])
+        sl = []
+        for ax, (a, b) in enumerate(t.get("padding") or [[0, 0]] * q.ndim):
+            n = q.shape[ax]
+            start = -a if a < 0 else 0
+            stop = n + b if b < 0 else n
+            sl.append(slice(start, stop))
+        q = q[tuple(sl)]
+        return q.astype(np.float32) * self._scale(t, uo)
 
 
 # ---------------------------------------------------------------- транспорт
@@ -269,6 +339,9 @@ class _TpuModel:
     tail: Any = None  # onnxruntime.InferenceSession хвоста или None
     tail_inputs: list[str] = field(default_factory=list)
     manifest: dict[str, Any] = field(default_factory=dict)
+    tail_batch1: bool = False  # у хвоста статический batch=1
+    codec: Any = None  # RawCodec при raw=True
+    ddr_word_len: int = 32
 
 
 def _find_manifest(spec: ModelSpec, models_dir: Path | None, local_program: Path | None) -> dict[str, Any]:
@@ -305,10 +378,11 @@ class LinqTpuBackend(InferenceBackend):
         models_dir: str | Path | None = None,
         timeout_s: float | None = None,
         retries: int = 2,
-        raw: bool = False,
+        raw: bool | None = None,
+        window: int | None = None,
     ) -> None:
-        self.host = host or _cfg("LINQ_RABBIT_HOST", "RABBIT_HOST", default="127.0.0.1")
-        self.port = int(port or _cfg("LINQ_RABBIT_PORT", "RABBIT_PORT", default="5672"))
+        self.host = host or os.environ.get("LINQ_RABBIT_HOST") or _default_host()
+        self.port = int(port or _cfg("LINQ_RABBIT_PORT", default="5672"))
         self.user = user or _cfg("LINQ_RABBIT_USER", default="guest")
         self.password = password or _cfg("LINQ_RABBIT_PASSWORD", default="guest")
         login = _cfg("LINQ_LOGIN", "JUPYTER_LOGIN", default="hackathon10864")
@@ -316,9 +390,12 @@ class LinqTpuBackend(InferenceBackend):
         self.models_dir = Path(models_dir).expanduser() if models_dir else None
         self.timeout_s = float(timeout_s or _cfg("LINQ_TIMEOUT_S", default="30"))
         self.retries = int(retries)
-        self.raw = raw
-        if raw:
-            raise NotImplementedError("raw=True: упаковка tpu_io на клиенте не реализована, используйте raw=False")
+        # raw=True: клиент сам пакует вход в int8-слова TPU и распаковывает выходы (RawCodec) — трафик в ~3-4 раза
+        # меньше (yolov8n 640: запрос 1.64 МБ вместо 4.9, ответ 0.71 вместо 2.8). Проверено на стенде 24.10.
+        self.raw = bool(int(_cfg("LINQ_RAW", default="0"))) if raw is None else bool(raw)
+        # окно задач в полёте для submit(): столько потоков, у каждого своё соединение и очередь ответов
+        self.window = int(window or _cfg("LINQ_WINDOW", default="4"))
+        self._pool: Any = None
         self._models: dict[str, _TpuModel] = {}
         self._lock = threading.Lock()
         self._local = threading.local()
@@ -349,8 +426,7 @@ class LinqTpuBackend(InferenceBackend):
             p = resolve_model_path(ref, self.models_dir)
             local = p if p.exists() else None
             uri = f"file://{self.program_dir}/{p.name}"
-        if "?" not in uri:
-            uri += "?raw=True" if self.raw else "?raw=False"
+        uri = uri.split("?")[0] + ("?raw=True" if self.raw else "?raw=False")  # режим задаёт бэкенд
         return uri, local
 
     def load(self, spec: ModelSpec) -> None:
@@ -378,13 +454,18 @@ class LinqTpuBackend(InferenceBackend):
             tail = ort.InferenceSession(str(tail_path), so, providers=["CPUExecutionProvider"])
             tail_inputs = [i.name for i in tail.get_inputs()]
             out_names = [o.name for o in tail.get_outputs()]
-        if input_name is None:  # без manifest: имена из metadata.json программы, если файл доступен
-            prog = local or Path(uri[len("file://"):].split("?")[0])
+        meta: dict[str, Any] = {}
+        prog = local or Path(uri[len("file://"):].split("?")[0])
+        if prog.is_file():
             try:
                 import zipfile
 
                 with zipfile.ZipFile(prog) as z:
                     meta = json.loads(z.read("metadata.json"))
+            except Exception:  # noqa: BLE001
+                meta = {}
+        if input_name is None and meta:  # без manifest: имена из metadata.json программы
+            try:
                 ins = [n for d in meta.get("inputs", {}).values() for n in d]
                 outs = [n for d in meta.get("outputs", {}).values() for n in d]
                 input_name = ins[0] if ins else None
@@ -404,6 +485,18 @@ class LinqTpuBackend(InferenceBackend):
             except Exception as e:  # noqa: BLE001
                 raise ValueError(f"{spec.model_id}: нет manifest.json и не удалось прочитать вход из ONNX: {e}") from e
         model = _TpuModel(spec, uri, input_name, batch, tpu_outputs, out_names, tail, tail_inputs, man)
+        if self.raw:
+            pm = man.get("program_meta") or {}
+            ins = pm.get("inputs") or {n: t for d in meta.get("inputs", {}).values() for n, t in d.items()}
+            outs = pm.get("outputs") or {n: t for d in meta.get("outputs", {}).values() for n, t in d.items()}
+            if not ins or not outs:
+                raise ValueError(f"{spec.model_id}: raw=True требует metadata программы (manifest.json или локальный .tpu)")
+            model.codec = RawCodec(ins, outs)
+            model.ddr_word_len = int((meta.get("hardware_parameters") or {}).get("ddr_word_len", 32))
+            model.tpu_outputs = model.tpu_outputs or list(outs)
+        if tail is not None:
+            shp = tail.get_inputs()[0].shape
+            model.tail_batch1 = bool(shp) and shp[0] == 1
         with self._lock:
             self._models[spec.model_id] = model
         log.info("linq-tpu: %s -> %s (input %s, tail=%s)", spec.model_id, uri, input_name, bool(tail))
@@ -445,7 +538,11 @@ class LinqTpuBackend(InferenceBackend):
             try:
                 c = self._client()  # подключение (если нужно) не входит в замеры этапов
                 t0 = time.perf_counter()
-                bodies = [serialize_task({m.input_name: ch}) for ch in chunks]
+                if m.codec is not None:  # raw: uint8 [rows, ddr_word_len] — так требует воркер
+                    bodies = [serialize_task({m.input_name: m.codec.pack(m.input_name, ch).reshape(-1, m.ddr_word_len)})
+                              for ch in chunks]
+                else:
+                    bodies = [serialize_task({m.input_name: ch}) for ch in chunks]
                 t_ser = time.perf_counter()
                 ids = [c.submit({}, m.uri, body=b) for b in bodies]
                 t_pub = time.perf_counter()
@@ -458,15 +555,23 @@ class LinqTpuBackend(InferenceBackend):
                     if r.worker["status_code"] != 0 or not r.data:
                         raise TpuWorkerError(f"воркер: status={r.worker['status_code']} {r.worker['error_message']}")
                     worker_ms.append(r.worker["inference_time"] * 1000.0)
-                    outs_per_chunk.append(r.data)
+                    if m.codec is not None:
+                        outs_per_chunk.append({n: m.codec.unpack(n, a) for n, a in r.data.items()})
+                    else:
+                        outs_per_chunk.append(r.data)
                     self._bytes["sent"] += r.req_bytes
                     self._bytes["received"] += r.resp_bytes
                 names = m.tail_inputs or m.tpu_outputs or sorted(outs_per_chunk[0])
                 merged = {n: np.concatenate([o[n] for o in outs_per_chunk])[: x.shape[0]] for n in names}
                 t_tail0 = time.perf_counter()
                 if m.tail is not None:
-                    res = m.tail.run(m.out_names, {n: merged[n].astype(np.float32) for n in m.tail_inputs})
-                    outputs = [np.asarray(r) for r in res]
+                    feeds = {n: merged[n].astype(np.float32) for n in m.tail_inputs}
+                    if m.tail_batch1 and x.shape[0] > 1:  # хвост со статическим batch=1 — по кадру
+                        parts = [m.tail.run(m.out_names, {n: v[i:i + 1] for n, v in feeds.items()})
+                                 for i in range(x.shape[0])]
+                        outputs = [np.concatenate([p[k] for p in parts]) for k in range(len(m.out_names))]
+                    else:
+                        outputs = [np.asarray(r) for r in m.tail.run(m.out_names, feeds)]
                 else:
                     outputs = [merged[n] for n in (m.out_names if set(m.out_names) <= set(merged) else names)]
                 t_end = time.perf_counter()
@@ -501,6 +606,17 @@ class LinqTpuBackend(InferenceBackend):
     def infer(self, model_id: str, batch: np.ndarray) -> list[np.ndarray]:
         return self.infer_timed(model_id, batch)[0]
 
+    def submit(self, model_id: str, batch: np.ndarray) -> Any:
+        """Асинхронно: concurrent.futures.Future[(outputs, timings)]. До `window` задач в полёте —
+        конвейер для потока камеры без батчинга (на стенде окно 4-8 даёт x1.6-2 к/с)."""
+        if self._pool is None:
+            import concurrent.futures as cf
+
+            with self._lock:
+                if self._pool is None:
+                    self._pool = cf.ThreadPoolExecutor(self.window, thread_name_prefix="linq-tpu")
+        return self._pool.submit(self.infer_timed, model_id, batch)
+
     def stats(self) -> dict[str, Any]:
         return {
             "backend": self.name,
@@ -510,6 +626,9 @@ class LinqTpuBackend(InferenceBackend):
         }
 
     def close(self) -> None:
+        if self._pool is not None:
+            self._pool.shutdown(wait=True)
+            self._pool = None
         with self._lock:
             for c in self._clients:
                 c.close()

@@ -153,6 +153,8 @@ class OnnxCpuBackend(InferenceBackend):
     def stats(self) -> dict[str, Any]:
         return {
             "backend": self.name,
+            "device": "cpu",
+            "utilization": self._stats.utilization(),
             "providers": ["CPUExecutionProvider"],
             "intra_op_threads": self.intra_op_threads,
             "models": self._stats.snapshot(),

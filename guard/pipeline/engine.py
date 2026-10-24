@@ -350,7 +350,18 @@ class PipelineEngine:
                 "errors": snap["errors"],
             }
         try:
-            inference = self.backend.stats()
+            inference = dict(self.backend.stats())
         except Exception as exc:  # noqa: BLE001
-            inference = {"error": str(exc)}
+            inference = {"backend": self.backend.name, "error": str(exc)}
+        inference.setdefault("backend", self.backend.name)
+        inference.setdefault("device", "tpu" if "tpu" in self.backend.name else "cpu")
+        inference.setdefault("utilization", None)
+        models = inference.setdefault("models", {})
+        with self._det_lock:
+            detectors = list(self._detectors.items())
+        for model_id, det in detectors:
+            q = det.queue_stats.summary()
+            entry = models.setdefault(model_id, {})
+            entry.setdefault("timings_ms", {})["queue"] = {"p50": q["p50"], "p95": q["p95"]}
+            entry["batching"] = det.scheduler is not None
         return {"backend": self.backend.name, "cameras": out, "inference": inference, "media": self.media.stats()}

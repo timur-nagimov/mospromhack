@@ -56,22 +56,24 @@ def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
     if module_name is None:
         raise ValueError(f"unknown inference backend {resolved!r}; available: {available_backends()}")
     module = importlib.import_module(module_name)  # ImportError пробрасывается: бэкенда нет в сборке
+    candidates = [
+        obj
+        for obj in vars(module).values()
+        if inspect.isclass(obj)
+        and issubclass(obj, InferenceBackend)
+        and not inspect.isabstract(obj)
+        and getattr(obj, "name", None) == resolved
+    ]
+    cls = candidates[0] if candidates else None
     factory = getattr(module, "create_backend", None)
+    # общие kwargs (models_dir, intra_op_threads, max_batch) — только те, что понимает реализация
+    accepted = _filter_kwargs(cls, kwargs) if cls is not None else kwargs
     if callable(factory):
-        backend = factory(**_filter_kwargs(factory, kwargs))
+        backend = factory(**_filter_kwargs(factory, accepted))
+    elif cls is not None:
+        backend = cls(**accepted)
     else:
-        candidates = [
-            obj
-            for obj in vars(module).values()
-            if inspect.isclass(obj)
-            and issubclass(obj, InferenceBackend)
-            and not inspect.isabstract(obj)
-            and getattr(obj, "name", None) == resolved
-        ]
-        if not candidates:
-            raise ImportError(f"{module_name} has no InferenceBackend with name {resolved!r}")
-        cls = candidates[0]
-        backend = cls(**_filter_kwargs(cls, kwargs))
+        raise ImportError(f"{module_name} has no InferenceBackend with name {resolved!r}")
     if not isinstance(backend, InferenceBackend):
         raise TypeError(f"{module_name} returned {type(backend).__name__}, expected InferenceBackend")
     return backend
