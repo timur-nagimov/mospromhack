@@ -316,6 +316,7 @@ class CrowdingRule(RulePlugin):
 | Камеры и правила: полигон зоны рисуется мышью на стоп-кадре, расписание, формы правил | специалист ОТ | `deliverables/screens/real-05-cameras-zones.jpg`, `05b-zone-drawing.jpg`, `06-cameras-rules.jpg` |
 | Производительность: FPS по камерам, задержка по этапам p50/p95, модели на ускорителе | ИТ-служба | `deliverables/screens/real-07-performance.jpg` |
 | Данные (маховик): цикл из шести шагов, очередь проверки сэмплов с рамками (клавиши 1/2, ←/→), датасеты, модели с решением гейта | инженер данных | `data/media/checks/flywheel_ui_*.png` (мок) |
+| Сотрудники: справочник с поиском, виновники инцидента в карточке события, персональная статистика в «Аналитике» ([EMPLOYEES](docs/EMPLOYEES.md)) | все роли; добавляет сотрудников администратор | — |
 
 Исторические скриншоты с префиксом `real-` сняты 24.10 около 01:10 с живого бэкенда на ноутбуке (local, CPU). Остальные — из мок-режима.
 
@@ -336,6 +337,7 @@ guard/                бэкенд (Python 3.11, FastAPI)
   transport/          versioned wire v1, store и AMQP
   reports/            сводка по смене
   flywheel/           маховик данных: сбор сэмплов, хранилище, задачи
+  employees.py        справочник сотрудников и персональная статистика
   doctor.py           офлайн-проверка конфигурации
   api/                HTTP API и WebSocket
 frontend/             веб-интерфейс (React 18, TypeScript, Vite), мок-режим для резервного демо
@@ -371,6 +373,7 @@ deliverables/         материалы для экспертов: скринш
 | [docs/PPE_EVALUATION.md](docs/PPE_EVALUATION.md), [docs/S2_DATA_PREPARATION.md](docs/S2_DATA_PREPARATION.md) | AP, покрытие PPE-классов и pins входных данных |
 | [docs/S2_EVALUATION.md](docs/S2_EVALUATION.md), [docs/S2_ROI_BOUNDARY_AB.md](docs/S2_ROI_BOUNDARY_AB.md), [docs/S2_SOURCE_BOUNDARY_DIAGNOSTIC.md](docs/S2_SOURCE_BOUNDARY_DIAGNOSTIC.md), [docs/CAPTURE_DISCONTINUITY.md](docs/CAPTURE_DISCONTINUITY.md) | оценка S2, A/B полного кадра и кропов людей, граница склеенных источников, `capture_id` |
 | [docs/PPE_MODEL_CANDIDATE.md](docs/PPE_MODEL_CANDIDATE.md), [docs/PPE_VYRA_CANDIDATE.md](docs/PPE_VYRA_CANDIDATE.md), [docs/PPE_PERSON_ROI.md](docs/PPE_PERSON_ROI.md) | экспериментальные PPE-кандидаты BuildVision и Vyra, кропы людей для PPE (opt-in) |
+| [docs/MISSING_RULE_MODELS_20261024.md](docs/MISSING_RULE_MODELS_20261024.md) | подбор моделей для незакрытых сигналов правил: страховочная привязь, сигарета, действия, респиратор |
 | [docs/MODEL_RESEARCH_20261024.md](docs/MODEL_RESEARCH_20261024.md), [docs/MODEL_FAMILIES_RESEARCH_20261024.md](docs/MODEL_FAMILIES_RESEARCH_20261024.md), [docs/EXTENDED_MODEL_FAMILIES_20261024.md](docs/EXTENDED_MODEL_FAMILIES_20261024.md), [docs/HEAVY_MODEL_RESEARCH_20261024.md](docs/HEAVY_MODEL_RESEARCH_20261024.md), [docs/MODEL_FOLLOWUP_20261024.md](docs/MODEL_FOLLOWUP_20261024.md), [docs/HIGH_RESOLUTION_EVALUATION.md](docs/HIGH_RESOLUTION_EVALUATION.md) | исследование моделей 24.10: семейства, тяжёлые модели, разрешение 640 и 1280 |
 | [docs/YOLO11_CANDIDATE.md](docs/YOLO11_CANDIDATE.md), [docs/RFDETR_CANDIDATE.md](docs/RFDETR_CANDIDATE.md), [docs/RFDETR_PARITY_DIAGNOSTICS.md](docs/RFDETR_PARITY_DIAGNOSTICS.md), [docs/RFDETR_QUALITY_COMPARISON.md](docs/RFDETR_QUALITY_COMPARISON.md), [docs/DFINE_DETECTOR_ADAPTER.md](docs/DFINE_DETECTOR_ADAPTER.md) | кандидаты детектора YOLO11, RF-DETR и D-FINE (opt-in, проверка на CPU) |
 | [docs/VIOLATION_EXPANSION_PLAN.md](docs/VIOLATION_EXPANSION_PLAN.md), [docs/VIOLATION_EXPANSION_RESULTS.md](docs/VIOLATION_EXPANSION_RESULTS.md), [docs/VIOLATION_API_INTEGRATION.md](docs/VIOLATION_API_INTEGRATION.md) | расширение правил: план, результаты, сквозная проверка через HTTP и WebSocket |
@@ -378,7 +381,7 @@ deliverables/         материалы для экспертов: скринш
 | [docs/RULE_OBSERVATIONS.md](docs/RULE_OBSERVATIONS.md), [docs/RULE_CONFIG_VALIDATION.md](docs/RULE_CONFIG_VALIDATION.md), [docs/RULE_ZONE_METADATA.md](docs/RULE_ZONE_METADATA.md), [docs/RULE_CONFIG_UI.md](docs/RULE_CONFIG_UI.md) | статус наблюдения моделей, проверка конфигурации правил, `zone_schema`, редактор правил |
 | [docs/CPU_MULTICAMERA.md](docs/CPU_MULTICAMERA.md), [docs/RABBIT_ACCEPTANCE.md](docs/RABBIT_ACCEPTANCE.md) | границы CPU и AMQP-приёмок |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), [docs/MAIN_INTEGRATION_20261024.md](docs/MAIN_INTEGRATION_20261024.md) | план развития и результаты интеграции 24.10 |
-| [docs/ROLES.md](docs/ROLES.md) | контракт ролей и прав: сотрудник, диспетчер смены, инженер по ОТ, администратор; кода `guard/auth` в main пока нет |
+| [docs/ROLES.md](docs/ROLES.md), [docs/EMPLOYEES.md](docs/EMPLOYEES.md) | роли и права: сотрудник, диспетчер смены, инженер по ОТ, администратор (в интерфейсе — локальный выбор роли, вход и `guard/auth` — план); справочник сотрудников и персональная статистика |
 | [docs/ANALYTICS.md](docs/ANALYTICS.md) | целевая аудитория, проблемы UX, конкуренты и аналоги |
 | [docs/PITCH.md](docs/PITCH.md) | структура защиты и экономика внедрения |
 | [docs/REQUIREMENTS_MATRIX.md](docs/REQUIREMENTS_MATRIX.md), [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | матрица требований R1–R7, D1–D5 и сценарий показа на защите (снимок 24.10 17:55) |

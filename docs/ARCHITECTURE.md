@@ -35,7 +35,7 @@ flowchart LR
         WS["WebSocket /ws/events"]
     end
 
-    UI["Веб-интерфейс React: мониторинг, карточка события, журнал, аналитика, зоны и правила, производительность, данные"]
+    UI["Веб-интерфейс React: мониторинг, карточка события, журнал, аналитика, зоны и правила, производительность, данные, сотрудники"]
 
     CAM --> DEC
     FILES --> DEC
@@ -119,11 +119,12 @@ sequenceDiagram
 | Edge | `guard/edge/` | `python -m guard.edge`: конвейер без API и UI; событие и outbox в одной транзакции SQLite, публикация событий и телеметрии (`runner.py`) |
 | Шлюз | `guard/gateway/` | receipt и событие в SQLite до ACK, подавление повторов, превью кадров с edge, каталог камер только для чтения |
 | Транспорт | `guard/transport/` | конверт wire v1 (`protocol.py`), состояния outbox и receipt (`store.py`), AMQP (`rabbit.py`); протокол — `docs/EDGE_PROTOCOL.md` |
-| Маховик данных | `guard/flywheel/`, `guard/api/flywheel.py`, `ml/flywheel/` | сбор сэмплов в фоне (кадр события, неуверенная рамка, мигание трека, решение оператора), хранилище, API `/api/flywheel/*`, экспорт в YOLO, дообучение и гейт. Сбор работает в режиме local, на edge выключен (`docs/FLYWHEEL.md`) |
+| Маховик данных | `guard/flywheel/`, `guard/api/flywheel.py`, `ml/flywheel/` | сбор сэмплов в фоне (кадр события, неуверенная рамка, мигание трека, решение оператора), хранилище, API `/api/flywheel/*`, авторазметка учителем, экспорт в YOLO, дообучение и гейт. На edge сэмплы идут на шлюз своей очередью AMQP (`edge.py`, `amqp.py`), не больше 4 КБ/с на камеру (`docs/FLYWHEEL.md`) |
+| Сотрудники | `guard/employees.py`, `guard/api/employees.py` | справочник сотрудников, виновники инцидента в карточке события, персональная статистика (`docs/EMPLOYEES.md`) |
 | Проверка конфигурации | `guard/doctor.py` | `python -m guard.doctor`: офлайн-проверка YAML камер и реестра моделей, путей к источникам и файлам моделей |
 | Отчёты | `guard/reports/shift_report.py`, `guard/api/reports.py` | сводка за смену или период: распределения, доля ложных, горячие точки, сравнение с прошлым периодом. API: `GET /api/reports/shift` (JSON, HTML, Markdown) и `GET /api/reports/presets` |
 | API | `guard/api/app.py` | REST и WebSocket по `docs/CONTRACTS.md`; раздаёт собранный фронтенд |
-| UI | `frontend/` | React + TypeScript: 7 экранов, включая «Данные» (маховик); мок-режим для резервного демо (`frontend/README.md`) |
+| UI | `frontend/` | React + TypeScript: 8 экранов, включая «Данные» (маховик) и «Сотрудники»; локальный выбор роли (`docs/ROLES.md`); мок-режим для резервного демо (`frontend/README.md`) |
 | TPU-инструменты | `tpu/` | компиляция ONNX → `.tpu` с обрезкой головы, калибровка, замеры, сверка с CPU |
 
 ## 5. Как обеспечены «одно нарушение — одно оповещение» и защита от ложных тревог
