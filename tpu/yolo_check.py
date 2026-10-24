@@ -112,10 +112,13 @@ def main() -> int:
     ap.add_argument("--host", default=os.environ.get("LINQ_RABBIT_HOST", "10.0.114.30"))
     ap.add_argument("--out", default="yolo_tpu.json")
     ap.add_argument("--nc", type=int, default=80, help="число классов (pose: 1)")
+    ap.add_argument("--sweep", default="0,0.05,0.1,0.15", help="снижения порога TPU относительно --conf")
+    ap.add_argument("--glob", default="*.jpg,*.jpeg,*.png", help="маски файлов в --images")
     ap.add_argument("--raw", action="store_true", help="raw=True: упаковка на клиенте (RawCodec)")
     a = ap.parse_args()
     global NC
     NC = a.nc
+    sweep = [float(s) for s in a.sweep.split(",") if s]
 
     import onnxruntime as ort
 
@@ -133,7 +136,7 @@ def main() -> int:
     cpu = ort.InferenceSession(a.onnx, so, providers=["CPUExecutionProvider"])
     cpu_in = cpu.get_inputs()[0].name
 
-    files = sorted(glob.glob(os.path.join(a.images, "*.jpg")))
+    files = sorted({f for g in a.glob.split(",") for f in glob.glob(os.path.join(a.images, g))})
     files = files[:: max(1, len(files) // a.n_images)][: a.n_images]
     agg = {"ref": 0, "got": 0, "matched": 0, "ious": [], "dconf": [], "dkpt": []}
     raw_cos = []
@@ -151,6 +154,12 @@ def main() -> int:
             raw_cos.append(float(r @ g / (np.linalg.norm(r) * np.linalg.norm(g) + 1e-12)))
         m = match(decode(ref_out, a.conf), decode(tpu_out, a.conf))
         m_lo = match(decode(ref_out, a.conf), decode(tpu_out, a.conf - a.tpu_conf_delta))
+        ref_dec = decode(ref_out, a.conf)
+        for d in sweep:
+            ms = match(ref_dec, decode(tpu_out, round(a.conf - d, 3)))
+            sw = agg.setdefault("sweep", {}).setdefault(round(a.conf - d, 3), [0, 0])
+            sw[0] += ms["matched"]
+            sw[1] += ms["got"]
         agg["matched_lo"] = agg.get("matched_lo", 0) + m_lo["matched"]
         agg["got_lo"] = agg.get("got_lo", 0) + m_lo["got"]
         per_image.append({"image": Path(f).name, "cpu": m["ref"], "tpu": m["got"], "matched": m["matched"]})
@@ -172,6 +181,9 @@ def main() -> int:
         "cos_boxes_mean": round(float(np.mean(raw_cos[0::2])), 4), "cos_scores_mean": round(float(np.mean(raw_cos[1::2])), 4),
         "kpt_err_px_mean": round(float(np.mean(agg["dkpt"])), 2) if agg["dkpt"] else None,
         "kpt_err_px_p95": pct(agg["dkpt"], 95),
+        "tpu_threshold_sweep": {str(k): {"recall_vs_cpu": round(v[0] / max(1, agg["ref"]), 3),
+                                         "precision_vs_cpu": round(v[0] / max(1, v[1]), 3), "tpu_dets": v[1]}
+                                for k, v in sorted(agg.get("sweep", {}).items(), reverse=True)},
         "per_image": per_image,
     }
     print("accuracy:", json.dumps({k: v for k, v in acc.items() if k != "per_image"}), flush=True)
