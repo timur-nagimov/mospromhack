@@ -16,6 +16,8 @@ from guard.pipeline.bus import EventBus
 from guard.pipeline.config import load_cameras, load_models, save_cameras
 from guard.pipeline.detector import BatchScheduler, Detector
 from guard.pipeline.settings import Settings
+from guard.pipeline.transport import compact_jpeg, frame_meta_msg, metrics_msg
+from guard.pipeline.transport import event_msg as transport_event_msg
 from guard.rules.base import available_rules, load_plugins, with_default_severity
 from guard.rules.geometry import validate_active_hours
 from guard.events.media import MediaStore
@@ -45,8 +47,11 @@ class PipelineEngine:
         backend: InferenceBackend | None = None,
         journal: Any | None = None,
         event_manager: Any | None = None,
+        sink: Any | None = None,
     ) -> None:
         self.settings = settings
+        self.sink = sink  # guard.transport.Sink: режим edge публикует event/frame_meta/metrics
+        self.sink_errors = 0
         # base.available_rules()/get_rule() грузят плагины, только пока реестр пуст — грузим явно
         load_plugins()
         self.backend = backend or get_backend(
@@ -198,6 +203,14 @@ class PipelineEngine:
                 raise CameraError(f"rule {r.rule_id}: unknown zones {sorted(missing)}")
             if r.min_duration_s < 0 or not 0 <= r.min_ratio <= 1:
                 raise CameraError(f"rule {r.rule_id}: min_duration_s >= 0 and 0 <= min_ratio <= 1 required")
+            if r.enabled and self.models:
+                # A6 №1: правило без модели иначе молча отключится в воркере — сразу 422
+                required = {m for t in available_rules() if t["type"] == r.type for m in t["required_models"]}
+                absent = sorted(required - set(self.models))
+                if absent:
+                    raise CameraError(
+                        f"rule {r.rule_id}: required models {absent} are not in registry {self.settings.models_config.name}"
+                    )
 
     def _persist(self) -> None:
         save_cameras(self.settings.cameras_config, self.cameras.values())
@@ -258,11 +271,15 @@ class PipelineEngine:
     def handle_events(
         self, worker: CameraWorker, ctx: FrameContext, new: list[Event], closed: list[Event], t_start: float
     ) -> None:
-        """Новое событие: снапшот → журнал → WS → клип в фоне. Закрытое: ended_at → журнал → WS."""
+        """Новое событие: снапшот → журнал → WS (+ транспорт edge) → клип в фоне.
+        Закрытое: ended_at → журнал → WS (+ транспорт)."""
         for ev in new:
             t0 = time.perf_counter()
+            snapshot_img = None
             try:
-                ev.snapshot_path = self.media.save_snapshot(ev, self._render_snapshot(ctx, ev))
+                snapshot_img = self._render_snapshot(ctx, ev)
+                if self.settings.mode != "edge":
+                    ev.snapshot_path = self.media.save_snapshot(ev, snapshot_img)
             except Exception:  # noqa: BLE001 — без снапшота оповещение всё равно уходит
                 log.exception("snapshot for event %s failed", ev.id)
             latency = dict(ev.latency_ms or ctx.timings)
@@ -281,17 +298,50 @@ class PipelineEngine:
                 log.exception("journal add failed for %s", ev.id)
             self.events_created += 1
             self.bus.publish(event_message("event", ev))
+            if self.sink is not None:
+                snap = None
+                if snapshot_img is not None:
+                    st = self.settings
+                    snap = compact_jpeg(snapshot_img, st.edge_snapshot_width, st.edge_snapshot_quality, st.edge_snapshot_max_kb)
+                self._sink_publish(transport_event_msg("event", ev, snap))
             log.warning(
                 "EVENT %s %s camera=%s zone=%s track=%s window=%.2fs pipeline=%.0fms",
                 ev.type, ev.id, ev.camera_id, ev.zone_id, ev.track_id,
                 ev.confirmed_at - ev.started_at, ev.latency_ms.get("total", 0.0),
             )
-            if not self.media.schedule_clip(ev, on_done=self._on_clip):
+            if self.settings.clips_enabled and not self.media.schedule_clip(ev, on_done=self._on_clip):
                 self._on_clip(ev, None)  # очередь клипов полна — помечаем clip_error, иначе в UI клип «грузится» вечно
         for ev in closed:
             updated = self._journal_update(ev.id, ended_at=ev.ended_at)
             if updated is not None:
                 self.bus.publish(event_message("event_update", updated))
+            if self.sink is not None:
+                self._sink_publish(transport_event_msg("event_update", updated or ev))
+
+    # ---------- транспорт (режим edge) ----------
+
+    def _sink_publish(self, msg: Any) -> None:
+        try:
+            self.sink.publish(msg)
+        except Exception:  # noqa: BLE001 — сбой транспорта не останавливает анализ
+            self.sink_errors += 1
+            if self.sink_errors in (1, 10, 100) or self.sink_errors % 1000 == 0:
+                log.exception("sink publish failed (%d errors)", self.sink_errors)
+
+    def on_analysis(self, worker: CameraWorker, pkt: Any, result: Any) -> None:
+        """Каждый обработанный кадр: компактный frame_meta в транспорт (только edge)."""
+        if self.sink is None or not self.settings.publish_frame_meta:
+            return
+        native = worker.source.native_fps or 0.0
+        frame_idx = round(pkt.pos_s * native) if pkt.pos_s is not None and native else pkt.seq
+        h, w = pkt.frame.shape[:2]
+        self._sink_publish(
+            frame_meta_msg(worker.cfg.camera_id, frame_idx, pkt.ts, (w, h), result.people, result.objects, set(result.highlight))
+        )
+
+    def publish_metrics(self) -> None:
+        if self.sink is not None:
+            self._sink_publish(metrics_msg(self.metrics_snapshot()))
 
     def _render_snapshot(self, ctx: FrameContext, ev: Event):
         img = ctx.frame.copy()
@@ -334,6 +384,7 @@ class PipelineEngine:
         running = sum(1 for w in self.workers.values() if w.running)
         return {
             "status": "ok",
+            "mode": self.settings.mode,
             "backend": self.backend.name,
             "cameras_running": running,
             "cameras_total": len(self.cameras),

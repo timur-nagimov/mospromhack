@@ -152,7 +152,8 @@ class CameraWorker:
     def _on_frame(self, pkt: FramePacket) -> None:
         """Поток источника: каждый кадр — в fps_in и кольцевой буфер клипов."""
         self.metrics.on_source_frame()
-        self.engine.media.push_frame(self.cfg.camera_id, pkt.frame, pkt.ts)
+        if self.engine.settings.clips_enabled:
+            self.engine.media.push_frame(self.cfg.camera_id, pkt.frame, pkt.ts)
 
     def _run(self) -> None:
         period = 1.0 / max(self.cfg.sample_fps, 0.1)
@@ -239,6 +240,7 @@ class CameraWorker:
             active_zones={z.zone_id for z in self.cfg.zones if is_zone_active(z, ts)},
         )
         self.frame_idx += 1
+        self.engine.on_analysis(self, pkt, self.last)
         return ctx
 
     # ---- картинки для API ----
