@@ -16,7 +16,7 @@ from guard.pipeline.bus import EventBus
 from guard.pipeline.config import load_cameras, load_models, save_cameras
 from guard.pipeline.detector import BatchScheduler, Detector
 from guard.pipeline.settings import Settings
-from guard.rules.base import available_rules
+from guard.rules.base import available_rules, load_plugins
 from guard.rules.geometry import validate_active_hours
 from guard.events.media import MediaStore
 
@@ -47,6 +47,8 @@ class PipelineEngine:
         event_manager: Any | None = None,
     ) -> None:
         self.settings = settings
+        # base.available_rules()/get_rule() грузят плагины, только пока реестр пуст — грузим явно
+        load_plugins()
         self.backend = backend or get_backend(
             settings.backend,
             models_dir=settings.models_dir,
