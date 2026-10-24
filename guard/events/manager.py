@@ -6,6 +6,8 @@ the latest boxes within each camera, rule and zone.
 
 Closed events use cooldown for known tracked identities and reid_gap for
 spatial reassociation, both measured from the last violating frame.
+Posture-sensitive rules allow intersection or nearby centers for spatial
+reassociation, within reid_gap even when the event is still open.
 Reopening preserves the original timestamps and notification identity.
 For reopened events, details["active_duration_s"] records duration excluding
 gaps longer than close_after_s; details["reopened_count"] counts reopenings.
@@ -25,6 +27,7 @@ from guard.contracts import BBox, CameraConfig, Event, RuleConfig, Violation
 
 
 _EPS = 1e-9
+_POSTURE_REID_RULE_TYPES = frozenset({"fall_immobile"})
 _Key = tuple[str, str, int] | tuple[str, str, str | None, int]
 
 
@@ -70,7 +73,19 @@ def _iou(first: BBox, second: BBox) -> float:
     return intersection / union if union > 0 else 0.0
 
 
-def _spatial_quality(first: BBox, second: BBox) -> tuple[float, float] | None:
+def _posture_reid(rule: RuleConfig) -> bool:
+    return (
+        rule.type in _POSTURE_REID_RULE_TYPES
+        or rule.params.get("reid_posture") is True
+    )
+
+
+def _spatial_quality(
+    first: BBox,
+    second: BBox,
+    *,
+    posture: bool = False,
+) -> tuple[float, float] | None:
     overlap = _iou(first, second)
     distance = hypot(
         (first[0] + first[2] - second[0] - second[2]) / 2,
@@ -83,7 +98,10 @@ def _spatial_quality(first: BBox, second: BBox) -> tuple[float, float] | None:
         second[2] - second[0],
         second[3] - second[1],
     )
-    if overlap >= 0.3 or distance <= 0.5 * largest_dimension:
+    if posture:
+        if overlap > 0 or distance <= 0.75 * largest_dimension:
+            return overlap, distance
+    elif overlap >= 0.3 or distance <= 0.5 * largest_dimension:
         return overlap, distance
     return None
 
@@ -106,10 +124,14 @@ def _can_match(
     *,
     same_track: bool,
 ) -> bool:
+    # Posture reassociation has a time limit even for an open event.
+    # Known tracked identities retain the existing cooldown policy.
+    gap = ts - record.last_violation_ts
+    if not same_track and _posture_reid(rule) and gap > reid_gap_s + _EPS:
+        return False
     if record.closed_at is None:
         return True
     # ended_at equals last_violation_ts. Closure detection may happen much later.
-    gap = ts - record.last_violation_ts
     if same_track:
         return gap < rule.cooldown_s
     return gap <= reid_gap_s + _EPS
@@ -176,7 +198,7 @@ def _match_trackless(
         if len(key) == 4
     }
     # Use one target per event, even when it has several tracked aliases.
-    # A tracked event can temporarily lose its ID; that match requires IoU.
+    # A tracked event can temporarily lose its ID; apply its rule's geometry.
     for event_id, record in state.events.items():
         event = record.event
         if event_id in reserved or not _can_match(
@@ -191,17 +213,20 @@ def _match_trackless(
 
     matches: list[tuple[float, float, int, int]] = []
     for observation_index, violation in enumerate(violations):
+        posture = _posture_reid(rules[violation.rule_id])
         for target_index, (_, target, _) in enumerate(targets):
             if (
                 target.rule_id != violation.rule_id
                 or target.zone_id != violation.zone_id
             ):
                 continue
-            quality = _spatial_quality(target.bbox, violation.bbox)
+            quality = _spatial_quality(
+                target.bbox, violation.bbox, posture=posture
+            )
             if quality is None:
                 continue
             overlap, distance = quality
-            if target.track_id is not None and overlap < 0.3:
+            if target.track_id is not None and not posture and overlap < 0.3:
                 continue
             matches.append(
                 (-overlap, distance, observation_index, target_index)
@@ -248,7 +273,8 @@ def _overlapping_event(
     reid_gap_s: float,
 ) -> _EventState | None:
     best = None
-    best_iou = 0.3
+    best_quality = None
+    posture = _posture_reid(rule)
     for event_id, record in state.events.items():
         if event_id in reserved or record.event.rule_id != violation.rule_id:
             continue
@@ -271,10 +297,22 @@ def _overlapping_event(
             same_track=same_track,
         ):
             continue
-        overlap = _iou(record.event.bbox, violation.bbox)
-        if overlap >= best_iou:
+        if posture:
+            quality = _spatial_quality(
+                record.event.bbox, violation.bbox, posture=True
+            )
+            if quality is None:
+                continue
+            overlap, distance = quality
+            score = (overlap, -distance)
+        else:
+            overlap = _iou(record.event.bbox, violation.bbox)
+            if overlap < 0.3:
+                continue
+            score = (overlap, 0.0)
+        if best_quality is None or score >= best_quality:
             best = record
-            best_iou = overlap
+            best_quality = score
     return best
 
 
@@ -314,6 +352,8 @@ class EventManager:
         Empty frames count in confirmation ratios. Reopening an existing event
         preserves its ID and does not produce another confirmation notification.
         RuleConfig.params["reid_gap_s"] overrides the manager's default.
+        Posture reassociation is enabled for _POSTURE_REID_RULE_TYPES and
+        additional rules with RuleConfig.params["reid_posture"] set to True.
         """
         if not isfinite(ts):
             raise ValueError("ts must be finite")

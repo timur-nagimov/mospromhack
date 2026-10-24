@@ -1031,3 +1031,337 @@ def test_invalid_rule_reid_gap_does_not_advance_camera_time(value):
     created, closed = manager.process(camera, 0, [_violation()])
     assert len(created) == 1
     assert closed == []
+
+
+@pytest.mark.parametrize(
+    "first_track, next_track, standing, lying",
+    [
+        (
+            5,
+            6,
+            (555.0, 235.0, 833.0, 556.0),
+            (496.0, 490.0, 1159.0, 712.0),
+        ),
+        (
+            7,
+            9,
+            (461.0, 362.0, 725.0, 608.0),
+            (495.0, 466.0, 907.0, 691.0),
+        ),
+    ],
+)
+@pytest.mark.parametrize("close_after_s", [0.4, 3.0])
+def test_cx021_demo_posture_change_notifies_once(
+    first_track, next_track, standing, lying, close_after_s
+):
+    manager = EventManager()
+    camera = _camera(
+        "cam_s3",
+        min_duration_s=0.4,
+        min_ratio=1,
+        close_after_s=close_after_s,
+    )
+    camera.rules[0].type = "fall_immobile"
+    first, _ = _feed(
+        manager,
+        camera,
+        range(3),
+        lambda _: [
+            _violation(
+                track_id=first_track,
+                bbox=standing,
+                kind="fall_immobile",
+                details={"lying_s": 2.0},
+            )
+        ],
+    )
+    assert len(first) == 1
+
+    # New ID appears one second after the last violating frame.
+    second, closed = _feed(
+        manager,
+        camera,
+        range(7, 15),
+        lambda _: [
+            _violation(
+                track_id=next_track,
+                bbox=lying,
+                kind="fall_immobile",
+                details={"lying_s": None},
+            )
+        ],
+    )
+    assert second == []
+    opened = manager.open_events()
+    assert len(opened) == 1
+    assert opened[0].id == first[0].id
+    assert opened[0].track_id == first_track
+    assert opened[0].started_at == first[0].started_at
+    assert opened[0].confirmed_at == first[0].confirmed_at
+    assert opened[0].bbox == lying
+    assert first[0].bbox == standing
+    if close_after_s == 0.4:
+        assert len(closed) == 1
+        assert closed[0].ended_at == pytest.approx(0.4)
+        assert opened[0].details["reopened_count"] == 1
+    else:
+        assert closed == []
+
+
+@pytest.mark.parametrize("next_track", [2, None])
+@pytest.mark.parametrize(
+    "first_bbox, next_bbox, matches",
+    [
+        # Zero IoU, center distance exactly 0.75 * 100.
+        (
+            (0.0, 0.0, 10.0, 100.0),
+            (30.0, 40.0, 130.0, 60.0),
+            True,
+        ),
+        # Same geometry just outside the inclusive distance threshold.
+        (
+            (0.0, 0.0, 10.0, 100.0),
+            (30.001, 40.0, 130.001, 60.0),
+            False,
+        ),
+        # Positive intersection, but center distance exceeds 0.75 * 100.
+        (
+            (0.0, 0.0, 100.0, 10.0),
+            (99.0, 9.0, 109.0, 109.0),
+            True,
+        ),
+    ],
+)
+def test_cx021_posture_geometry_accepts_intersection_or_nearby_centers(
+    next_track, first_bbox, next_bbox, matches
+):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    camera.rules[0].type = "fall_immobile"
+    first, _ = manager.process(
+        camera, 0, [_violation(bbox=first_bbox, kind="fall_immobile")]
+    )
+    second, closed = manager.process(
+        camera,
+        1,
+        [_violation(
+            track_id=next_track,
+            bbox=next_bbox,
+            kind="fall_immobile",
+        )],
+    )
+    assert closed == []
+    assert len(second) == (0 if matches else 1)
+    opened = manager.open_events()
+    assert len(opened) == (1 if matches else 2)
+    if matches:
+        assert opened[0].id == first[0].id
+        assert opened[0].bbox == next_bbox
+
+
+@pytest.mark.parametrize("next_track", [2, None])
+@pytest.mark.parametrize("close_after_s", [0.4, 10.0])
+@pytest.mark.parametrize(
+    "params, gap, matches",
+    [
+        ({}, 5.0, True),
+        ({}, 5.001, False),
+        ({"reid_gap_s": 2.0}, 2.0, True),
+        ({"reid_gap_s": 2.0}, 2.001, False),
+    ],
+)
+def test_cx021_posture_reid_gap_limits_open_and_closed_events(
+    next_track, close_after_s, params, gap, matches
+):
+    manager = EventManager()
+    camera = _camera(
+        min_duration_s=0,
+        close_after_s=close_after_s,
+        cooldown_s=30,
+        params=params,
+    )
+    camera.rules[0].type = "fall_immobile"
+    first, _ = manager.process(
+        camera,
+        0,
+        [_violation(
+            bbox=(555.0, 235.0, 833.0, 556.0),
+            kind="fall_immobile",
+        )],
+    )
+    second, closed = manager.process(
+        camera,
+        gap,
+        [_violation(
+            track_id=next_track,
+            bbox=(496.0, 490.0, 1159.0, 712.0),
+            kind="fall_immobile",
+        )],
+    )
+    assert len(second) == (0 if matches else 1)
+    assert len(closed) == (1 if close_after_s == 0.4 else 0)
+    if matches:
+        opened = manager.open_events()
+        assert len(opened) == 1
+        assert opened[0].id == first[0].id
+        assert opened[0].ended_at is None
+    else:
+        assert second[0].id != first[0].id
+
+
+def test_cx021_posture_gap_is_measured_from_latest_violation():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=10)
+    camera.rules[0].type = "fall_immobile"
+    standing = (555.0, 235.0, 833.0, 556.0)
+    first, _ = manager.process(
+        camera, 0, [_violation(bbox=standing, kind="fall_immobile")]
+    )
+    assert manager.process(
+        camera, 4, [_violation(bbox=standing, kind="fall_immobile")]
+    ) == ([], [])
+    assert manager.process(
+        camera,
+        9,
+        [_violation(
+            track_id=2,
+            bbox=(496.0, 490.0, 1159.0, 712.0),
+            kind="fall_immobile",
+        )],
+    ) == ([], [])
+    assert [event.id for event in manager.open_events()] == [first[0].id]
+
+
+@pytest.mark.parametrize("simultaneous", [False, True])
+def test_cx021_distant_falling_people_have_two_events(simultaneous):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    camera.rules[0].type = "fall_immobile"
+    left = _violation(
+        track_id=1,
+        bbox=(50.0, 400.0, 250.0, 500.0),
+        kind="fall_immobile",
+    )
+    right = _violation(
+        track_id=2,
+        bbox=(1500.0, 400.0, 1700.0, 500.0),
+        kind="fall_immobile",
+    )
+    first, _ = manager.process(
+        camera, 0, [left, right] if simultaneous else [left]
+    )
+    second, closed = manager.process(camera, 1, [left, right] if simultaneous else [right])
+    assert closed == []
+    created = first + second
+    assert len(created) == 2
+    assert len({event.id for event in created}) == 2
+    assert {event.track_id for event in created} == {1, 2}
+    assert len(manager.open_events()) == 2
+
+
+@pytest.mark.parametrize("next_track", [2, None])
+def test_cx021_zone_intrusion_low_iou_still_creates_two_events(next_track):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    first, _ = manager.process(
+        camera, 0, [_violation(bbox=(0.0, 0.0, 110.0, 100.0))]
+    )
+    # Intersection area 2000, union area 20000: IoU is 0.1.
+    second, closed = manager.process(
+        camera,
+        1,
+        [_violation(
+            track_id=next_track,
+            bbox=(90.0, 0.0, 200.0, 100.0),
+        )],
+    )
+    assert closed == []
+    assert len(first) == len(second) == 1
+    assert first[0].id != second[0].id
+    assert len(manager.open_events()) == 2
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_cx021_other_rule_can_opt_into_posture_reid(enabled):
+    manager = EventManager()
+    camera = _camera(
+        min_duration_s=0,
+        params={"reid_posture": enabled},
+    )
+    camera.rules[0].type = "ppe_missing"
+    first, _ = manager.process(
+        camera,
+        0,
+        [_violation(
+            bbox=(555.0, 235.0, 833.0, 556.0),
+            kind="ppe_missing",
+        )],
+    )
+    second, closed = manager.process(
+        camera,
+        1,
+        [_violation(
+            track_id=2,
+            bbox=(496.0, 490.0, 1159.0, 712.0),
+            kind="ppe_missing",
+        )],
+    )
+    assert closed == []
+    assert len(second) == (0 if enabled else 1)
+    if enabled:
+        assert [event.id for event in manager.open_events()] == [first[0].id]
+    else:
+        assert second[0].id != first[0].id
+
+
+@pytest.mark.parametrize("next_track", [2, None])
+def test_cx021_posture_match_cannot_steal_present_tracks_event(next_track):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    camera.rules[0].type = "fall_immobile"
+    known = _violation(
+        bbox=(555.0, 235.0, 833.0, 556.0),
+        kind="fall_immobile",
+    )
+    first, _ = manager.process(camera, 0, [known])
+    second, closed = manager.process(
+        camera,
+        1,
+        [
+            _violation(
+                track_id=next_track,
+                bbox=(496.0, 490.0, 1159.0, 712.0),
+                kind="fall_immobile",
+            ),
+            known,
+        ],
+    )
+    assert closed == []
+    assert len(second) == 1
+    assert second[0].id != first[0].id
+    assert len(manager.open_events()) == 2
+
+
+def test_cx021_posture_reid_respects_camera_and_rule():
+    manager = EventManager()
+    camera = _camera("first", min_duration_s=0)
+    camera.rules[0].type = "fall_immobile"
+    camera.rules.append(
+        RuleConfig(rule_id="r2", type="fall_immobile", min_duration_s=0)
+    )
+    other_camera = _camera("second", min_duration_s=0)
+    other_camera.rules[0].type = "fall_immobile"
+    first, _ = manager.process(
+        camera, 0, [_violation(kind="fall_immobile")]
+    )
+    other_rule, _ = manager.process(
+        camera,
+        1,
+        [_violation(track_id=2, rule_id="r2", kind="fall_immobile")],
+    )
+    other_cam, _ = manager.process(
+        other_camera, 1, [_violation(track_id=2, kind="fall_immobile")]
+    )
+    assert len(first) == len(other_rule) == len(other_cam) == 1
+    assert len({event.id for event in first + other_rule + other_cam}) == 3
+    assert len(manager.open_events()) == 3
