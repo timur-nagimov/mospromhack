@@ -22,7 +22,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 from guard.contracts import CameraConfig, Event, EventStatus
 from guard.pipeline.engine import CameraError, CameraExists, PipelineEngine
 from guard.pipeline.settings import Settings
-from guard.rules.base import available_rules
+from guard.rules.base import available_rules, load_plugins
 from guard.rules.geometry import LOCAL_TZ
 
 log = logging.getLogger(__name__)
@@ -194,6 +194,7 @@ async def camera_stream(
 
 @router.get("/api/rules/types")
 def rule_types() -> list[dict[str, Any]]:
+    load_plugins()  # идемпотентно: реестр мог быть заполнен частично прямым импортом плагина
     return available_rules()
 
 
