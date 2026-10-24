@@ -2,6 +2,8 @@
 
 Решение D-005 (`docs/ARCHITECTURE.md` §3): конвейер распознавания работает в Jupyter-контейнере стенда рядом с LinQ TPU, а ноутбук (gateway) принимает события и показывает UI. Код edge — `guard/edge.py`, конфиги — `configs/cameras.stand.yaml` и `configs/models.stand.yaml`, замеры — `guard/edge_probe.py`, сырые цифры — `edge-*.json`.
 
+Все замеры ниже сняты 24.10 на прежнем транспорте edge → шлюз: exchange `zazerkalye`, очередь `zazerkalye.gateway` (§1, §4). В main edge и шлюз переведены на протокол `guard.edge.v1` с SQLite outbox (`docs/EDGE_PROTOCOL.md`, пакеты `guard/edge/`, `guard/gateway/`, `guard/transport/`); на нём эти замеры не повторялись.
+
 **Итог замера 24.10 10:02 МСК (300 с, 4 камеры, настоящий TPU):**
 - каждая камера анализируется с частотой **4.8–4.9 к/с** (цель 5);
 - CPU контейнера — **1.18 из 1.5 ядра**;
@@ -277,11 +279,11 @@ python -m guard.edge_probe --duration 300 --out edge-tpu-$(date +%Y%m%d-%H%M).js
 ### 7.2. Прочее
 
 - **Spinning потоков onnxruntime в хвостах linq-tpu.** Хвосты (DFL-декод, ~1 мс) создаются с 2 потоками и активным ожиданием. На стенде это 91 мс CPU на вызов вместо 21.6 мс (замер 09:44). Три хвоста съедали квоту контейнера: до исправления было 0.9–2.8 к/с на камеру при CPU 100 % (уже на субпотоке 360p), после — 4.8–5.0 к/с при 65–72 %.
-  - Edge отключает spinning для всех сессий ORT процесса (`guard/edge.py::disable_ort_spinning`, отключается `GUARD_ORT_SPINNING=1`).
+  - Edge отключает spinning для всех сессий ORT процесса (`guard/edge/__init__.py::disable_ort_spinning`, отключается `GUARD_ORT_SPINNING=1`).
   - Правильное место для исправления — `guard/inference/linq_tpu.py::load`: `intra_op_num_threads = 1` и `session.intra_op.allow_spinning = 0`. Этот файл менялся в CX-018; правка в рамках данного замера не выполнялась.
 - **Часы стенда отстают от NTP на 3.66 с и уплывают** (3640 мс в 09:50, 3756 мс в 11:12 — ~1.4 мс/мин). Метки времени edge (`started_at`, `confirmed_at`, `ts`) идут по часам стенда. Сравнивать их с часами ноутбука напрямую нельзя: «возраст» события выйдет на 3.3 с больше реального. Gateway оценивает сдвиг по `frame_meta` (`ts_offset`). Edge публикует NTP-сдвиг раз в минуту (`metrics.edge.clock`).
 - **Обрыв VPN.** 24.10 ~10:21–11:00 туннель VPN-контейнера переподключался (tun0 сменил адрес). `tools/stand.py restart` висел ~40 мин, подписчик падал с `AMQPConnectorStackTimeout`. Edge на стенде при этом работал. Перед замерами и демо — `infra/vpn/vpnctl.sh status`.
-- **CRUD камер в gateway не доходит до edge.** UI шлюза меняет только локальный `configs/cameras.yaml` ноутбука. Edge читает `configs/cameras.stand.yaml` на стенде при старте; канала конфигурации gateway → edge нет. Чтобы изменения заработали, их нужно перенести в `configs/cameras.stand.yaml`, затем выполнить `tools/stand.py sync` и `restart`. Зоны и правила обоих файлов сейчас совпадают (проверяет `tests/test_edge_stand.py`). Правка зоны в UI на демо будет видна в оверлее шлюза, но не в событиях edge.
+- **CRUD камер в gateway не доходит до edge.** Прежний шлюз (транспорт `zazerkalye`) менял только локальный `configs/cameras.yaml` ноутбука. Шлюз в main правку камер отклоняет (HTTP 409, «Configure cameras on the edge»): каталог камер приходит с edge. Edge читает `configs/cameras.stand.yaml` на стенде при старте; канала конфигурации gateway → edge нет. Чтобы изменения заработали, их нужно перенести в `configs/cameras.stand.yaml`, затем выполнить `tools/stand.py sync` и `restart`. Зоны и правила обоих файлов сейчас совпадают (проверяет `tests/test_edge_stand.py`). Правка зоны в UI на демо будет видна в оверлее шлюза, но не в событиях edge.
 - **События без шлюза копятся в очереди.** Защита канала держит телеметрию, но события идут всегда, и gateway получит их при подключении с опозданием. Для журнала это правильно: событие не теряется. В замере такие события исключены.
 - **TPU-воркер общий для команд.** Ночью `inference_time` для det 480 был 8 мс, в 09:54 — 34 мс (p50), в 10:02 — снова 8 мс. От нагрузки других команд зависят `transfer` и `inference_time`.
 - **Откаты на CPU из-за затыков воркера (CX-018).** С 12:06 воркер TPU время от времени не отвечал дольше 2 с: таймаут ответа по умолчанию в `linq_tpu.py` (`LINQ_TIMEOUT_S` = 2). За 53 минуты — 13 откатов на CPU, всего 203 с (6.3 % времени, `inference.switches` = 26, `fallback_seconds` = 203).
@@ -292,14 +294,14 @@ python -m guard.edge_probe --duration 300 --out edge-tpu-$(date +%Y%m%d-%H%M).js
 - **`tools/stand.py` (CX-015), исправлено:**
   - временные файлы загрузки были скрытыми (`.stand-upload-*`), а contents API Jupyter не создаёт скрытые файлы (`allow_hidden = False`, HTTP 400). Переименованы в `stand-upload-*`;
   - `state` теперь создаёт `~/work/mosprom`: на чистом сервере первый `sync` падал.
-- **`configs/models.yaml`:** `tpu_program` для ppe и fire закомментированы «до копирования в /auto/cache». Программы уже там (§2), их можно раскомментировать. Реестр стенда (`configs/models.stand.yaml`) использует ppe_640 и fire_640s1.
+- **`configs/models.yaml`:** `tpu_program` для ppe (`ppe_640`) и fire (`fire_640s1`) включены в 10:06 (`1018c62`), сверка этих программ с CPU — `docs/LINQ_NOTES.md` §17. Реестр стенда (`configs/models.stand.yaml`) использует те же ppe_640 и fire_640s1.
 - **FileSource декодирует все кадры** с родной частотой (25 к/с), даже если анализируется 5 к/с. Поэтому на edge используется субпоток 640×360 (§2). Ещё дешевле — `grab()` без `retrieve()` для кадров, которые не пойдут в анализ (изменение `guard/sources/video.py`).
 - **Параметры правил** на стенде те же, что подобраны для демо (`configs/cameras.yaml`, 24.10 11:20). Исключение — `min_conf` у `zone_intrusion`: 0.45 вместо 0.5, потому что уверенность int8 на TPU ниже на ~0.05 (LINQ_NOTES §13). Подбор сделан на CPU и det 640; на TPU (det 480, порог 0.25) его стоит перепроверить офлайн-оценкой.
 
 ### 7.3. Что сделать дальше
 
-1. Проверить шлюз с `prefetch` 200 (§7.1) на демо-сценарии: UI, оверлеи по `frame_meta`, клипы.
-2. Исправить spinning хвостов в `linq_tpu.py` (§7.2): тогда подмена в `guard/edge.py` станет не нужна.
-3. Раскомментировать ppe и fire в `configs/models.yaml`.
+1. **Сделано.** Шлюз с `prefetch` 200 (§7.1) работает в демо: с 12:57 демо поднимается `scripts/run_tpu.sh`, в UI приходят события с кадром, рамкой и клипом ±5 с (`docs/CHECKPOINT_3.md` §1–2), `frame_meta` доходят без ошибок (живая проверка 11:50, §7.1).
+2. Исправить spinning хвостов в `linq_tpu.py` (§7.2): тогда подмена в `guard/edge/__init__.py` станет не нужна.
+3. **Сделано** (`1018c62`): `tpu_program` у ppe и fire в `configs/models.yaml` включены.
 4. Канал конфигурации gateway → edge (CRUD камер): например, `config`-сообщения в отдельной очереди edge с горячим перезапуском камеры — `PipelineEngine.update_camera` уже умеет.
 5. Если нужно больше камер: декод только анализируемых кадров (`grab()`) и общий батч det для всех камер. Сейчас батчер det собирает в среднем 1–3 кадра (`max_batch_seen` 3), а TPU занят всего 8 мс из ~60 мс вызова.
