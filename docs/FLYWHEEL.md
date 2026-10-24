@@ -236,3 +236,28 @@ UI обновляет по нему счётчики. Если UI его не о
    Кнопка «Дообучить» неактивна без `GUARD_FLYWHEEL_ALLOW_TRAIN` и показывает подсказку.
 
 Для разработки без бэкенда нужны моки в `frontend/src/api/mock` по образцу существующих.
+
+## Как устроено: звено 6 — дообучение, гейт, выкатка (ds-forklift, 24.10)
+
+Первый оборот сделан на открытых данных: погрузчик для S4 (`docs/DATASETS.md`, `docs/MODELS.md`). Те же CLI принимают
+версию датасета маховика (`--dataset fw-…`), как только появится `ml/flywheel/export.py`.
+
+| Шаг | Команда | Что пишет |
+|---|---|---|
+| Дообучение | `HEAVY_LANE=train tools/heavy.sh .venv/bin/python ml/flywheel/train.py --data <data.yaml> \| --dataset <fw-версия> [--mix <data.yaml>] --base <.pt или версия> --model-id <id> --version <версия>` | `models/weights/<версия>.pt`, карточка `ml/model_cards/<версия>.json` (`candidate`), прогон в `data/flywheel/runs/<версия>/` |
+| Гейт | `ml/flywheel/gate.py --candidate <версия> --data <data.yaml> --events-baseline <json> --events-candidate <json> --write` | `holdout`, `baseline`, `gate` в карточке; при провале — `status: rejected` |
+| Выкатка | `ml/flywheel/deploy.py --version <версия> [--dry-run]` — в работе, следующее слияние ds-forklift | ONNX, программа TPU, сверка, записи в `configs/models*.yaml` |
+
+`train.py`:
+- лимиты памяти проверяются до старта: batch ≤ 16 для n и ≤ 8 для s, workers ≤ 4, `cache=False`, `--time-min` ≤ 40;
+- `--mix` добавляет train и val других наборов с теми же классами, test остаётся от основного;
+- `--dry-run` проверяет входы и печатает параметры.
+
+`gate.py`:
+- mAP50 считает на CPU по ONNX тем же декодером, что сверка ONNX (`ml/yolo_decode.py`). Поэтому меряется именно
+  та модель, которая уйдёт в конвейер;
+- `--subset имя=список.txt` — mAP50 на части теста, `--reference имя=onnx:классы` — справочная модель
+  в карточку, на решение не влияет;
+- события — готовые отчёты `run_offline` (`--events-*`) или прогон здесь же (`--scenarios-*`);
+- код выхода: 0 — promote, 1 — отказ, 2 — ошибка входа;
+- кроме правила контракта проверяет, что дублей не больше.

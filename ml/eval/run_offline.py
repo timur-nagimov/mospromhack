@@ -52,7 +52,7 @@ from guard.pipeline import settings as pipeline_settings
 from guard.pipeline.config import load_models
 from guard.pipeline.detector import Detector
 from guard.pipeline.settings import Settings
-from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES
+from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES, object_detections
 from guard.rules.base import RulePlugin, build_rules, load_plugins
 from guard.rules.geometry import validate_active_hours
 from ml.eval import events_eval
@@ -419,14 +419,8 @@ def run_video(
             else:
                 person_detections = list(detections.get("pose", []))
             people = person_tracker.update(person_detections, ts)
-            objects = object_tracker.update(
-                [
-                    det
-                    for det in detections.get("det", [])
-                    if det.cls in OBJECT_CLASSES
-                ],
-                ts,
-            )
+            # Техника из всех моделей кадра, как в CameraWorker.process.
+            objects = object_tracker.update(object_detections(detections), ts)
             compat.assign_attributes(people, detections, ts)
             rules_started = time.perf_counter()
             timings["tracking"] = (rules_started - tracking_started) * 1000.0

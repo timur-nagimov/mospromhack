@@ -1,0 +1,240 @@
+# Оценка модели погрузчика (ds-forklift, ml/model_cards/forklift-v1.json): те же 13 роликов, разметка и
+# параметры правил, что в scenarios.yaml. Отличие одно — правило vehicle_proximity подключает модель forklift
+# (params.models). Параметры правил не менялись. Запуск:
+#   tools/heavy.sh .venv/bin/python -m ml.eval.run_offline --scenarios ml/eval/scenarios_forklift.yaml \
+#       --out .orchestra/metrics/eval-onnx-cpu-forklift-v1-<время>.json
+#
+# Пути разрешаются относительно root; root — относительно этого YAML.
+# camera.source создаётся загрузчиком: file, loop=false, realtime=false.
+# camera.rules — полный список включённых правил данного ролика.
+#
+# Зоны и наборы правил перенесены из data/labels/*.json.
+#
+# Параметры подобраны A9 (24.10, docs/QUALITY.md) и заданы ОДИН РАЗ на тип правила
+# (якоря rule_defaults ниже): одинаковы для всех камер, без подгонки под отдельный ролик.
+# Исключения на камеру — только геометрия: полигоны зон и min_box_h_px (разное разрешение).
+# Штатные значения, которые не менялись: min_ratio 0.7, close_after_s 3, cooldown_s 30.
+#
+# Что изменено относительно штатных значений (база: eval-onnx-cpu-base-20261024-0913.json):
+# - ppe_missing: required [helmet] — нарушение только по жилету в разметке uncertain,
+#   на чистых роликах люди в спецовке без жилета (все 3 FP базы — vest);
+#   min_duration_s 1.5 — атрибут каски уже сглажен окном 2 с в guard/tracking/attributes.py.
+# - zone_intrusion: min_conf 0.5 — устойчивое плато 0.45–0.55 (s1_02: частично
+#   перекрытая фигура на границе зоны давала дубль и пропуск).
+# - fall_immobile: min_lying_s 1, immobile_window_s 1.5, min_duration_s 1, min_ratio 0.5 —
+#   лежание после падения на роликах 4–7 с, при штатных 2+3+2 с событие не успевает подтвердиться.
+#   close_after_s/cooldown_s штатные: на коде с CX-017/019/021/021B короткий cooldown (3 с)
+#   теряет одно падение s3_02; до CX-017 он помогал (5/7 против 2/7) — см. docs/QUALITY.md.
+# - vehicle_proximity: min_vehicle_speed_bh 0.05 — фура в s4_01 ползёт со скоростью
+#   0.01–0.11 высоты рамки в секунду; стресс-тест на 10 роликах без техники — 0 тревог.
+#
+# Полный прогон требует моделей всех перечисленных плагинов (det, pose, ppe, fire).
+# Используйте --models-config/--models-dir для другого реестра.
+#
+# Чистые ролики размечены прежде всего по отсутствию нарушений касочного режима.
+# Предсказания дополнительных типов не исключаются из оценки.
+
+version: 1
+root: ../..
+videos_dir: data/videos
+labels_dir: data/labels
+models_config: configs/models.yaml
+models_dir: models
+sample_fps: 5.0
+
+# Постоянная эпоха обеспечивает воспроизводимость и независимость от
+# скорости машины. У предложенных зон нет ограничений active_hours.
+t0: 1700000000.0
+
+# Параметры правил по умолчанию для типа камеры (загрузчик этот ключ не читает,
+# он нужен только как источник якорей).
+rule_defaults:
+  ppe: &ppe
+    rule_id: ppe
+    type: ppe_missing
+    enabled: true
+    min_duration_s: 1.5
+    params: {required: [helmet]}
+  intrusion: &intrusion
+    rule_id: intrusion
+    type: zone_intrusion
+    enabled: true
+    params: {min_conf: 0.5}
+  fall: &fall
+    rule_id: fall
+    type: fall_immobile
+    enabled: true
+    min_duration_s: 1.0
+    min_ratio: 0.5
+    params: {min_lying_s: 1.0, immobile_window_s: 1.5}
+  vehicle: &vehicle
+    rule_id: vehicle
+    type: vehicle_proximity
+    enabled: true
+    # Единственное отличие от scenarios.yaml: правило берёт технику ещё и из модели forklift.
+    params: {min_vehicle_speed_bh: 0.05, models: [det, forklift]}
+  phone: &phone
+    rule_id: phone
+    type: phone_usage
+    enabled: true
+  smoking: &smoking
+    rule_id: smoking
+    type: smoking_fire
+    enabled: true
+
+scenarios:
+  - id: clean_01
+    video: clean_01.mp4
+    camera:
+      camera_id: offline_clean_01
+      name: Подстанция — чистый ролик
+      site: Офлайн-разметка
+      zones: []
+      rules: [*ppe, *intrusion, *fall, *vehicle]
+
+  - id: clean_02
+    video: clean_02.mp4
+    camera:
+      camera_id: offline_clean_02
+      name: Рабочие на стройплощадке — чистый ролик
+      site: Офлайн-разметка
+      zones: []
+      rules: [*ppe, *fall, *vehicle]
+
+  - id: s1_01
+    video: s1_01.mp4
+    camera:
+      camera_id: offline_s1_01
+      name: Цех — за ограничительной лентой
+      site: Офлайн-разметка
+      zones:
+        - zone_id: behind_tape
+          name: За ограничительной лентой (левый передний сектор)
+          kind: danger
+          # data/labels/s1_01.json, опорный кадр 11.1 с.
+          polygon:
+            - [0.0, 0.3]
+            - [0.07, 0.31]
+            - [0.4, 0.7]
+            - [0.22, 1.0]
+            - [0.0, 1.0]
+      rules:
+        - <<: *intrusion
+          zones: [behind_tape]
+          params: {min_conf: 0.5, min_box_h_px: 40}
+        - *ppe
+
+  - id: s1_02
+    video: s1_02.mp4
+    camera:
+      camera_id: offline_s1_02
+      name: Магазин — дальний конец прохода
+      site: Офлайн-разметка
+      zones:
+        - zone_id: aisle_far_right
+          name: Дальний конец правого прохода
+          kind: danger
+          # data/labels/s1_02.json, опорный кадр 3 с.
+          polygon:
+            - [0.47, 0.22]
+            - [0.6, 0.22]
+            - [0.75, 0.56]
+            - [0.5, 0.56]
+      rules:
+        # 720×404: люди мельче, порог высоты рамки ниже.
+        - <<: *intrusion
+          zones: [aisle_far_right]
+          params: {min_conf: 0.5, min_box_h_px: 30}
+
+  - id: s2_01
+    video: s2_01.mp4
+    camera:
+      camera_id: offline_s2_01
+      name: Коридор — каски и жилеты
+      site: Офлайн-разметка
+      zones: []
+      rules: [*ppe]
+
+  - id: s2_02
+    video: s2_02.mp4
+    camera:
+      camera_id: offline_s2_02
+      name: Склад и стройка — отсутствие касок
+      site: Офлайн-разметка
+      zones: []
+      rules: [*ppe]
+
+  - id: s3_01
+    video: s3_01.mp4
+    camera:
+      camera_id: offline_s3_01
+      name: Падение на снегу
+      site: Офлайн-разметка
+      zones: []
+      rules: [*fall]
+
+  - id: s3_02
+    video: s3_02.mp4
+    camera:
+      camera_id: offline_s3_02
+      name: Постановочные падения GMDCSA24
+      site: Офлайн-разметка
+      zones: []
+      rules: [*fall]
+
+  - id: s4_01
+    video: s4_01.mp4
+    camera:
+      camera_id: offline_s4_01
+      name: Рабочий между фурами
+      site: Офлайн-разметка
+      zones: []
+      rules: [*vehicle, *ppe]
+
+  - id: s4_02
+    video: s4_02.mp4
+    camera:
+      camera_id: offline_s4_02
+      name: Грузовик и погрузчик рядом с рабочим
+      site: Офлайн-разметка
+      zones: []
+      rules: [*vehicle]
+
+  - id: s4_03
+    video: s4_03.mp4
+    camera:
+      camera_id: offline_s4_03
+      name: Экскаватор и самосвал в котловане
+      site: Офлайн-разметка
+      zones:
+        - zone_id: excavator_pit
+          name: Котлован — радиус работы экскаватора и погрузка
+          kind: vehicle_path
+          # data/labels/s4_03.json, опорный кадр 5 с.
+          polygon:
+            - [0.14, 0.0]
+            - [0.52, 0.0]
+            - [0.56, 1.0]
+            - [0.1, 1.0]
+      rules:
+        - *vehicle
+        - <<: *intrusion
+          zones: [excavator_pit]
+
+  - id: s6_01
+    video: s6_01.mp4
+    camera:
+      camera_id: offline_s6_01
+      name: Телефон у уха
+      site: Офлайн-разметка
+      zones: []
+      rules: [*phone, *ppe]
+
+  - id: s7_01
+    video: s7_01.mp4
+    camera:
+      camera_id: offline_s7_01
+      name: Курение в заброшенном здании
+      site: Офлайн-разметка
+      zones: []
+      rules: [*smoking]

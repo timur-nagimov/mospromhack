@@ -68,12 +68,24 @@ class VehicleProximityRule(RulePlugin):
                 "minimum": 0,
                 "default": 0.5,
             },
+            "models": {
+                "type": "array",
+                "title": "Модели техники (model_id из configs/models.yaml)",
+                "description": "Например, [det, forklift]: погрузчика нет в классах COCO, его даёт модель forklift",
+                "items": {"type": "string", "minLength": 1},
+                "uniqueItems": True,
+                "default": ["det"],
+            },
         },
         "additionalProperties": False,
     }
 
     def __init__(self, cfg: RuleConfig, camera: CameraConfig) -> None:
         super().__init__(cfg, camera)
+        # Модели — на экземпляре: CameraWorker и run_offline берут rule.required_models
+        # и загружают их только на этой камере. det нужен всегда — из него люди.
+        models = cfg.params.get("models") or ["det"]
+        self.required_models = frozenset({"det", *models})
         self.vehicle_classes = frozenset(cfg.params.get(
             "vehicle_classes", ["car", "truck", "bus", "forklift", "motorcycle"]
         ))
