@@ -15,6 +15,7 @@ models:
   - model_id: det                  # основной детектор людей и техники
     task: detect
     onnx_path: yolov8n-640.onnx
+    tpu_program: tpu/yolov8n_640/yolov8n_640_b1_o5_h1m.tpu     # A1, опубликована в /auto/cache
     input_size: [640, 640]
     input_dtype: float32
     output_format: yolov8
@@ -39,6 +40,7 @@ models:
   - model_id: det_n480
     task: detect
     onnx_path: yolov8n-480.onnx
+    tpu_program: tpu/yolov8n_480/yolov8n_480_b1_o5_h1m.tpu     # A1, опубликована в /auto/cache
     input_size: [480, 480]
     output_format: yolov8
     conf_threshold: 0.35
@@ -57,6 +59,7 @@ models:
   - model_id: pose
     task: pose
     onnx_path: yolov8n-pose-640.onnx
+    tpu_program: tpu/yolov8n_pose_640/yolov8n_pose_640_b1_o5_h1m.tpu
     input_size: [640, 640]
     output_format: yolov8-pose
     conf_threshold: 0.3            # как у A3
@@ -65,6 +68,7 @@ models:
   - model_id: pose_n480
     task: pose
     onnx_path: yolov8n-pose-480.onnx
+    tpu_program: tpu/yolov8n_pose_480/yolov8n_pose_480_b1_o5_h1m.tpu
     input_size: [480, 480]
     output_format: yolov8-pose
     conf_threshold: 0.35
@@ -75,6 +79,7 @@ models:
   - model_id: ppe
     task: detect
     onnx_path: ppe-640.onnx
+    # tpu_program: tpu/ppe_640/ppe_640_b1_o5_h1m.tpu   # собрана (O5); раскомментировать после копирования в /auto/cache/hackathon10864/
     input_size: [640, 640]
     output_format: yolov8
     conf_threshold: 0.4            # см. docs/MODELS.md: no_helmet/no_vest требуют подтверждения по треку
@@ -86,6 +91,7 @@ models:
   - model_id: fire
     task: detect
     onnx_path: fire-640.onnx
+    # tpu_program: tpu/fire_640/fire_640_b1_o5_h1m.tpu # собрана (O5); раскомментировать после копирования в /auto/cache/hackathon10864/
     input_size: [640, 640]
     output_format: yolov8
     conf_threshold: 0.4
