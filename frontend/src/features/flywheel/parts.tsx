@@ -12,6 +12,7 @@ import {
   type SampleSource,
 } from '../../domain/flywheel';
 import { createStore, useStore } from '../../state/createStore';
+import { useLock } from '../auth/lock';
 
 export function SourceTag({ source }: { source: string }) {
   return (
@@ -85,10 +86,11 @@ export function useTrainForbidden(allowTrain: boolean | undefined): string | nul
 
 /** Роль без flywheel.train: сборку датасетов, обучение и выкатку запускает администратор */
 export function TrainLockNote() {
+  const hint = useLock()('flywheel.train');
   return (
     <p className="fw-note fw-note--lock">
-      <Lock size={14} aria-hidden="true" /> Сборку датасетов, дообучение и выкатку запускает администратор — нужно право{' '}
-      <span className="mono">flywheel.train</span>
+      <Lock size={14} aria-hidden="true" /> {hint ?? 'Нужна роль: Администратор'} — сборка датасетов, дообучение и выкатка (право{' '}
+      <span className="mono">flywheel.train</span>)
     </p>
   );
 }

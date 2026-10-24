@@ -795,3 +795,12 @@ fieldset.rules-list {
   margin: 0 0 12px;
   font-size: 12.5px;
 }
+
+/* вкладка, закрытая для роли: видна, но неактивна (подсказка «Нужна роль: …») */
+.tabs button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tabs button:disabled:hover {
+  color: var(--text-2);
+}

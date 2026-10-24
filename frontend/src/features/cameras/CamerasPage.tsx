@@ -1,4 +1,4 @@
-import { Cctv, Eye, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
+import { Cctv, Eye, Lock, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useCameras, useDeleteCamera, useRuleTypes, useSaveCamera } from '../../api/queries';
@@ -14,7 +14,7 @@ import { confirmLeave, setUnsaved } from '../../state/unsaved';
 import { RulesEditor, validateRules, zoneRemovalError } from './RulesEditor';
 import { CAMERA_ID_RE, SourceForm } from './SourceForm';
 import { ZoneEditor } from './ZoneEditor';
-import { Can } from '../auth/Can';
+import { useLock } from '../auth/lock';
 import { NoAccess } from '../auth/NoAccess';
 import './cameras.css';
 
@@ -62,6 +62,8 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
   const canZones = can('zones.edit');
   const canManage = can('cameras.manage');
   const canSave = isNew ? canManage : canZones || canManage;
+  const lock = useLock();
+  const manageLock = lock('cameras.manage');
   // baseline — последняя загруженная или сохранённая версия; с ней сравниваем черновик
   const [baseline, setBaseline] = useState<CameraConfig>(original);
   const [draft, setDraft] = useState<CameraConfig>(() => structuredClone(original));
@@ -172,9 +174,15 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
               <Eye size={14} aria-hidden="true" /> Только просмотр
             </span>
           )}
-          {!isNew && canManage && (
-            <button type="button" className="btn btn--danger btn--sm" onClick={onDelete} disabled={remove.isPending}>
-              <Trash2 size={14} /> Удалить
+          {!isNew && (
+            <button
+              type="button"
+              className="btn btn--danger btn--sm"
+              onClick={onDelete}
+              disabled={!canManage || remove.isPending}
+              title={manageLock ?? 'Удалить камеру; журнал событий сохранится'}
+            >
+              {canManage ? <Trash2 size={14} /> : <Lock size={13} />} Удалить
             </button>
           )}
           {canSave && (
@@ -203,11 +211,17 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
         <button type="button" role="tab" aria-selected={tab === 'rules'} onClick={() => setTab('rules')}>
           <ShieldCheck size={15} /> Правила <span className="count">{draft.rules.length}</span>
         </button>
-        {canManage && (
-          <button type="button" role="tab" aria-selected={tab === 'source'} onClick={() => setTab('source')}>
-            <Video size={15} /> Источник
-          </button>
-        )}
+        <button
+          type="button"
+          role="tab"
+          aria-selected={tab === 'source'}
+          onClick={() => setTab('source')}
+          disabled={!canManage}
+          title={manageLock ?? undefined}
+          className={canManage ? undefined : 'is-locked'}
+        >
+          {canManage ? <Video size={15} /> : <Lock size={14} />} Источник
+        </button>
       </div>
 
       <div className="cam-editor__body">
@@ -239,6 +253,7 @@ export function CamerasPage() {
   const isNew = cameraId === 'new';
   const newCamera = useMemo(() => blankCamera(cameras), [cameras]);
   const canManage = useCan()('cameras.manage');
+  const manageLock = useLock()('cameras.manage');
 
   if (!cameraId && cameras.length > 0) return <Navigate to={`/cameras/${encodeURIComponent(cameras[0].camera_id)}`} replace />;
 
@@ -249,11 +264,15 @@ export function CamerasPage() {
       <aside className="cam-list panel reveal">
         <div className="cam-list__head">
           <span className="eyebrow">Камеры · {cameras.length}</span>
-          <Can perm="cameras.manage">
-            <button type="button" className="btn btn--sm" onClick={() => confirmLeave() && navigate('/cameras/new')}>
-              <Plus size={14} /> Добавить
-            </button>
-          </Can>
+          <button
+            type="button"
+            className="btn btn--sm"
+            onClick={() => confirmLeave() && navigate('/cameras/new')}
+            disabled={!canManage}
+            title={manageLock ?? 'Подключить камеру: RTSP, файл, папка кадров'}
+          >
+            {canManage ? <Plus size={14} /> : <Lock size={13} />} Добавить
+          </button>
         </div>
         {isError && <div className="error-box">Список камер не загрузился: {(error as Error).message}</div>}
         <ul>
@@ -309,11 +328,13 @@ export function CamerasPage() {
             <>
               <Cctv size={30} />
               <span className="empty__title">{cameraId ? `Камера ${cameraId} не найдена` : 'Камер пока нет'}</span>
-              <Can perm="cameras.manage">
+              {canManage ? (
                 <button type="button" className="btn btn--primary" onClick={() => confirmLeave() && navigate('/cameras/new')}>
                   <Plus size={15} /> Добавить камеру
                 </button>
-              </Can>
+              ) : (
+                <span className="muted">Камеры подключает администратор. {manageLock}</span>
+              )}
             </>
           )}
         </section>

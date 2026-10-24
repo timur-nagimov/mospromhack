@@ -14,6 +14,7 @@ import type { EventStatus, GuardEvent } from '../../domain/types';
 import { getViolationMeta } from '../../domain/violations';
 import { useNow } from '../../hooks/useNow';
 import { useCan } from '../../state/auth';
+import { useLock } from '../auth/lock';
 import { liveActions, liveStore, useLive } from '../../state/live';
 import { useEventModal } from './useEventModal';
 import './event.css';
@@ -119,6 +120,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
   const can = useCan();
   const canVideo = can('video.view');
   const canHandle = can('events.handle');
+  const handleLock = useLock()('events.handle');
   const [note, setNote] = useState(event.operator_note ?? '');
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const meta = getViolationMeta(event.type);
@@ -325,12 +327,32 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
         </footer>
       ) : (
         <footer className="ev-actions ev-actions--readonly">
-          <p className="ev-readonly">
-            <Lock size={15} aria-hidden="true" />
-            <span>
-              Решение по событию принимает диспетчер смены или инженер по ОТ — нужно право <code className="mono">events.handle</code>
-            </span>
-          </p>
+          <div className="ev-readonly">
+            <div className="ev-decisions" role="group" aria-label="Решение оператора (недоступно)">
+              {OPERATOR_DECISIONS.map((d) => {
+                const Icon = DECISION_ICON[d.status];
+                return (
+                  <button
+                    key={d.status}
+                    type="button"
+                    className={`decision decision--${d.status}${event.status === d.status ? ' is-active' : ''}`}
+                    disabled
+                    title={handleLock ?? undefined}
+                  >
+                    <Icon size={18} strokeWidth={2.4} aria-hidden="true" />
+                    <span>{d.label}</span>
+                    <Lock size={13} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+            <p className="ev-readonly__hint">
+              <Lock size={14} aria-hidden="true" />
+              <span>
+                {handleLock} — решение по событию (право <code className="mono">events.handle</code>)
+              </span>
+            </p>
+          </div>
           <div className="ev-readonly__note">
             <span className="eyebrow">Комментарий оператора</span>
             <p className={event.operator_note ? undefined : 'muted'}>{event.operator_note || 'нет'}</p>
