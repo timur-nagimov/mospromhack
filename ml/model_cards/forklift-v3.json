@@ -1,0 +1,73 @@
+{
+  "model_id": "forklift",
+  "version": "forklift-v3",
+  "parent": "yolov8s-coco",
+  "created_at": "2026-10-24T18:52:56+0300",
+  "task": "detect",
+  "classes": [
+    "person",
+    "forklift"
+  ],
+  "train": {
+    "datasets": [
+      {
+        "name": "forklift_rf",
+        "images": 295,
+        "url": "https://huggingface.co/datasets/keremberke/forklift-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "logistics_rf",
+        "images": 68,
+        "url": "https://huggingface.co/datasets/SergioSCA/Logistics_v2_yolov8",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "construction_rf",
+        "images": 297,
+        "url": "https://huggingface.co/datasets/keremberke/construction-safety-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "coco_vehicles",
+        "images": 480,
+        "url": "https://cocodataset.org (train2017)",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "imagenet_forklift",
+        "images": 884,
+        "url": "https://huggingface.co/datasets/mlnomad/imnet1k_forklift",
+        "dataset": "forklift-ds-v2"
+      }
+    ],
+    "data_yaml": "data/datasets/forklift-v2/data.yaml",
+    "epochs": 60,
+    "imgsz": 480,
+    "device": "mps",
+    "minutes": 35.3,
+    "batch": 8,
+    "workers": 4,
+    "patience": 15,
+    "time_min": 35.0,
+    "hsv_v": 0.5,
+    "mixup": 0.0,
+    "lr0": 0.01,
+    "warmup_epochs": 3.0,
+    "seed": 0,
+    "base_weights": "yolov8s.pt",
+    "epochs_done": 27,
+    "best_epoch": 26,
+    "val_map50": 0.7652,
+    "val_map50_95": 0.5291
+  },
+  "weights": "models/weights/forklift-v3.pt",
+  "onnx": null,
+  "tpu_program": null,
+  "holdout": {},
+  "baseline": {},
+  "tpu_check": null,
+  "gate": null,
+  "status": "candidate",
+  "note": "Третий вариант: YOLOv8s COCO на forklift-ds-v2 (больше ёмкость для погрузчика с грузом)"
+}

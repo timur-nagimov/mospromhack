@@ -1,0 +1,320 @@
+{
+  "model_id": "forklift",
+  "version": "forklift-v2",
+  "parent": "forklift-v1",
+  "created_at": "2026-10-24T18:06:55+0300",
+  "task": "detect",
+  "classes": [
+    "person",
+    "forklift"
+  ],
+  "train": {
+    "datasets": [
+      {
+        "name": "forklift_rf",
+        "images": 295,
+        "url": "https://huggingface.co/datasets/keremberke/forklift-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "logistics_rf",
+        "images": 68,
+        "url": "https://huggingface.co/datasets/SergioSCA/Logistics_v2_yolov8",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "construction_rf",
+        "images": 297,
+        "url": "https://huggingface.co/datasets/keremberke/construction-safety-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "coco_vehicles",
+        "images": 480,
+        "url": "https://cocodataset.org (train2017)",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "imagenet_forklift",
+        "images": 884,
+        "url": "https://huggingface.co/datasets/mlnomad/imnet1k_forklift",
+        "dataset": "forklift-ds-v2"
+      }
+    ],
+    "data_yaml": "data/datasets/forklift-v2/data.yaml",
+    "epochs": 60,
+    "imgsz": 480,
+    "device": "mps",
+    "minutes": 9.9,
+    "batch": 16,
+    "workers": 4,
+    "patience": 10,
+    "time_min": 35.0,
+    "hsv_v": 0.5,
+    "mixup": 0.15,
+    "seed": 0,
+    "base_weights": "forklift-v1.pt",
+    "epochs_done": 11,
+    "best_epoch": 1,
+    "val_map50": 0.7487,
+    "val_map50_95": 0.5105
+  },
+  "weights": "models/weights/forklift-v2.pt",
+  "onnx": "forklift_v2-480.onnx",
+  "tpu_program": null,
+  "holdout": {
+    "dataset_test": {
+      "name": "forklift test",
+      "images": 238,
+      "map50": 0.6593,
+      "per_class": {
+        "person": {
+          "ap50": 0.5143,
+          "p": 0.765,
+          "r": 0.398,
+          "n_gt": 425
+        },
+        "forklift": {
+          "ap50": 0.8042,
+          "p": 0.647,
+          "r": 0.767,
+          "n_gt": 43
+        }
+      },
+      "conf_op": 0.35
+    },
+    "dataset_test_forklift_rf": {
+      "name": "forklift_rf test",
+      "images": 42,
+      "map50": 0.7698,
+      "per_class": {
+        "person": {
+          "ap50": 0.6678,
+          "p": 0.781,
+          "r": 0.568,
+          "n_gt": 44
+        },
+        "forklift": {
+          "ap50": 0.8719,
+          "p": 0.846,
+          "r": 0.767,
+          "n_gt": 43
+        }
+      },
+      "conf_op": 0.35
+    },
+    "events": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 5,
+      "duplicates": 0,
+      "precision": 1.0,
+      "recall": 0.782608695652174,
+      "false_alarms_per_hour": 0.0,
+      "latency_p50_s": 2.35,
+      "latency_p95_s": 8.85,
+      "videos": [
+        "clean_01",
+        "clean_02",
+        "s1_01",
+        "s1_02",
+        "s2_01",
+        "s2_02",
+        "s3_01",
+        "s3_02",
+        "s4_01",
+        "s4_02",
+        "s4_03",
+        "s6_01",
+        "s7_01"
+      ],
+      "by_type": {
+        "fall_immobile": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "phone_usage": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "duplicates": 0
+        },
+        "ppe_missing": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "smoking_fire": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "vehicle_proximity": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 2,
+          "duplicates": 0
+        },
+        "zone_intrusion": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "duplicates": 0
+        }
+      }
+    }
+  },
+  "baseline": {
+    "version": "forklift-v1 (det + forklift-v1)",
+    "holdout": {
+      "dataset_test": {
+        "name": "forklift test",
+        "images": 238,
+        "map50": 0.7091,
+        "per_class": {
+          "person": {
+            "ap50": 0.5514,
+            "p": 0.78,
+            "r": 0.459,
+            "n_gt": 425
+          },
+          "forklift": {
+            "ap50": 0.8668,
+            "p": 0.706,
+            "r": 0.837,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      },
+      "events": {
+        "tp": 17,
+        "fp": 0,
+        "fn": 6,
+        "duplicates": 0,
+        "precision": 1.0,
+        "recall": 0.7391304347826086,
+        "false_alarms_per_hour": 0.0,
+        "latency_p50_s": 2.4,
+        "latency_p95_s": 9.4,
+        "videos": [
+          "clean_01",
+          "clean_02",
+          "s1_01",
+          "s1_02",
+          "s2_01",
+          "s2_02",
+          "s3_01",
+          "s3_02",
+          "s4_01",
+          "s4_02",
+          "s4_03",
+          "s6_01",
+          "s7_01"
+        ],
+        "by_type": {
+          "fall_immobile": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "phone_usage": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "ppe_missing": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "smoking_fire": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "vehicle_proximity": {
+            "tp": 2,
+            "fp": 0,
+            "fn": 2,
+            "duplicates": 0
+          },
+          "zone_intrusion": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 0,
+            "duplicates": 0
+          }
+        },
+        "report": ".orchestra/metrics/eval-onnx-cpu-forklift-v1-20261024-1514.json"
+      }
+    }
+  },
+  "tpu_check": null,
+  "gate": {
+    "promote": false,
+    "reasons": [
+      "recall 0.783 против 0.739 (TP 18 против 17, FN 5 против 6)",
+      "precision 1.000 против 1.000 (FP 0 против 0)",
+      "ложных тревог в час 0.0 против 0.0",
+      "дублей 0 против 0",
+      "НЕ ПРОЙДЕНО: mAP50 на тесте 0.659 против 0.709 (допуск −0.01)",
+      "phone_usage: 1/1 против 0/1, FP 0 против 0"
+    ],
+    "at": "2026-10-24T18:36:40+0300",
+    "rule": "recall и precision не ниже, ложных в час и дублей не больше, mAP50 −0.01"
+  },
+  "status": "rejected",
+  "note": "Второй оборот: forklift-ds-v2, рамки учителя от 0.4, дообучение от forklift-v1, mixup 0.15",
+  "references": {
+    "keremberke": {
+      "onnx": "forklift-640.onnx",
+      "dataset_test": {
+        "images": 238,
+        "map50": 0.504,
+        "per_class": {
+          "person": {
+            "ap50": 0.5049,
+            "p": 0.732,
+            "r": 0.442,
+            "n_gt": 425
+          },
+          "forklift": {
+            "ap50": 0.503,
+            "p": 0.248,
+            "r": 0.884,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      },
+      "dataset_test_forklift_rf": {
+        "images": 42,
+        "map50": 0.8179,
+        "per_class": {
+          "person": {
+            "ap50": 0.7394,
+            "p": 0.933,
+            "r": 0.636,
+            "n_gt": 44
+          },
+          "forklift": {
+            "ap50": 0.8964,
+            "p": 0.826,
+            "r": 0.884,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      }
+    }
+  }
+}
