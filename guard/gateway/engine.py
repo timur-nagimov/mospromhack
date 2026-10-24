@@ -16,6 +16,7 @@ from PIL import Image
 
 from guard.contracts import CameraConfig
 from guard.events.journal import Journal
+from guard.flywheel.edge import receive_sample
 from guard.flywheel.wiring import attach_gateway_flywheel, operator_decision, start_flywheel, stop_flywheel
 from guard.gateway.frames import RemoteCameraView
 from guard.pipeline.bus import EventBus
@@ -85,7 +86,7 @@ class GatewayEngine:
             if consumer is None:
                 if not settings.rabbit_url:
                     raise ValueError("GUARD_RABBIT_URL is required")
-                consumer = RabbitConsumer(RabbitConfig(settings.rabbit_url, settings.edge_id))
+                consumer = RabbitConsumer(RabbitConfig(settings.rabbit_url, settings.edge_id, suffix=settings.rabbit_suffix))
         except BaseException:
             self.journal.close()
             raise
@@ -150,6 +151,9 @@ class GatewayEngine:
             envelope = decode(envelope, expected_edge_id=self.settings.edge_id)
         if envelope.edge_id != self.settings.edge_id:
             raise ValueError("Unexpected edge identity")
+        if envelope.kind == "flywheel_sample":
+            # Data-flywheel sample parts are not previews: no staleness or run checks (docs/FLYWHEEL.md).
+            return receive_sample(self, envelope)
         if envelope.kind in {"event", "event_update"}:
             relative = self.media.save(envelope)
             result = self.journal.apply_remote_event(

@@ -1,0 +1,643 @@
+{
+  "schema_version": 1,
+  "checked_at_utc": "2026-10-24T16:48:39.368284+00:00",
+  "scope": "Model discovery for missing observations of the 13 existing rule types; no runtime promotion",
+  "verification_policy": {
+    "metadata_hash_is_not_payload_hash": true,
+    "absent_detection_is_not_negative_attribute": true,
+    "harness_worn_does_not_prove_anchor_connection": true,
+    "cpu_onnx_is_not_target_tpu_acceptance": true,
+    "author_metrics_are_not_our_quality": true
+  },
+  "rules": [
+    {
+      "type": "height_no_harness",
+      "gap": "missing_model_and_attribute_adapter",
+      "candidate_ids": [
+        "safetyvision_v2_harness",
+        "thalos_harness",
+        "projectthor_harness_lanyard"
+      ]
+    },
+    {
+      "type": "smoking_fire",
+      "gap": "missing_cigarette_relation_and_temporal_evidence",
+      "candidate_ids": [
+        "meetcool_cigarette",
+        "beehzod_cigarette",
+        "heiher_cigarette",
+        "smokeguard",
+        "videomae_large_ava"
+      ]
+    },
+    {
+      "type": "ppe_missing",
+      "gap": "industrial_respirator_model_missing",
+      "candidate_ids": [
+        "industrial_respirator_data_then_training"
+      ]
+    },
+    {
+      "type": "unsafe_carry",
+      "gap": "action_and_person_load_relation_unvalidated",
+      "candidate_ids": [
+        "videomae_large_ava",
+        "slowfast_r50_ava"
+      ]
+    },
+    {
+      "type": "fence_climb",
+      "gap": "action_and_fence_context_unvalidated",
+      "candidate_ids": [
+        "videomae_large_ava",
+        "slowfast_r50_ava"
+      ]
+    },
+    {
+      "type": "running",
+      "gap": "action_unvalidated",
+      "candidate_ids": [
+        "videomae_large_ava",
+        "slowfast_r50_ava"
+      ]
+    },
+    {
+      "type": "fall_immobile",
+      "gap": "temporal_action_and_detector_coverage",
+      "candidate_ids": [
+        "videomae_large_ava",
+        "existing_wardy_fall_transition_gru"
+      ]
+    },
+    {
+      "type": "phone_usage",
+      "gap": "action_unvalidated",
+      "candidate_ids": [
+        "videomae_large_ava",
+        "slowfast_r50_ava"
+      ]
+    },
+    {
+      "type": "vehicle_proximity",
+      "gap": "existing_specialist_needs_quality_and_geometry_validation",
+      "candidate_ids": [
+        "existing_forklift_v1",
+        "existing_forklift_person_yolo11s"
+      ]
+    },
+    {
+      "type": "zone_intrusion",
+      "gap": "no_new_model_required",
+      "candidate_ids": []
+    },
+    {
+      "type": "wrong_way",
+      "gap": "no_new_model_required",
+      "candidate_ids": []
+    },
+    {
+      "type": "zone_dwell",
+      "gap": "no_new_model_required",
+      "candidate_ids": []
+    },
+    {
+      "type": "zone_overcapacity",
+      "gap": "no_new_model_required",
+      "candidate_ids": []
+    }
+  ],
+  "candidates": [
+    {
+      "id": "safetyvision_v2_harness",
+      "repository": "ayushgupta7777/safetyvision-yolov8",
+      "revision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10",
+      "source_card_url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/blob/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/README.md",
+      "limitations": "explicit_no_harness; no positive harness or anchorage state",
+      "artifacts": [
+        {
+          "path": "v2/best_640.onnx",
+          "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/resolve/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/v2/best_640.onnx",
+          "bytes": 44764727,
+          "expected_sha256_from_hf_lfs": "ea18ae903a566e8fa76f3ee1c503075522dca269269315e9c862efa170430b35",
+          "payload_verified_locally": false
+        },
+        {
+          "path": "v2/best_896.onnx",
+          "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/resolve/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/v2/best_896.onnx",
+          "bytes": 44926046,
+          "expected_sha256_from_hf_lfs": "b250353639e01800f9cbe79c6002b8b041bdae7560328b8e18ad4a42dc3844e1",
+          "payload_verified_locally": true,
+          "local_path": "models/candidates/safetyvision-v2-896/model.onnx",
+          "checker_passed": true,
+          "inputs": [
+            {
+              "name": "images",
+              "dtype": "FLOAT",
+              "shape": [
+                1,
+                3,
+                896,
+                896
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "output0",
+              "dtype": "FLOAT",
+              "shape": [
+                1,
+                17,
+                16464
+              ]
+            }
+          ],
+          "opsets": [
+            {
+              "domain": "",
+              "version": 20
+            }
+          ],
+          "operator_counts": {
+            "Conv": 64,
+            "Sigmoid": 57,
+            "Mul": 57,
+            "Split": 8,
+            "Add": 8,
+            "Concat": 17,
+            "MaxPool": 3,
+            "Resize": 2,
+            "Reshape": 8,
+            "Transpose": 1,
+            "Softmax": 1,
+            "Slice": 2,
+            "Sub": 2,
+            "Div": 1
+          },
+          "external_initializers": [],
+          "function_count": 0,
+          "class_names": {
+            "0": "Fall-Detected",
+            "1": "Gloves",
+            "2": "Goggles",
+            "3": "Hardhat",
+            "4": "Mask",
+            "5": "NO-Gloves",
+            "6": "NO-Goggles",
+            "7": "NO-Hardhat",
+            "8": "NO-Mask",
+            "9": "NO-Safety Vest",
+            "10": "No_Harness",
+            "11": "Person",
+            "12": "Safety Vest"
+          }
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false,
+      "author_reported_no_harness_896": {
+        "test_instances": 256,
+        "precision": 0.728,
+        "recall": 0.773,
+        "ap50": 0.83,
+        "independently_reproduced": false,
+        "checkpoint_scope": "author PT evaluation at 896; not our ONNX or TPU result"
+      }
+    },
+    {
+      "id": "thalos_harness",
+      "repository": "thalostech2025/thalos-scaffold-harness-safety-v1",
+      "revision": "c07ae29e6095fa0e284a077fdafdb8a857a8eb77",
+      "source_card_url": "https://huggingface.co/thalostech2025/thalos-scaffold-harness-safety-v1/blob/c07ae29e6095fa0e284a077fdafdb8a857a8eb77/README.md",
+      "limitations": "card claims worn/missing; class names not verified; card filename mismatch",
+      "artifacts": [
+        {
+          "path": "scaffold_harness_weights.pt",
+          "url": "https://huggingface.co/thalostech2025/thalos-scaffold-harness-safety-v1/resolve/c07ae29e6095fa0e284a077fdafdb8a857a8eb77/scaffold_harness_weights.pt",
+          "bytes": 87685242,
+          "expected_sha256_from_hf_lfs": "afe570e6bc72549553ec3436660e376bcf826bd3a16ed395ede6b59fe5c62d05",
+          "payload_verified_locally": false
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "meetcool_cigarette",
+      "repository": "MeetCool/yolov8n-smoking-detection",
+      "revision": "7d510c6aaa3fbc3048368565d4236993c077dc0a",
+      "source_card_url": "https://huggingface.co/MeetCool/yolov8n-smoking-detection/blob/7d510c6aaa3fbc3048368565d4236993c077dc0a/README.md",
+      "limitations": "graph labels cigarette/person/smoke; not smoking-event classification",
+      "artifacts": [
+        {
+          "path": "models/fine_tune_YOLOv8n.onnx",
+          "url": "https://huggingface.co/MeetCool/yolov8n-smoking-detection/resolve/7d510c6aaa3fbc3048368565d4236993c077dc0a/models/fine_tune_YOLOv8n.onnx",
+          "bytes": 12252672,
+          "expected_sha256_from_hf_lfs": "afcf1e6d1293427b9221b60c9505e76072f9a295120d0a78c71e35f9c444ff8e",
+          "payload_verified_locally": true,
+          "local_path": "models/candidates/meetcool-smoking/model.onnx",
+          "checker_passed": true,
+          "inputs": [
+            {
+              "name": "images",
+              "dtype": "FLOAT",
+              "shape": [
+                1,
+                3,
+                640,
+                640
+              ]
+            }
+          ],
+          "outputs": [
+            {
+              "name": "output0",
+              "dtype": "FLOAT",
+              "shape": [
+                1,
+                7,
+                8400
+              ]
+            }
+          ],
+          "opsets": [
+            {
+              "domain": "",
+              "version": 19
+            }
+          ],
+          "operator_counts": {
+            "Conv": 64,
+            "Sigmoid": 58,
+            "Mul": 58,
+            "Split": 9,
+            "Add": 8,
+            "Concat": 19,
+            "MaxPool": 3,
+            "Resize": 2,
+            "Reshape": 5,
+            "Transpose": 1,
+            "Softmax": 1,
+            "Slice": 2,
+            "Sub": 2,
+            "Div": 1
+          },
+          "external_initializers": [],
+          "function_count": 0,
+          "class_names": {
+            "0": "cigarette",
+            "1": "person",
+            "2": "smoke"
+          }
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "beehzod_cigarette",
+      "repository": "Beehzod/best_smoke_cigarette-detection",
+      "revision": "8dd44e25a69b243e53f66b30c0e50889033dc391",
+      "source_card_url": "https://huggingface.co/Beehzod/best_smoke_cigarette-detection/blob/8dd44e25a69b243e53f66b30c0e50889033dc391/README.md",
+      "limitations": "single-frame cigarette; actor association and temporal evidence required",
+      "artifacts": [
+        {
+          "path": "best.pt",
+          "url": "https://huggingface.co/Beehzod/best_smoke_cigarette-detection/resolve/8dd44e25a69b243e53f66b30c0e50889033dc391/best.pt",
+          "bytes": 40518316,
+          "expected_sha256_from_hf_lfs": "1d69b30f6a3b76112f1cdbff6dc3951a977dfb2828c9a9a756953e895f5d3d2d",
+          "payload_verified_locally": false
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "heiher_cigarette",
+      "repository": "HEIher/smoking-detection",
+      "revision": "12a54cda2ca031e2b96a486bc288e957e56f51c8",
+      "source_card_url": "https://huggingface.co/HEIher/smoking-detection/blob/12a54cda2ca031e2b96a486bc288e957e56f51c8/README.md",
+      "limitations": "card label cigarette despite smoke wording",
+      "artifacts": [
+        {
+          "path": "best.pt",
+          "url": "https://huggingface.co/HEIher/smoking-detection/resolve/12a54cda2ca031e2b96a486bc288e957e56f51c8/best.pt",
+          "bytes": 40509349,
+          "expected_sha256_from_hf_lfs": "0ef558d3cf049d0acbb3f2322bc9e4e53db1a107426e3669622176c30c054d82",
+          "payload_verified_locally": false
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "smokeguard",
+      "repository": "aliffatulmf/SmokeGuardModel",
+      "revision": "ae84cff3645471ccd5bec73366b1baa887f4b778",
+      "source_card_url": "https://huggingface.co/aliffatulmf/SmokeGuardModel/blob/ae84cff3645471ccd5bec73366b1baa887f4b778/README.md",
+      "limitations": "class map and actual graph uninspected; YOLOv5 decoder differs from YOLOv8",
+      "artifacts": [
+        {
+          "path": "best_checkpoint.onnx",
+          "url": "https://huggingface.co/aliffatulmf/SmokeGuardModel/resolve/ae84cff3645471ccd5bec73366b1baa887f4b778/best_checkpoint.onnx",
+          "bytes": 83890343,
+          "expected_sha256_from_hf_lfs": "ea3eb0d895c7ad9777f7cb991f4d9f634fd0bea0dc3a672b5a18ed70848b0a56",
+          "payload_verified_locally": false
+        }
+      ],
+      "quality_measured_on_our_data": false,
+      "inference_executed": false,
+      "integrated_with_runtime": false,
+      "target_tpu_compiled": false,
+      "target_tpu_accepted": false
+    }
+  ],
+  "additional_candidates": [
+    {
+      "id": "projectthor_harness_lanyard",
+      "url": "https://universe.roboflow.com/projectthor/fullbody-safety-harness-vkfei",
+      "classes": [
+        "fullbody-Harness",
+        "Lanyard+Hook"
+      ],
+      "images": 3542,
+      "model": "YOLO11n",
+      "downloadable_weights_verified": false,
+      "hosting_api_documented": true,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "videomae_large_ava",
+      "source_revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "source_config_url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/configs/detection/videomae/vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb.py",
+      "checkpoint_url": "https://download.openmmlab.com/mmaction/v1.0/detection/videomae/vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb/vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb_20230314-bf93c9ea.pth",
+      "checkpoint_sha256": null,
+      "payload_downloaded": false,
+      "author_ava22_map": 38.7,
+      "actions": {
+        "5": "fall down",
+        "8": "lie/sleep",
+        "10": "run/jog",
+        "15": "answer phone",
+        "17": "carry/hold (an object)",
+        "20": "climb (e.g., a mountain)",
+        "54": "smoke",
+        "57": "text on/look at a cellphone"
+      },
+      "source_recipe": {
+        "clip_len": 16,
+        "frame_interval": 4,
+        "layout": "NCTHW",
+        "person_proposals_required": true,
+        "roi_align": true,
+        "num_classes_including_background": 81
+      },
+      "quality_measured_on_our_data": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "slowfast_r50_ava",
+      "source_readme_url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/configs/detection/slowfast/README.md",
+      "source_revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "role": "independent action architecture control",
+      "payload_downloaded": false,
+      "target_tpu_accepted": false
+    },
+    {
+      "id": "industrial_respirator_data_then_training",
+      "source_urls": [
+        "https://github.com/GibranBenitez/TFM_dataset",
+        "https://doi.org/10.1038/s41598-022-20282-9"
+      ],
+      "ready_suitable_onnx_verified": false,
+      "limits": "Respirator family/visibility need explicit labels; generic Mask cannot substitute."
+    }
+  ],
+  "existing_catalog_references": [
+    "wardy_fall_transition_gru",
+    "forklift_person_yolo11s"
+  ],
+  "rejected_or_unconfirmed": [
+    {
+      "repository": "Unlimitedlevel19/k3l-ppe-detection",
+      "revision": "c0a3dde6eca18fa306b4e7f5e643a22295f87a57",
+      "reason": "Harness claim in card; no weight/graph files in public API file listing"
+    },
+    {
+      "repository": "introvert6162/yolov8m-ppe-detection",
+      "revision": "c00d6fa4f7198621c28a6f0198b933d029718bf8",
+      "reason": "Harness class names without training examples; no public weight/graph files in API listing; pinned card request returned 401"
+    },
+    {
+      "repository": "afaq120/Harness_models",
+      "revision": "82f06dcb8acc4efd933c7cb20ed4f776943e7c06",
+      "reason": "Files describe bolts/plates/corrosion/welds, not fall protection harness"
+    },
+    {
+      "repository": "Re-surgence/Safety-Harness-Detection",
+      "url": "https://github.com/Re-surgence/Safety-Harness-Detection",
+      "reason": "README ordinary PPE classes; harness class map not established"
+    }
+  ],
+  "source_snapshots": [
+    {
+      "kind": "hf_api",
+      "repository": "ayushgupta7777/safetyvision-yolov8",
+      "url": "https://huggingface.co/api/models/ayushgupta7777/safetyvision-yolov8?blobs=true",
+      "revision": "56a71758b55f0e9f2b4b2d6b51a779a1f882da10",
+      "local_snapshot": "data/rule_model_research_20261024/ayushgupta7777--safetyvision-yolov8.json",
+      "bytes": 2650,
+      "sha256": "412b3964abd9ad89baaa4e37e6786188f7bb899a3658da1dd77a1c7247aa2332"
+    },
+    {
+      "kind": "model_card",
+      "repository": "ayushgupta7777/safetyvision-yolov8",
+      "url": "https://huggingface.co/ayushgupta7777/safetyvision-yolov8/raw/56a71758b55f0e9f2b4b2d6b51a779a1f882da10/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/ayushgupta7777--safetyvision-yolov8.md",
+      "bytes": 15629,
+      "sha256": "da35935f220c0e348f9c4d770c4d2c78b7c6a1482fb7cdf51b5243d9444b2533"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "thalostech2025/thalos-scaffold-harness-safety-v1",
+      "url": "https://huggingface.co/api/models/thalostech2025/thalos-scaffold-harness-safety-v1?blobs=true",
+      "revision": "c07ae29e6095fa0e284a077fdafdb8a857a8eb77",
+      "local_snapshot": "data/rule_model_research_20261024/thalostech2025--thalos-scaffold-harness-safety-v1.json",
+      "bytes": 874,
+      "sha256": "3e20d1d2f7861ecdc3e8e0f97c3f8d2384e11cd60f118a56f6f80e19cbbe244c"
+    },
+    {
+      "kind": "model_card",
+      "repository": "thalostech2025/thalos-scaffold-harness-safety-v1",
+      "url": "https://huggingface.co/thalostech2025/thalos-scaffold-harness-safety-v1/raw/c07ae29e6095fa0e284a077fdafdb8a857a8eb77/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/thalostech2025--thalos-scaffold-harness-safety-v1.md",
+      "bytes": 2249,
+      "sha256": "cf576491a64e37e0cc3781fe7c6fd17490adb395c2103e8ace6dfd318c38f123"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "afaq120/Harness_models",
+      "url": "https://huggingface.co/api/models/afaq120/Harness_models?blobs=true",
+      "revision": "82f06dcb8acc4efd933c7cb20ed4f776943e7c06",
+      "local_snapshot": "data/rule_model_research_20261024/afaq120--Harness_models.json",
+      "bytes": 2337,
+      "sha256": "227afb23d5e300d84f17718830bc182fb1c28d19acf342db6eb4a61ef470392f"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "Unlimitedlevel19/k3l-ppe-detection",
+      "url": "https://huggingface.co/api/models/Unlimitedlevel19/k3l-ppe-detection?blobs=true",
+      "revision": "c0a3dde6eca18fa306b4e7f5e643a22295f87a57",
+      "local_snapshot": "data/rule_model_research_20261024/Unlimitedlevel19--k3l-ppe-detection.json",
+      "bytes": 886,
+      "sha256": "62d1a24b0daef379834287ae87a19c9345041c1b65357c604877d86ebe858b2e"
+    },
+    {
+      "kind": "model_card",
+      "repository": "Unlimitedlevel19/k3l-ppe-detection",
+      "url": "https://huggingface.co/Unlimitedlevel19/k3l-ppe-detection/raw/c0a3dde6eca18fa306b4e7f5e643a22295f87a57/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/Unlimitedlevel19--k3l-ppe-detection.md",
+      "bytes": 2547,
+      "sha256": "b20c6098db93c6ad30cc14919c073369df9e2d75d9efc41635586a89efcc451a"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "introvert6162/yolov8m-ppe-detection",
+      "url": "https://huggingface.co/api/models/introvert6162/yolov8m-ppe-detection?blobs=true",
+      "revision": "c00d6fa4f7198621c28a6f0198b933d029718bf8",
+      "local_snapshot": "data/rule_model_research_20261024/introvert6162--yolov8m-ppe-detection.json",
+      "bytes": 1714,
+      "sha256": "5c5bd1ab7550ee024d033df8cf7a7a18fed0283e116f33e0703479ed49e15601"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "Beehzod/best_smoke_cigarette-detection",
+      "url": "https://huggingface.co/api/models/Beehzod/best_smoke_cigarette-detection?blobs=true",
+      "revision": "8dd44e25a69b243e53f66b30c0e50889033dc391",
+      "local_snapshot": "data/rule_model_research_20261024/Beehzod--best_smoke_cigarette-detection.json",
+      "bytes": 2058,
+      "sha256": "926adf547d703edd58d8d3082405ea2312f2500407a6c1c3f1dbc600f61d72fc"
+    },
+    {
+      "kind": "model_card",
+      "repository": "Beehzod/best_smoke_cigarette-detection",
+      "url": "https://huggingface.co/Beehzod/best_smoke_cigarette-detection/raw/8dd44e25a69b243e53f66b30c0e50889033dc391/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/Beehzod--best_smoke_cigarette-detection.md",
+      "bytes": 1769,
+      "sha256": "642eb82f33a3198805f5c7ecfb5f3d45738bc0c6eadbb30a4e59627c5e77d55a"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "HEIher/smoking-detection",
+      "url": "https://huggingface.co/api/models/HEIher/smoking-detection?blobs=true",
+      "revision": "12a54cda2ca031e2b96a486bc288e957e56f51c8",
+      "local_snapshot": "data/rule_model_research_20261024/HEIher--smoking-detection.json",
+      "bytes": 4995,
+      "sha256": "7b3b08e56913923bd8b5ff96c471b6f93a5e7fd0b3c9bc7f4608ff5ffb8ff5fb"
+    },
+    {
+      "kind": "model_card",
+      "repository": "HEIher/smoking-detection",
+      "url": "https://huggingface.co/HEIher/smoking-detection/raw/12a54cda2ca031e2b96a486bc288e957e56f51c8/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/HEIher--smoking-detection.md",
+      "bytes": 2013,
+      "sha256": "1ccb37e6adb34956a31d05b3f4da151f95fffbca10c81a5c8cd744253c1ef4db"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "aliffatulmf/SmokeGuardModel",
+      "url": "https://huggingface.co/api/models/aliffatulmf/SmokeGuardModel?blobs=true",
+      "revision": "ae84cff3645471ccd5bec73366b1baa887f4b778",
+      "local_snapshot": "data/rule_model_research_20261024/aliffatulmf--SmokeGuardModel.json",
+      "bytes": 1825,
+      "sha256": "616ef1859e4530099e9e1f55af0057ee2aaf56d33a4d474a04944538fd2dabe2"
+    },
+    {
+      "kind": "model_card",
+      "repository": "aliffatulmf/SmokeGuardModel",
+      "url": "https://huggingface.co/aliffatulmf/SmokeGuardModel/raw/ae84cff3645471ccd5bec73366b1baa887f4b778/README.md",
+      "local_snapshot": "data/rule_model_research_20261024/aliffatulmf--SmokeGuardModel.md",
+      "bytes": 1450,
+      "sha256": "946089ce561cd5b2f450d40bb63db160ce35a1c8b7e657215a0dfde3347803ef"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "MeetCool/yolov8n-smoking-detection",
+      "url": "https://huggingface.co/api/models/MeetCool/yolov8n-smoking-detection?blobs=true",
+      "revision": "7d510c6aaa3fbc3048368565d4236993c077dc0a",
+      "local_snapshot": "data/rule_model_research_20261024/MeetCool--yolov8n-smoking-detection.json",
+      "bytes": 1073,
+      "sha256": "eadf71d02f9bc67af784b0fca5d98eb1e6f85db9efb7e9e35ba448aebb418d92"
+    },
+    {
+      "kind": "hf_api",
+      "repository": "Horama/Horama_BTP_v2",
+      "url": "https://huggingface.co/api/models/Horama/Horama_BTP_v2?blobs=true",
+      "revision": "2b7741ce2ea622a14a7d5c7f7e26043267f5f11d",
+      "local_snapshot": "data/rule_model_research_20261024/Horama--Horama_BTP_v2.json",
+      "bytes": 5338,
+      "sha256": "5531396aac0f24a2fec598aa03f580ce58810e551c50782560412995f3b7488f"
+    },
+    {
+      "path": "configs/detection/videomae/README.md",
+      "revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/configs/detection/videomae/README.md",
+      "sha256": "b79411dd39a7df96c1160ac2df0bde75e96b852ac0e49155af5839f2cd691c8a",
+      "bytes": 5016,
+      "local_snapshot": "data/rule_model_research_20261024/mmaction2--configs--detection--videomae--README.md",
+      "kind": "official_source"
+    },
+    {
+      "path": "configs/detection/videomae/vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb.py",
+      "revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/configs/detection/videomae/vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb.py",
+      "sha256": "2da5fc66bac17d42446b398d428088335ee3227a217cc9cb4e9080d7cd373b10",
+      "bytes": 5272,
+      "local_snapshot": "data/rule_model_research_20261024/mmaction2--configs--detection--videomae--vit-large-p16_videomae-k400-pre_8xb8-16x4x1-20e-adamw_ava-kinetics-rgb.py",
+      "kind": "official_source"
+    },
+    {
+      "path": "configs/detection/slowfast/README.md",
+      "revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/configs/detection/slowfast/README.md",
+      "sha256": "618f8f537455da81cfa3e8cdc47209c50d072467c6f16b2a997c474d1e16feb4",
+      "bytes": 10031,
+      "local_snapshot": "data/rule_model_research_20261024/mmaction2--configs--detection--slowfast--README.md",
+      "kind": "official_source"
+    },
+    {
+      "path": "tools/data/ava/label_map.txt",
+      "revision": "a5a167dff2399e2d182a60332325f9c0d4663517",
+      "url": "https://raw.githubusercontent.com/open-mmlab/mmaction2/a5a167dff2399e2d182a60332325f9c0d4663517/tools/data/ava/label_map.txt",
+      "sha256": "c3f747abd4b89e7cfc826986fa33e572aa953860082a2c535dc1d333425cd9ab",
+      "bytes": 1209,
+      "local_snapshot": "data/rule_model_research_20261024/mmaction2--tools--data--ava--label_map.txt",
+      "kind": "official_source"
+    }
+  ],
+  "local_graph_inspection": {
+    "path": "data/rule_model_research_20261024/graph-inspection.json",
+    "sha256": "33b08de5c94dce60823abd6f50d6076ff1269034057a1276078ab5a664734d6b"
+  },
+  "next_priority": [
+    "harness_no_harness_observation_and_validation",
+    "cigarette_actor_association",
+    "ava_actor_actions",
+    "anchor_connection_and_industrial_respirator_training_data"
+  ]
+}

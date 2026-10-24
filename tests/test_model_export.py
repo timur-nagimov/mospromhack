@@ -184,6 +184,25 @@ def test_simplifier_failure_is_visible_and_writes_no_success_metadata(monkeypatc
     assert not (models / "det.json").exists()
 
 
+def test_missing_package_version_is_none_and_export_metadata_is_written(monkeypatch, tmp_path):
+    # В .venv проекта только opencv-python-headless: отсутствие opencv-python не роняет экспорт.
+    fake_export_modules(monkeypatch, tmp_path)
+
+    def version(package):
+        if package == "opencv-python":
+            raise export_onnx.importlib.metadata.PackageNotFoundError(package)
+        return "test-version"
+
+    monkeypatch.setattr(export_onnx.importlib.metadata, "version", version)
+    weights = tmp_path / "best.pt"
+    weights.write_bytes(b"trusted test fixture")
+    models = tmp_path / "models"
+    meta = export_onnx.export_one("det", weights, 640, "det.onnx", "detect", models_dir=models)
+    assert meta["versions"]["opencv-python"] is None
+    assert meta["versions"]["opencv-python-headless"] == "test-version"
+    assert json.loads((models / "det.json").read_text())["versions"] == meta["versions"]
+
+
 def test_help_and_registry_import_do_not_import_ml_runtime(tmp_path):
     code = '''
 import builtins, runpy, sys

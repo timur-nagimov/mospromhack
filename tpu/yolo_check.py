@@ -44,6 +44,7 @@ def iou(a: np.ndarray, b: np.ndarray) -> np.ndarray:
 
 
 NC = 80  # число классов; для pose = 1, остальное — keypoints (17x3)
+ONLY: list[int] | None = None  # --classes: сверять только эти классы (NMS по классам, поэтому фильтр до NMS)
 
 
 def decode(out0: np.ndarray, conf: float, iou_thr: float = 0.5):
@@ -52,6 +53,8 @@ def decode(out0: np.ndarray, conf: float, iou_thr: float = 0.5):
     cls = scores.argmax(1)
     sc = scores[np.arange(len(cls)), cls]
     keep = sc >= conf
+    if ONLY is not None:
+        keep &= np.isin(cls, ONLY)
     xywh, cls, sc, extra = p[keep, :4], cls[keep], sc[keep], p[keep, 4 + NC:]
     boxes = np.stack([xywh[:, 0] - xywh[:, 2] / 2, xywh[:, 1] - xywh[:, 3] / 2,
                       xywh[:, 0] + xywh[:, 2] / 2, xywh[:, 1] + xywh[:, 3] / 2], 1)
@@ -115,9 +118,13 @@ def main() -> int:
     ap.add_argument("--sweep", default="0,0.05,0.1,0.15", help="снижения порога TPU относительно --conf")
     ap.add_argument("--glob", default="*.jpg,*.jpeg,*.png", help="маски файлов в --images")
     ap.add_argument("--raw", action="store_true", help="raw=True: упаковка на клиенте (RawCodec)")
+    ap.add_argument("--classes", help="индексы классов через запятую: сверять только их (например, 1 — forklift)")
+    ap.add_argument("--perf", action=argparse.BooleanOptionalAction, default=True,
+                    help="замер скорости по окнам (--no-perf — только сверка точности)")
     a = ap.parse_args()
-    global NC
+    global NC, ONLY
     NC = a.nc
+    ONLY = [int(c) for c in a.classes.split(",") if c.strip()] if a.classes else None
     sweep = [float(s) for s in a.sweep.split(",") if s]
 
     import onnxruntime as ort
@@ -169,7 +176,8 @@ def main() -> int:
         agg["dconf"] += m["dconf"]
         agg["dkpt"] += m["dkpt"]
     acc = {
-        "images": len(files), "conf": a.conf, "cpu_dets": agg["ref"], "tpu_dets": agg["got"], "matched": agg["matched"],
+        "images": len(files), "conf": a.conf, "classes": ONLY,
+        "cpu_dets": agg["ref"], "tpu_dets": agg["got"], "matched": agg["matched"],
         "recall_vs_cpu": round(agg["matched"] / max(1, agg["ref"]), 3),
         "precision_vs_cpu": round(agg["matched"] / max(1, agg["got"]), 3),
         "iou_mean": round(float(np.mean(agg["ious"])), 3) if agg["ious"] else None,
@@ -190,7 +198,7 @@ def main() -> int:
 
     x = preprocess(files[0], "letterbox", hw)
     perf: dict = {"cpu_ort_2threads_ms": {"p50": pct(cpu_ms, 50), "p95": pct(cpu_ms, 95)}}
-    for w in [int(s) for s in a.windows.split(",")]:
+    for w in [int(s) for s in a.windows.split(",")] if a.perf else []:
         xb = np.repeat(x, w, axis=0)
         stages: dict[str, list] = {}
         rounds = max(3, a.n // w)

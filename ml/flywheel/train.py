@@ -68,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--device", default="mps")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--hsv-v", type=float, default=0.5, help="разброс яркости: тёмные проёмы и ночные кадры")
+    ap.add_argument("--mixup", type=float, default=0.0, help="доля mixup: устойчивость к перекрытиям")
+    ap.add_argument("--lr0", type=float, default=0.01,
+                    help="начальный LR; для дообучения от своей же версии — 0.001–0.002 (иначе модель «забывает»)")
+    ap.add_argument("--warmup-epochs", type=float, default=3.0)
     ap.add_argument("--freeze", type=int, default=0, help="заморозить первые N слоёв базы")
     ap.add_argument("--note", default="", help="свободный комментарий в карточку")
     ap.add_argument("--dry-run", action="store_true", help="проверить входы и напечатать параметры без обучения")
@@ -233,7 +237,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     train_args = dict(data=str(mixed), imgsz=args.imgsz, epochs=args.epochs, time=args.time_min / 60.0,
                       patience=args.patience, batch=args.batch, workers=args.workers, device=args.device,
-                      cache=False, seed=args.seed, hsv_v=args.hsv_v, freeze=args.freeze or None,
+                      cache=False, seed=args.seed, hsv_v=args.hsv_v, mixup=args.mixup, freeze=args.freeze or None,
+                      lr0=args.lr0, warmup_epochs=args.warmup_epochs,
                       project=str(run_dir), name="train", exist_ok=True, plots=False, verbose=False)
     print(f"train: база {weights.name} ({scale}), классы {names}, данные {mixed}")
     print("train: " + json.dumps({k: v for k, v in train_args.items() if k != "data"}, ensure_ascii=False))
@@ -263,7 +268,8 @@ def main(argv: list[str] | None = None) -> int:
             "data_yaml": str(data_arg),
             "epochs": args.epochs, "imgsz": args.imgsz, "device": args.device, "minutes": minutes,
             "batch": args.batch, "workers": args.workers, "patience": args.patience, "time_min": args.time_min,
-            "hsv_v": args.hsv_v, "seed": args.seed, "base_weights": weights.name,
+            "hsv_v": args.hsv_v, "mixup": args.mixup, "lr0": args.lr0, "warmup_epochs": args.warmup_epochs,
+            "seed": args.seed, "base_weights": weights.name,
             **read_results(run_dir / "train"),
         },
         "weights": f"models/weights/{args.version}.pt",

@@ -76,6 +76,8 @@ export function usePatchEvent() {
       qc.setQueryData(queryKeys.event(event.id), event);
       liveActions.upsertEvent(event);
       void qc.invalidateQueries({ queryKey: queryKeys.eventsAll });
+      void qc.invalidateQueries({ queryKey: ['employee-report'] });
+      void qc.invalidateQueries({ queryKey: queryKeys.statsAll });
       // событие могло быть не в ленте (открыто из журнала) — сверяем счётчик с сервером
       api()
         .listEvents({ status: 'new', limit: 1 })
@@ -95,10 +97,10 @@ export function useStats(groupBy: StatsGroupBy, from?: number, to?: number) {
 }
 
 /** Один запрос — один снимок SQLite для всех показателей выбранного периода. */
-export function useAnalyticsStats(from: number | undefined, to: number) {
+export function useAnalyticsStats(from: number | undefined, to: number, employeeId?: string) {
   return useQuery({
-    queryKey: ['stats', 'analytics', from, to],
-    queryFn: ({ signal }) => api().getAnalytics({ from, to }, signal),
+    queryKey: ['stats', 'analytics', from, to, employeeId],
+    queryFn: ({ signal }) => api().getAnalytics({ from, to, employee_id: employeeId }, signal),
     staleTime: 30_000,
   });
 }
