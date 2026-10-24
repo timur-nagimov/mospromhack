@@ -74,7 +74,7 @@ tools/heavy.sh node deliverables/presentation/render.mjs --png /tmp/zz-preview
 | 11 Экономика | `docs/PITCH.md` «Экономика внедрения»; суммы — условные допущения Д-n |
 | 12 Что дальше | `docs/PITCH.md`, `docs/ARCHITECTURE.md` §6–7 |
 | Б1–Б2 | `docs/BENCHMARKS.md` §1, §4 |
-| Б3 | `README.md` «Сценарии и статус» |
+| Б3 | `README.md` «Сценарии и статус», `docs/MODELS.md` |
 | Б4 | `docs/CHECKPOINT_2.md` §4, `README.md` «Модели и лицензии» |
 | Б5 | `docs/CHECKPOINT_2.md` §5, `.orchestra/QUESTIONS_FOR_ORGS.md` |
 
