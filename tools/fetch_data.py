@@ -29,6 +29,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -68,11 +69,37 @@ def raw_path(data: Path, sid: str, src: dict) -> Path:
     return data / "raw" / f"{sid}{ext}"
 
 
+YTDLP_HOSTS = ("youtube.com", "youtu.be", "vimeo.com")
+# Видео без звука; avc1 — чтобы OpenCV и ffmpeg из imageio читали без av1-декодера
+YTDLP_FORMAT = "bv*[height<=720][vcodec^=avc1]/bv*[height<=720][ext=mp4]/b[height<=720]/b"
+
+
+def is_ytdlp(src: dict) -> bool:
+    host = urllib.parse.urlparse(src["url"]).netloc
+    return bool(src.get("ytdlp")) or any(host == h or host.endswith("." + h) for h in YTDLP_HOSTS)
+
+
+def download_ytdlp(out: Path, src: dict) -> None:
+    exe = shutil.which("yt-dlp")
+    if not exe:
+        sys.exit("yt-dlp не найден: brew install yt-dlp")
+    cmd = [exe, "-q", "--no-warnings", "--no-playlist", "--ffmpeg-location", ffmpeg_exe(),
+           "-f", src.get("format", YTDLP_FORMAT), "--remux-video", "mp4",
+           "-o", str(out.with_suffix("")) + ".%(ext)s", src["url"]]
+    subprocess.run(cmd, check=True, timeout=900)
+    if not out.exists():
+        sys.exit(f"yt-dlp не создал {out}")
+
+
 def download(data: Path, sid: str, src: dict, retries: int = 3) -> Path:
     out = raw_path(data, sid, src)
     out.parent.mkdir(parents=True, exist_ok=True)
     if out.exists() and out.stat().st_size > 0:
         status = "кэш"
+    elif is_ytdlp(src):
+        t0 = time.time()
+        download_ytdlp(out, src)
+        status = f"скачан yt-dlp за {time.time() - t0:.0f} с"
     else:
         for attempt in range(1, retries + 1):
             try:
@@ -152,8 +179,9 @@ def probe(path: Path) -> dict:
     return info
 
 
-def write_labels(data: Path, videos: list[dict], manifest: dict) -> None:
-    labels = data / "labels"
+def write_labels(data: Path, videos: list[dict], manifest: dict, labels: Path | None = None) -> None:
+    # Отдельный каталог для отложенных выборок: run_offline требует, чтобы сценарии покрывали все *.json каталога
+    labels = labels or data / "labels"
     labels.mkdir(parents=True, exist_ok=True)
     durations_path = data / "durations.json"
     durations = json.loads(durations_path.read_text()) if durations_path.exists() else {}
@@ -292,6 +320,7 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--manifest", type=Path, default=MANIFEST)
     ap.add_argument("--data-dir", type=Path, default=Path(os.environ.get("GUARD_DATA_DIR", ROOT / "data")))
+    ap.add_argument("--labels-dir", type=Path, default=None, help="куда писать разметку (по умолчанию <data>/labels)")
     ap.add_argument("--only", nargs="*", help="имена роликов без .mp4, например s1_01 clean_02")
     ap.add_argument("--steps", nargs="*", choices=STEPS, default=list(STEPS))
     ap.add_argument("--heavy", default=os.environ.get("GUARD_HEAVY_SH", str(ROOT / "tools" / "heavy.sh")),
@@ -325,7 +354,7 @@ def main(argv: list[str] | None = None) -> int:
             encode(data, v, manifest, heavy, args.force)
     if "labels" in args.steps:
         log("== labels")
-        write_labels(data, videos, manifest)
+        write_labels(data, videos, manifest, args.labels_dir)
     if "frames" in args.steps:
         log("== frames")
         frames(data, videos)
