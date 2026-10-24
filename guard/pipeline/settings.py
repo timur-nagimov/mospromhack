@@ -93,10 +93,23 @@ class Settings:
     tracker_min_hits: int = 2
     ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
+    # маховик данных (docs/FLYWHEEL.md): сбор кадров в обучающую выборку
+    flywheel: bool = True
+    flywheel_dir: Path | None = None  # None — <data_dir>/flywheel
+    flywheel_period_s: float | None = None  # период uncertain и flicker на камеру; None — 10 с, на edge 30 с
+    flywheel_daily_cap: int = 500  # сэмплов в сутки на камеру, кроме event и operator
+    flywheel_shadow: bool = False  # сверка TPU с CPU на выборочных кадрах (только linq-tpu)
+    flywheel_shadow_period_s: float = 30.0
+    flywheel_allow_train: bool = False  # задачи train и deploy из UI
+    flywheel_edge_kbps: float = 4.0  # edge: прибавка трафика на камеру, КБ/с (контракт — не больше 10)
 
     @property
     def root(self) -> Path:
         return self.data_dir.parent
+
+    @property
+    def flywheel_root(self) -> Path:
+        return Path(self.flywheel_dir).expanduser() if self.flywheel_dir else self.data_dir / "flywheel"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -130,4 +143,12 @@ class Settings:
             clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 512),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
             ort_threads=_env_int("GUARD_ORT_THREADS", 2),
+            flywheel=_env_bool("GUARD_FLYWHEEL", True),
+            flywheel_dir=Path(os.environ["GUARD_FLYWHEEL_DIR"]).expanduser() if os.environ.get("GUARD_FLYWHEEL_DIR") else None,
+            flywheel_period_s=_env_float("GUARD_FLYWHEEL_PERIOD_S", 0.0) or None,
+            flywheel_daily_cap=_env_int("GUARD_FLYWHEEL_DAILY_CAP", 500),
+            flywheel_shadow=_env_bool("GUARD_FLYWHEEL_SHADOW", False),
+            flywheel_shadow_period_s=_env_float("GUARD_FLYWHEEL_SHADOW_PERIOD_S", 30.0),
+            flywheel_allow_train=_env_bool("GUARD_FLYWHEEL_ALLOW_TRAIN", False),
+            flywheel_edge_kbps=_env_float("GUARD_FLYWHEEL_EDGE_KBPS", 4.0),
         )

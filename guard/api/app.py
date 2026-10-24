@@ -400,6 +400,8 @@ def create_app(settings: Settings | None = None, engine: PipelineEngine | None =
     app.include_router(router)
     from guard.api.reports import router as reports_router  # CX-020
     app.include_router(reports_router)
+    from guard.api.flywheel import router as flywheel_router  # маховик данных, docs/FLYWHEEL.md
+    app.include_router(flywheel_router)
     if settings.frontend_dist.is_dir():
         app.mount("/", SPAStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     return app
