@@ -17,6 +17,7 @@ import argparse
 import hashlib
 import io
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -821,6 +822,16 @@ def positive(value: str) -> int:
     return number
 
 
+def positive_float(value: str) -> float:
+    try:
+        number = float(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("нужно положительное число секунд") from None
+    if not math.isfinite(number) or number <= 0:
+        raise argparse.ArgumentTypeError("нужно положительное число секунд")
+    return number
+
+
 def nonnegative(value: str) -> int:
     number = int(value)
     if number < 0:
@@ -841,6 +852,10 @@ def make_parser() -> argparse.ArgumentParser:
         target.add_argument("--url", default=default(DEFAULT_URL), help="адрес JupyterHub")
         target.add_argument("--env", default=default(str(DEFAULT_ENV)), help="файл доступа .env")
         target.add_argument("--root", type=Path, default=default(REPO), help="корень проекта")
+        target.add_argument(
+            "--timeout", type=positive_float, default=default(300.0),
+            help="таймаут HTTP-запросов к стенду, с (300)",
+        )
         target.add_argument(
             "--parallel", type=positive, default=default(4), help="потоки загрузки (4)"
         )
@@ -888,7 +903,9 @@ def main(argv: list[str] | None = None) -> int:
             env.get("JUPYTER_PASSWORD", ""),
             env.get("JUPYTER_TOKEN", ""),
         ]
-        client = jhub.JHub.from_env(args.env, url=args.url, verbose=False)
+        client = jhub.JHub.from_env(
+            args.env, url=args.url, timeout=args.timeout, verbose=False
+        )
         stand = Stand(client, root=args.root, parallel=args.parallel)
         command = args.command
         if command == "sync":
@@ -924,10 +941,11 @@ def main(argv: list[str] | None = None) -> int:
     except StandError as error:
         print("Ошибка: " + redact(str(error), known_secrets()), file=sys.stderr)
         return 2
-    except Exception:
+    except Exception as error:
         # HTTP/WebSocket/AMQP исключения могут содержать URL и секреты.
         print(
-            "Ошибка операции: проверьте доступ к стенду, настройки и локальные файлы.",
+            f"Ошибка операции ({type(error).__name__}): "
+            "проверьте доступ к стенду, настройки и локальные файлы.",
             file=sys.stderr,
         )
         return 2
