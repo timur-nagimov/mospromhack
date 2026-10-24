@@ -105,7 +105,7 @@ INT8 calibration, внешнее выполнение или улучшение 
 
 ## Текущая интеграция и следующий эксперимент
 
-До этого пакета объединены актуальный `origin/main=e23ff4f`, исследовательский
+До этого пакета объединены актуальный `origin/main=71302c7`, исследовательский
 каталог, YOLO11x, D-FINE adapter и TPU preflight. Полный backend suite:
 **1733 passed**, failures/errors/skips0; один прежний Starlette/httpx warning.
 JUnit: `data/integration_validation_20261024/post-model-features.xml`.
