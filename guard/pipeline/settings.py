@@ -81,7 +81,7 @@ class Settings:
     tracker_match_iou: float = 0.25
     tracker_buffer_s: float = 3.0
     tracker_min_hits: int = 2
-    ort_threads: int = 4
+    ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
 
     @property
@@ -114,5 +114,5 @@ class Settings:
             clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
             clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 256),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
-            ort_threads=_env_int("GUARD_ORT_THREADS", 4),
+            ort_threads=_env_int("GUARD_ORT_THREADS", 2),
         )

@@ -1,73 +1,82 @@
 # Камеры сервиса «Зазеркалье». Файл меняет API (/api/cameras), правки руками тоже допустимы.
 # source.uri для file/images: абсолютный путь или относительно GUARD_DATA_DIR.
 # Полигоны зон — нормированные координаты 0..1; active_hours — по Europe/Moscow.
+# Демо (режим local): ролики и зоны A5 — data/videos/sN_0M.mp4, data/labels/sN_0M.json.
 cameras:
-- camera_id: cam_shop
-  name: Цех 1, участок станков
+- camera_id: cam_s1
+  name: Цех 1, ограждённый сектор
   site: Цех 1
-  source: {type: file, uri: videos/a3dev_worker_zone_detection/worker-zone-detection.mp4, loop: true, realtime: true}
+  source: {type: file, uri: videos/s1_01.mp4, loop: true, realtime: true}
   sample_fps: 5.0
   enabled: true
   zones:
-  - zone_id: z_machine
-    name: Зона у станка (нахождение запрещено)
+  - zone_id: behind_tape
+    name: За ограничительной лентой
     kind: danger
-    polygon: [[0.17, 0.74], [0.31, 0.74], [0.32, 0.8], [0.16, 0.8]]
+    polygon: [[0.0, 0.3], [0.07, 0.31], [0.4, 0.7], [0.22, 1.0], [0.0, 1.0]]
     active_hours: null
   rules:
-  - rule_id: s1_machine
+  - rule_id: s1_tape
     type: zone_intrusion
     enabled: true
-    zones: [z_machine]
+    zones: [behind_tape]
     params: {min_conf: 0.35, min_box_h_px: 40}
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
-    cooldown_s: 30.0
+    cooldown_s: 5.0
     severity: high
-- camera_id: cam_warehouse
-  name: Склад, стеллажный проход
-  site: Склад
-  source: {type: file, uri: videos/a3dev_store_aisle_detection/store-aisle-detection.mp4, loop: true, realtime: true}
-  sample_fps: 4.0
+- camera_id: cam_s2
+  name: Проходная цеха, контроль СИЗ
+  site: Цех 2
+  source: {type: file, uri: videos/s2_01.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
   enabled: true
-  zones:
-  - zone_id: z_loading
-    name: Проезд погрузчика (дневная смена)
-    kind: vehicle_path
-    polygon: [[0.3, 0.42], [0.42, 0.42], [0.5, 1.0], [0.22, 1.0]]
-    active_hours: ['08:00-20:00']
+  zones: []
   rules:
-  - rule_id: s1_loading
-    type: zone_intrusion
+  - rule_id: s2_ppe
+    type: ppe_missing
     enabled: true
-    zones: [z_loading]
-    params: {min_conf: 0.35, min_box_h_px: 30}
+    zones: null
+    params: {required: [helmet, vest], min_box_h_px: 60}
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
-    cooldown_s: 30.0
+    cooldown_s: 10.0
     severity: high
-- camera_id: cam_corridor
-  name: Коридор у электрощитовой
+- camera_id: cam_s3
+  name: Комната отдыха персонала
   site: АБК
-  source: {type: file, uri: videos/a3dev_people_detection/people-detection.mp4, loop: true, realtime: true}
-  sample_fps: 4.0
+  source: {type: file, uri: videos/s3_02.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
   enabled: true
-  zones:
-  - zone_id: z_switchboard
-    name: Подход к электрощитовой (только допуск)
-    kind: danger
-    polygon: [[0.0, 0.5], [0.16, 0.48], [0.22, 0.78], [0.0, 0.86]]
-    active_hours: ['08:00-20:00']
+  zones: []
   rules:
-  - rule_id: s1_switchboard
-    type: zone_intrusion
+  - rule_id: s3_fall
+    type: fall_immobile
     enabled: true
-    zones: [z_switchboard]
-    params: {min_conf: 0.35, min_box_h_px: 30}
-    min_duration_s: 2.0
+    zones: null
+    params: {min_lying_s: 2.0, immobile_window_s: 3.0}
+    min_duration_s: 1.0
+    min_ratio: 0.6
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: critical
+- camera_id: cam_s4
+  name: Погрузочная площадка
+  site: Склад
+  source: {type: file, uri: videos/s4_01.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s4_vehicle
+    type: vehicle_proximity
+    enabled: true
+    zones: null
+    params: {min_vehicle_speed_bh: 0.0}
+    min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
-    cooldown_s: 30.0
-    severity: high
+    cooldown_s: 10.0
+    severity: critical
