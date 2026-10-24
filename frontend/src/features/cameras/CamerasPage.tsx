@@ -2,6 +2,7 @@ import { Cctv, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } fro
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useCameras, useDeleteCamera, useRuleTypes, useSaveCamera } from '../../api/queries';
+import { SourceStateDot, sourceView } from '../../components/ui/sourceState';
 import { toast } from '../../components/ui/toast';
 import { formatNumber, plural } from '../../domain/format';
 import { SOURCE_TYPE_LABELS } from '../../domain/labels';
@@ -241,7 +242,7 @@ export function CamerasPage() {
                   className={`cam-item${c.camera_id === cameraId ? ' is-selected' : ''}`}
                   onClick={() => confirmLeave() && navigate(`/cameras/${encodeURIComponent(c.camera_id)}`)}
                 >
-                  <span className={`live-dot${online ? '' : ' live-dot--bad'}`} />
+                  <SourceStateDot view={sourceView(c.enabled, m?.source, online)} />
                   <span className="cam-item__text">
                     <strong>{c.name}</strong>
                     <small>

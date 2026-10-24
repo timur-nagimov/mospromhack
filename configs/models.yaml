@@ -115,6 +115,14 @@ models:
     classes: [person, forklift]    # person не используется: люди берутся из det
 
   # --- лежащий человек (S3), наборы падений: записи ds-falls ниже ---
+  - model_id: pose_falls_v1        # pose-falls-v1 (ml/model_cards/pose-falls-v1.json): yolov8n-pose, дообучен на лежачих
+    task: pose
+    onnx_path: pose_falls_v1-480.onnx
+    input_size: [480, 480]
+    output_format: yolov8-pose
+    conf_threshold: 0.35           # как у pose_n480
+    iou_threshold: 0.5
+    classes: [person]
 
   # --- сигарета (S7): записи ds-smoking ниже ---
 

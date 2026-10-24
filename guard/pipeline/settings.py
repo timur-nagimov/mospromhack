@@ -80,6 +80,11 @@ class Settings:
     mode: str = "local"
     edge_id: str | None = None
     rabbit_url: str | None = field(default=None, repr=False)
+    # суффикс exchange и всех очередей edge/gateway: изолированная проверка на общем брокере (например «-c6test»)
+    rabbit_suffix: str = ""
+    # канал конфигурации камер gateway → edge (docs/EDGE.md §8): правки зон и правил в UI шлюза применяются на edge
+    config_sync: bool = True
+    cameras_overlay: Path | None = None  # оверлей edge; None — .<имя файла камер>.overlay.yaml рядом с ним
     preview_fps: float = 1.0
     preview_max_width: int = 480
     preview_stale_after_s: float = 10.0
@@ -115,6 +120,8 @@ class Settings:
     tracker_match_iou: float = 0.25
     tracker_buffer_s: float = 3.0
     tracker_min_hits: int = 2
+    # люди для трекера: к det добавить людей pose, которых det не видит (лежачие, S3; docs/QUALITY.md)
+    person_pose_fill: bool = False
     ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
     # маховик данных (docs/FLYWHEEL.md): сбор кадров в обучающую выборку
@@ -126,6 +133,12 @@ class Settings:
     flywheel_shadow_period_s: float = 30.0
     flywheel_allow_train: bool = False  # задачи train и deploy из UI
     flywheel_edge_kbps: float = 4.0  # edge: прибавка трафика на камеру, КБ/с (контракт — не больше 10)
+    # вход и роли (docs/ROLES.md). В коде вход по умолчанию выключен: тесты и скрипты собирают приложение
+    # без входа и работают как admin. Settings.from_env() включает его (GUARD_AUTH=1 по умолчанию).
+    auth: bool = False
+    demo_login: bool = True  # кнопки «Войти как …» и смена роли для показа
+    auth_db: Path | None = None  # None — <data_dir>/auth.db
+    session_ttl_s: float = 12 * 3600.0  # смена; срок сдвигается при активности
 
     def __post_init__(self) -> None:
         if self.ppe_input_mode not in {"full_frame", "person_crop"}:
@@ -153,6 +166,10 @@ class Settings:
     def flywheel_root(self) -> Path:
         return Path(self.flywheel_dir).expanduser() if self.flywheel_dir else self.data_dir / "flywheel"
 
+    @property
+    def auth_db_path(self) -> Path:
+        return Path(self.auth_db).expanduser() if self.auth_db else self.data_dir / "auth.db"
+
     @classmethod
     def from_env(cls) -> Settings:
         load_dotenv_guard()
@@ -176,6 +193,9 @@ class Settings:
             mode=(os.environ.get("GUARD_MODE") or "local").strip().lower(),
             transport=(os.environ.get("GUARD_TRANSPORT") or "rabbit").strip().lower(),
             rabbit_url=os.environ.get("GUARD_RABBIT_URL") or None,
+            rabbit_suffix=(os.environ.get("GUARD_RABBIT_SUFFIX") or "").strip(),
+            config_sync=_env_bool("GUARD_CONFIG_SYNC", True),
+            cameras_overlay=Path(os.environ["GUARD_CAMERAS_OVERLAY"]).expanduser() if os.environ.get("GUARD_CAMERAS_OVERLAY") else None,
             publish_frame_meta=_env_bool("GUARD_FRAME_META", True),
             clips_enabled=_env_bool("GUARD_CLIPS", (os.environ.get("GUARD_MODE") or "local").strip().lower() != "edge"),
             edge_snapshot_width=_env_int("GUARD_EDGE_SNAPSHOT_WIDTH", 640),
@@ -191,6 +211,7 @@ class Settings:
             clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
             clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 512),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
+            person_pose_fill=_env_bool("GUARD_PERSON_POSE_FILL", False),
             ort_threads=_env_int("GUARD_ORT_THREADS", 2),
             flywheel=_env_bool("GUARD_FLYWHEEL", True),
             flywheel_dir=Path(os.environ["GUARD_FLYWHEEL_DIR"]).expanduser() if os.environ.get("GUARD_FLYWHEEL_DIR") else None,
@@ -200,4 +221,16 @@ class Settings:
             flywheel_shadow_period_s=_env_float("GUARD_FLYWHEEL_SHADOW_PERIOD_S", 30.0),
             flywheel_allow_train=_env_bool("GUARD_FLYWHEEL_ALLOW_TRAIN", False),
             flywheel_edge_kbps=_env_float("GUARD_FLYWHEEL_EDGE_KBPS", 4.0),
+            auth=_env_bool("GUARD_AUTH", True),
+            demo_login=_env_bool("GUARD_DEMO_LOGIN", True),
+            auth_db=Path(os.environ["GUARD_AUTH_DB"]).expanduser() if os.environ.get("GUARD_AUTH_DB") else None,
+            **_cors_from_env(),
         )
+
+
+def _cors_from_env() -> dict[str, list[str]]:
+    """GUARD_CORS_ORIGINS — источники через запятую; не задано — умолчание Settings (dev-сервер Vite)."""
+    raw = os.environ.get("GUARD_CORS_ORIGINS")
+    if not raw:
+        return {}
+    return {"cors_origins": [o.strip() for o in raw.split(",") if o.strip()]}

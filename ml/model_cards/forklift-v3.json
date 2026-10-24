@@ -1,0 +1,352 @@
+{
+  "model_id": "forklift",
+  "version": "forklift-v3",
+  "parent": "yolov8s-coco",
+  "created_at": "2026-10-24T18:52:56+0300",
+  "task": "detect",
+  "classes": [
+    "person",
+    "forklift"
+  ],
+  "train": {
+    "datasets": [
+      {
+        "name": "forklift_rf",
+        "images": 295,
+        "url": "https://huggingface.co/datasets/keremberke/forklift-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "logistics_rf",
+        "images": 68,
+        "url": "https://huggingface.co/datasets/SergioSCA/Logistics_v2_yolov8",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "construction_rf",
+        "images": 297,
+        "url": "https://huggingface.co/datasets/keremberke/construction-safety-object-detection",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "coco_vehicles",
+        "images": 480,
+        "url": "https://cocodataset.org (train2017)",
+        "dataset": "forklift-ds-v2"
+      },
+      {
+        "name": "imagenet_forklift",
+        "images": 884,
+        "url": "https://huggingface.co/datasets/mlnomad/imnet1k_forklift",
+        "dataset": "forklift-ds-v2"
+      }
+    ],
+    "data_yaml": "data/datasets/forklift-v2/data.yaml",
+    "epochs": 60,
+    "imgsz": 480,
+    "device": "mps",
+    "minutes": 35.3,
+    "batch": 8,
+    "workers": 4,
+    "patience": 15,
+    "time_min": 35.0,
+    "hsv_v": 0.5,
+    "mixup": 0.0,
+    "lr0": 0.01,
+    "warmup_epochs": 3.0,
+    "seed": 0,
+    "base_weights": "yolov8s.pt",
+    "epochs_done": 27,
+    "best_epoch": 26,
+    "val_map50": 0.7652,
+    "val_map50_95": 0.5291
+  },
+  "weights": "models/weights/forklift-v3.pt",
+  "onnx": "forklift_v3-480.onnx",
+  "tpu_program": null,
+  "holdout": {
+    "dataset_test": {
+      "name": "forklift test",
+      "images": 238,
+      "map50": 0.7108,
+      "per_class": {
+        "person": {
+          "ap50": 0.5737,
+          "p": 0.766,
+          "r": 0.478,
+          "n_gt": 425
+        },
+        "forklift": {
+          "ap50": 0.8479,
+          "p": 0.594,
+          "r": 0.884,
+          "n_gt": 43
+        }
+      },
+      "conf_op": 0.35
+    },
+    "dataset_test_forklift_rf": {
+      "name": "forklift_rf test",
+      "images": 42,
+      "map50": 0.8188,
+      "per_class": {
+        "person": {
+          "ap50": 0.7263,
+          "p": 0.857,
+          "r": 0.545,
+          "n_gt": 44
+        },
+        "forklift": {
+          "ap50": 0.9114,
+          "p": 0.884,
+          "r": 0.884,
+          "n_gt": 43
+        }
+      },
+      "conf_op": 0.35
+    },
+    "events": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 5,
+      "duplicates": 0,
+      "precision": 1.0,
+      "recall": 0.782608695652174,
+      "false_alarms_per_hour": 0.0,
+      "latency_p50_s": 2.35,
+      "latency_p95_s": 8.85,
+      "videos": [
+        "clean_01",
+        "clean_02",
+        "s1_01",
+        "s1_02",
+        "s2_01",
+        "s2_02",
+        "s3_01",
+        "s3_02",
+        "s4_01",
+        "s4_02",
+        "s4_03",
+        "s6_01",
+        "s7_01"
+      ],
+      "by_type": {
+        "fall_immobile": {
+          "tp": 6,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "phone_usage": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 0,
+          "duplicates": 0
+        },
+        "ppe_missing": {
+          "tp": 5,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "smoking_fire": {
+          "tp": 0,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 0
+        },
+        "vehicle_proximity": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 2,
+          "duplicates": 0
+        },
+        "zone_intrusion": {
+          "tp": 4,
+          "fp": 0,
+          "fn": 0,
+          "duplicates": 0
+        }
+      },
+      "report": "data/flywheel/runs/forklift-v3/events-forklift-v3-20261024-2055.json",
+      "code": "972f4d8"
+    },
+    "frames_check": {
+      "fps": 2,
+      "thr": 0.45,
+      "report": "frames-forklift-v3-20261024-2110.json",
+      "s4_02 погрузчик 20.5–26.5 с": {
+        "forklift-v3": "0/13, max 0.38",
+        "forklift-v1": "4/13, max 0.68"
+      },
+      "s4_02 погрузчик 32.0–34.3 с": {
+        "forklift-v3": "4/5, max 0.77",
+        "forklift-v1": "5/5, max 0.85"
+      },
+      "ложный forklift, 338 кадров s4_01, s4_02, s4_03, clean_01, clean_02": {
+        "forklift-v3": 0,
+        "forklift-v1": 0
+      }
+    }
+  },
+  "baseline": {
+    "version": "forklift-v1 (det + forklift-v1)",
+    "holdout": {
+      "dataset_test": {
+        "name": "forklift test",
+        "images": 238,
+        "map50": 0.7047,
+        "per_class": {
+          "person": {
+            "ap50": 0.5472,
+            "p": 0.78,
+            "r": 0.459,
+            "n_gt": 425
+          },
+          "forklift": {
+            "ap50": 0.8623,
+            "p": 0.706,
+            "r": 0.837,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      },
+      "events": {
+        "tp": 18,
+        "fp": 0,
+        "fn": 5,
+        "duplicates": 0,
+        "precision": 1.0,
+        "recall": 0.782608695652174,
+        "false_alarms_per_hour": 0.0,
+        "latency_p50_s": 2.35,
+        "latency_p95_s": 8.85,
+        "videos": [
+          "clean_01",
+          "clean_02",
+          "s1_01",
+          "s1_02",
+          "s2_01",
+          "s2_02",
+          "s3_01",
+          "s3_02",
+          "s4_01",
+          "s4_02",
+          "s4_03",
+          "s6_01",
+          "s7_01"
+        ],
+        "by_type": {
+          "fall_immobile": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "phone_usage": {
+            "tp": 1,
+            "fp": 0,
+            "fn": 0,
+            "duplicates": 0
+          },
+          "ppe_missing": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "smoking_fire": {
+            "tp": 0,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0
+          },
+          "vehicle_proximity": {
+            "tp": 2,
+            "fp": 0,
+            "fn": 2,
+            "duplicates": 0
+          },
+          "zone_intrusion": {
+            "tp": 4,
+            "fp": 0,
+            "fn": 0,
+            "duplicates": 0
+          }
+        },
+        "report": "data/flywheel/runs/events-base-20261024-2055.json",
+        "code": "972f4d8"
+      }
+    }
+  },
+  "tpu_check": null,
+  "gate": {
+    "promote": true,
+    "reasons": [
+      "recall 0.783 против 0.783 (TP 18 против 18, FN 5 против 5)",
+      "precision 1.000 против 1.000 (FP 0 против 0)",
+      "ложных тревог в час 0.0 против 0.0",
+      "дублей 0 против 0",
+      "mAP50 на тесте 0.711 против 0.705 (допуск −0.01)"
+    ],
+    "at": "2026-10-24T21:05:51+0300",
+    "rule": "recall и precision не ниже, ложных в час и дублей не больше, mAP50 −0.01"
+  },
+  "status": "candidate",
+  "note": "Третий вариант: YOLOv8s COCO на forklift-ds-v2 (больше ёмкость для погрузчика с грузом)",
+  "references": {
+    "keremberke": {
+      "onnx": "forklift-640.onnx",
+      "dataset_test": {
+        "images": 238,
+        "map50": 0.4967,
+        "per_class": {
+          "person": {
+            "ap50": 0.4907,
+            "p": 0.732,
+            "r": 0.442,
+            "n_gt": 425
+          },
+          "forklift": {
+            "ap50": 0.5027,
+            "p": 0.248,
+            "r": 0.884,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      },
+      "dataset_test_forklift_rf": {
+        "images": 42,
+        "map50": 0.8079,
+        "per_class": {
+          "person": {
+            "ap50": 0.725,
+            "p": 0.933,
+            "r": 0.636,
+            "n_gt": 44
+          },
+          "forklift": {
+            "ap50": 0.8908,
+            "p": 0.826,
+            "r": 0.884,
+            "n_gt": 43
+          }
+        },
+        "conf_op": 0.35
+      }
+    }
+  },
+  "decision": {
+    "deploy": false,
+    "at": "2026-10-24T21:40:00+0300",
+    "reasons": [
+      "гейт контракта пройден (события 18/0/5 = forklift-v1, mAP50 0.711 против 0.705), но выигрыша нет",
+      "класс forklift хуже: AP50 0.848 против 0.862, precision при 0.35 — 0.59 против 0.71",
+      "тёмный проём s4_02 (20.5–26.5 с): 0 из 13 кадров против 4 из 13 у forklift-v1",
+      "YOLOv8s в 3.5 раза тяжелее (ONNX 44.7 МБ против 12.7 МБ): лишнее время TPU и CPU контейнера",
+      "на TPU выкатывается forklift-v1"
+    ]
+  }
+}

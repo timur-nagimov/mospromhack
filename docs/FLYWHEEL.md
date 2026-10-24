@@ -480,7 +480,7 @@ python -m ml.flywheel.export [--include-holdout] [--classes person,forklift] [--
 |---|---|---|
 | Дообучение | `HEAVY_LANE=train tools/heavy.sh .venv/bin/python ml/flywheel/train.py --data <data.yaml> \| --dataset <fw-версия> [--mix <data.yaml>] --base <.pt или версия> --model-id <id> --version <версия>` | `models/weights/<версия>.pt`, карточка `ml/model_cards/<версия>.json` (`candidate`), прогон в `data/flywheel/runs/<версия>/` |
 | Гейт | `ml/flywheel/gate.py --candidate <версия> --data <data.yaml> --events-baseline <json> --events-candidate <json> --write` | `holdout`, `baseline`, `gate` в карточке; при провале — `status: rejected` |
-| Выкатка | `ml/flywheel/deploy.py --version <версия> [--dry-run]` — в работе, следующее слияние ds-forklift | ONNX, программа TPU, сверка, записи в `configs/models*.yaml` |
+| Выкатка | `HEAVY_LANE=stand tools/heavy.sh .venv/bin/python ml/flywheel/deploy.py --version <версия> --data <data.yaml> [--steps export,calib,compile,check,registry] [--dry-run]` | ONNX, программа TPU на стенде, `tpu_check` и `status: deployed` в карточке, записи под якорем в `configs/models*.yaml` |
 
 `train.py`:
 - лимиты памяти проверяются до старта: batch ≤ 16 для n и ≤ 8 для s, workers ≤ 4, `cache=False`, `--time-min` ≤ 40;
@@ -492,6 +492,25 @@ python -m ml.flywheel.export [--include-holdout] [--classes person,forklift] [--
   та модель, которая уйдёт в конвейер;
 - `--subset имя=список.txt` — mAP50 на части теста, `--reference имя=onnx:классы` — справочная модель
   в карточку, на решение не влияет;
-- события — готовые отчёты `run_offline` (`--events-*`) или прогон здесь же (`--scenarios-*`);
+- события — готовые отчёты `run_offline` (`--events-*`) или прогон здесь же (`--scenarios-*`). Лучше считать обе
+  стороны здесь же: тогда база и кандидат посчитаны одним кодом. Коммит кода пишется в карточку (`events.code`),
+  при разном коде гейт предупреждает. `--cache-dir` — общий кэш детекций: det, pose, ppe и fire считаются один раз;
 - код выхода: 0 — promote, 1 — отказ, 2 — ошибка входа;
 - кроме правила контракта проверяет, что дублей не больше.
+
+`deploy.py` (шаги по порядку, каждый можно запустить отдельно, `--dry-run` только печатает команды и правки):
+- `export` — `ml/export_onnx.py` через `tools/heavy.sh`: `models/<версия>-<imgsz>.onnx`;
+- `calib` — `models/calib_<имя>/`: половина кадров — train набора с классом модели (иначе int8 срезает
+  уверенность этого класса, `docs/LINQ_NOTES.md` §17), половина — `data/calib` без кадров роликов и без копий кадров
+  теста;
+- `compile` — на стенде: `tpu/compile.py`, затем `tpu/fix_thresholds.py` и вторая программа `<имя>s1` с потолком
+  Sigmoid 1.0. Обе программы копируются в `/auto/cache/<логин>/` (`cp -n`, чужие файлы не трогаются);
+- `check` — `tpu/yolo_check.py` (raw) для обеих программ: TPU против CPU fp32 на отложенных кадрах — все кадры теста
+  с классом модели, случайные до `--check-n` и `--check-images` (кадры роликов оценки). Класс модели — при пороге
+  реестра и при пороге рождения трека 0.45, все классы — с замером скорости. Сводка — `tpu_check` карточки,
+  сырые ответы — `data/flywheel/runs/<версия>/`;
+- `registry` — только после `gate.promote`: запись под якорем модели в `configs/models.yaml` (порог CPU прежний) и
+  `configs/models.stand.yaml` (порог TPU — `--tpu-conf` или подсказка по сверке: самый высокий порог с recall ≥ 0.95
+  и precision ≥ 0.9 относительно CPU). Комментарии неизменённых строк сохраняются. Карточка → `deployed`, прежняя
+  `deployed` того же `model_id` → `archived`;
+- камеры и edge не трогает: в конце печатает, что включить и что перезапустить оркестратору.

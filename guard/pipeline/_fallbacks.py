@@ -607,7 +607,7 @@ class SimpleEventManager:
 # CX-004: журнал событий (в памяти)
 # ======================================================================
 
-_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details"}
+_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details", "handled_by", "handled_at"}
 _GROUP_FIELDS = {"type": "type", "camera": "camera_id", "zone": "zone_id", "severity": "severity", "status": "status"}
 
 

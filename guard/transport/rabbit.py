@@ -17,6 +17,9 @@ class RabbitConfig:
     queue_prefix: str = "guard.gateway"
     telemetry_ttl_ms: int = 5000
     telemetry_limit: int = 32
+    # GUARD_RABBIT_SUFFIX: appended to the exchange and every queue name, so a
+    # verification run (e.g. "-c6test") never touches production topology.
+    suffix: str = ""
 
     def __post_init__(self):
         if not self.url.startswith(("amqp://", "amqps://")):
@@ -24,21 +27,40 @@ class RabbitConfig:
         for value in (self.edge_id, self.exchange, self.queue_prefix):
             if not value or len(value) > 100 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in value):
                 raise ValueError("Invalid Rabbit topology identifier")
+        if len(self.suffix) > 32 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in self.suffix):
+            raise ValueError("Invalid Rabbit topology suffix")
         if self.telemetry_ttl_ms <= 0 or self.telemetry_limit <= 0:
             raise ValueError("Telemetry TTL and limit must be positive")
 
     @property
+    def exchange_name(self) -> str:
+        return f"{self.exchange}{self.suffix}"
+
+    @property
     def event_queue(self) -> str:
-        return f"{self.queue_prefix}.{self.edge_id}.events"
+        return f"{self.queue_prefix}.{self.edge_id}.events{self.suffix}"
 
     @property
     def telemetry_queue(self) -> str:
         # RabbitMQ 4.4 rejects transient non-exclusive classic queues. A new
         # topology name avoids PRECONDITION_FAILED for existing v1 declarations.
-        return f"{self.queue_prefix}.{self.edge_id}.telemetry.v2"
+        return f"{self.queue_prefix}.{self.edge_id}.telemetry.v2{self.suffix}"
 
     def routing_key(self, durable: bool) -> str:
         return f"{self.edge_id}.{'events' if durable else 'telemetry'}"
+
+    # Control channel gateway -> edge (guard.transport.control): commands are
+    # consumed by the edge, acknowledgements by the gateway. Both durable.
+    @property
+    def config_queue(self) -> str:
+        return f"guard.edge.{self.edge_id}.config{self.suffix}"
+
+    @property
+    def config_ack_queue(self) -> str:
+        return f"{self.queue_prefix}.{self.edge_id}.config_ack{self.suffix}"
+
+    def config_routing_key(self, ack: bool) -> str:
+        return f"{self.edge_id}.{'config_ack' if ack else 'config'}"
 
 
 def _connection(config: RabbitConfig):
@@ -53,14 +75,14 @@ def _connection(config: RabbitConfig):
 
 
 def _topology(channel, config: RabbitConfig) -> None:
-    channel.exchange_declare(exchange=config.exchange, exchange_type="direct", durable=True)
+    channel.exchange_declare(exchange=config.exchange_name, exchange_type="direct", durable=True)
     channel.queue_declare(queue=config.event_queue, durable=True)
-    channel.queue_bind(queue=config.event_queue, exchange=config.exchange, routing_key=config.routing_key(True))
+    channel.queue_bind(queue=config.event_queue, exchange=config.exchange_name, routing_key=config.routing_key(True))
     channel.queue_declare(
         queue=config.telemetry_queue, durable=True,
         arguments={"x-message-ttl": config.telemetry_ttl_ms, "x-max-length": config.telemetry_limit},
     )
-    channel.queue_bind(queue=config.telemetry_queue, exchange=config.exchange, routing_key=config.routing_key(False))
+    channel.queue_bind(queue=config.telemetry_queue, exchange=config.exchange_name, routing_key=config.routing_key(False))
 
 
 class RabbitPublisher:
@@ -92,7 +114,7 @@ class RabbitPublisher:
         try:
             channel = self._connect()
             confirmed = channel.basic_publish(
-                exchange=self.config.exchange,
+                exchange=self.config.exchange_name,
                 routing_key=self.config.routing_key(durable),
                 body=data,
                 properties=pika.BasicProperties(

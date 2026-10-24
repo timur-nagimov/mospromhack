@@ -18,6 +18,8 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 
+from guard.auth.deps import require
+from guard.auth.roles import ANALYTICS_VIEW
 from guard.reports.shift_report import (
     ReportData,
     build_report,
@@ -26,7 +28,8 @@ from guard.reports.shift_report import (
 )
 from guard.rules.geometry import LOCAL_TZ
 
-router = APIRouter(prefix="/api/reports", tags=["reports"])
+# отчёты — часть аналитики (docs/ROLES.md): право на весь роутер
+router = APIRouter(prefix="/api/reports", tags=["reports"], dependencies=[require(ANALYTICS_VIEW)])
 
 
 class ReportPreset(BaseModel):

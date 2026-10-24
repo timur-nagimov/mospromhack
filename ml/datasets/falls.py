@@ -21,6 +21,7 @@
   prepare   кадры train и val в data/datasets/falls/frames/ и список frames.jsonl
   teacher   ключевые точки учителя yolov8x-pose (torch: только через tools/heavy.sh)
   yolo      набор YOLO-pose data/datasets/falls/yolo/ с data.yaml и manifest.json
+  yolo-test тест детекции для гейта: test-серии CAUCAFall и COCO вне обучения (download --coco-test)
 """
 
 from __future__ import annotations
@@ -105,6 +106,7 @@ CAUCA_ACTIVITIES = (
 MIN_OBSERVED_AFTER_ONSET_S = 3.0
 
 COCO_FLIP_IDX = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
+YOLO_VERSION = "falls-pose-ds-v1"
 UA = {"User-Agent": "curl/8.7.1", "Accept": "*/*"}
 
 
@@ -336,8 +338,16 @@ def download_gmdcsa() -> None:
                 print("gmdcsa", path, flush=True)
 
 
-def download_coco(limit: int = 1500) -> None:
-    """Повтор против забывания: изображения COCO val2017 с людьми и их ключевыми точками."""
+def coco_split_ids(with_people: list[int], limit: int, test: int) -> tuple[list[int], list[int]]:
+    """Повтор (первые limit изображений с людьми) и тест забывания (следующие test): части не пересекаются."""
+    return with_people[:limit], with_people[limit : limit + test]
+
+
+def download_coco(limit: int = 1500, test: int = 0) -> None:
+    """Повтор против забывания: изображения COCO val2017 с людьми и их ключевыми точками.
+
+    test > 0 — ещё столько изображений для проверки забывания (coco/test.json): в обучение не идут.
+    """
     root = raw_dir() / "coco"
     ann_path = root / "person_keypoints_val2017.json"
     if not ann_path.is_file():
@@ -348,12 +358,12 @@ def download_coco(limit: int = 1500) -> None:
     with_people = sorted(
         {a["image_id"] for a in ann["annotations"] if a.get("num_keypoints", 0) > 0 and not a["iscrowd"]}
     )
-    chosen = with_people[:limit]
+    chosen, test_ids = coco_split_ids(with_people, limit, test)
     images = {img["id"]: img for img in ann["images"]}
     archive = zipfile.ZipFile(HttpRangeFile(COCO_IMAGES_ZIP))
     infos = {info.filename: info for info in archive.infolist()}
     todo = []
-    for image_id in chosen:
+    for image_id in chosen + test_ids:
         name = images[image_id]["file_name"]
         dest = root / "images" / name
         if not dest.is_file():
@@ -365,6 +375,8 @@ def download_coco(limit: int = 1500) -> None:
         if count % 200 == 0:
             print(f"coco {count}/{len(todo)}", flush=True)
     (root / "chosen.json").write_text(json.dumps(chosen))
+    if test_ids:
+        (root / "test.json").write_text(json.dumps(test_ids))
 
 
 def download_teacher() -> Path:
@@ -821,6 +833,20 @@ def upright_targets(series: Series) -> dict[int, list[list[float]]]:
     }
 
 
+def recall_views(found: dict[str, list[Any]], unions: list[tuple[str, str]], thr: float) -> dict[str, list[Any]]:
+    """Люди с conf ≥ thr: по каждой модели и по объединению det + pose, как его делает конвейер.
+
+    Объединение — guard.pipeline.worker.person_detections с pose_fill: люди det и люди pose, которых det не видит.
+    """
+    from guard.pipeline.worker import person_detections
+
+    kept = {model_id: [d for d in dets if d.conf >= thr] for model_id, dets in found.items()}
+    views = {model_id: [d for d in dets if d.cls == "person"] for model_id, dets in kept.items()}
+    for det_id, pose_id in unions:
+        views[f"{det_id}+{pose_id}"] = person_detections({"det": kept[det_id], "pose": kept[pose_id]}, pose_fill=True)
+    return views
+
+
 def frame_recall(
     models_config: Path,
     models_dir: Path,
@@ -829,12 +855,18 @@ def frame_recall(
     iou_min: float = 0.5,
     split: str = "test",
     step: int = 1,
+    unions: list[tuple[str, str]] | None = None,
 ) -> dict[str, Any]:
-    """Recall лежачих (и стоящих — для контроля) по моделям реестра на кадрах split-серий."""
+    """Recall лежачих (и стоящих — для контроля) по моделям реестра на кадрах split-серий.
+
+    unions — пары (det, pose): recall объединения людей, как в конвейере с GUARD_PERSON_POSE_FILL.
+    """
     from guard.inference import get_backend
     from guard.pipeline.config import load_models
     from guard.pipeline.detector import Detector
 
+    unions = list(unions or [])
+    model_ids = list(dict.fromkeys([*model_ids, *(model_id for pair in unions for model_id in pair)]))
     specs = load_models(models_config, models_dir)
     backend = get_backend("onnx-cpu", models_dir=models_dir, intra_op_threads=2, max_batch=1)
     detectors = {}
@@ -842,9 +874,7 @@ def frame_recall(
         spec = specs[model_id].model_copy(update={"conf_threshold": min(thresholds) - 0.05})
         backend.load(spec)
         detectors[model_id] = Detector(spec, backend)
-    stats: dict[str, Any] = {
-        model_id: defaultdict(lambda: defaultdict(lambda: [0, 0])) for model_id in model_ids
-    }
+    stats: dict[str, Any] = defaultdict(lambda: defaultdict(lambda: defaultdict(lambda: [0, 0])))
     try:
         for series in catalog(("urfd", "cauca")):
             if series.split != split:
@@ -858,15 +888,14 @@ def frame_recall(
                 if frame_no not in wanted:
                     continue
                 height, width = frame.shape[:2]
-                for model_id, detector in detectors.items():
-                    people = [d for d in detector.detect(frame) if d.cls == "person"]
-                    for group, targets in (("lying", lying), ("upright", upright)):
-                        if frame_no not in targets:
-                            continue
-                        boxes = targets[frame_no]
-                        for thr in thresholds:
-                            kept = [d for d in people if d.conf >= thr]
-                            cell = stats[model_id][f"{series.source}/{group}"][f"{thr:.2f}"]
+                found = {model_id: detector.detect(frame) for model_id, detector in detectors.items()}
+                for thr in thresholds:
+                    for view, kept in recall_views(found, unions, thr).items():
+                        for group, targets in (("lying", lying), ("upright", upright)):
+                            if frame_no not in targets:
+                                continue
+                            boxes = targets[frame_no]
+                            cell = stats[view][f"{series.source}/{group}"][f"{thr:.2f}"]
                             if boxes is None:  # URFD: человек один, рамки нет
                                 cell[0] += 1
                                 cell[1] += int(bool(kept))
@@ -878,8 +907,8 @@ def frame_recall(
     finally:
         backend.close()
     out: dict[str, Any] = {}
-    for model_id, groups in stats.items():
-        out[model_id] = {
+    for view, groups in stats.items():
+        out[view] = {
             group: {
                 thr: {"targets": total, "hits": hits, "recall": round(hits / total, 4) if total else None}
                 for thr, (total, hits) in sorted(cells.items())
@@ -1026,6 +1055,48 @@ def _teacher_index() -> dict[str, dict[str, Any]]:
     return index
 
 
+def _coco_ids(name: str) -> list[int]:
+    path = raw_dir() / "coco" / name
+    return json.loads(path.read_text()) if path.is_file() else []
+
+
+def coco_label_lines(annotations: list[dict[str, Any]], width: int, height: int) -> list[str]:
+    """Люди COCO в строки YOLO-pose: рамка и 17 точек; рамки меньше 4 пикселей пропускаем."""
+    lines = []
+    for a in annotations:
+        x, y, w, h = a["bbox"]
+        if w < 4 or h < 4:
+            continue
+        points = a["keypoints"]
+        kpts = [[points[3 * k], points[3 * k + 1], 1.0 if points[3 * k + 2] > 0 else 0.0] for k in range(17)]
+        lines.append(_yolo_pose_line([x, y, x + w, y + h], kpts, width, height))
+    return lines
+
+
+def _coco_items(ids: list[int]) -> Iterator[tuple[int, Path, list[str]]]:
+    """(позиция в ids, изображение, строки меток) для скачанных изображений COCO; толпу (iscrowd) пропускаем."""
+    coco_root = raw_dir() / "coco"
+    ann_path = coco_root / "person_keypoints_val2017.json"
+    if not ids or not ann_path.is_file():
+        return
+    ann = json.loads(ann_path.read_text())
+    images = {img["id"]: img for img in ann["images"]}
+    by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
+    crowd: set[int] = set()
+    for a in ann["annotations"]:
+        if a["iscrowd"]:
+            crowd.add(a["image_id"])
+        else:
+            by_image[a["image_id"]].append(a)
+    for position, image_id in enumerate(ids):
+        if image_id in crowd:
+            continue  # толпу с маской iscrowd не размечаем рамками
+        img = images[image_id]
+        path = coco_root / "images" / img["file_name"]
+        if path.is_file():
+            yield position, path, coco_label_lines(by_image[image_id], img["width"], img["height"])
+
+
 def build_yolo(teacher_conf: float = 0.5, coco_val: int = 200) -> dict[str, Any]:
     """Набор YOLO-pose: кадры падений + повтор COCO и калибровки. Рамки — разметка набора или учитель.
 
@@ -1085,36 +1156,8 @@ def build_yolo(teacher_conf: float = 0.5, coco_val: int = 200) -> dict[str, Any]
         ]
         emit("train", Path(item["image"]), lines, "calib")
 
-    coco_root = raw_dir() / "coco"
-    ann_path = coco_root / "person_keypoints_val2017.json"
-    if ann_path.is_file():
-        ann = json.loads(ann_path.read_text())
-        images = {img["id"]: img for img in ann["images"]}
-        by_image: dict[int, list[dict[str, Any]]] = defaultdict(list)
-        crowd: set[int] = set()
-        for a in ann["annotations"]:
-            if a["iscrowd"]:
-                crowd.add(a["image_id"])
-            else:
-                by_image[a["image_id"]].append(a)
-        chosen = json.loads((coco_root / "chosen.json").read_text()) if (coco_root / "chosen.json").is_file() else []
-        for position, image_id in enumerate(chosen):
-            if image_id in crowd:
-                continue  # толпу с маской iscrowd не размечаем рамками
-            img = images[image_id]
-            path = coco_root / "images" / img["file_name"]
-            if not path.is_file():
-                continue
-            width, height = img["width"], img["height"]
-            lines = []
-            for a in by_image[image_id]:
-                x, y, w, h = a["bbox"]
-                if w < 4 or h < 4:
-                    continue
-                points = a["keypoints"]
-                kpts = [[points[3 * k], points[3 * k + 1], 1.0 if points[3 * k + 2] > 0 else 0.0] for k in range(17)]
-                lines.append(_yolo_pose_line([x, y, x + w, y + h], kpts, width, height))
-            emit("val" if position < coco_val else "train", path, lines, "coco")
+    for position, path, lines in _coco_items(_coco_ids("chosen.json")):
+        emit("val" if position < coco_val else "train", path, lines, "coco")
 
     data_yaml = out / "data.yaml"
     data_yaml.write_text(
@@ -1122,16 +1165,25 @@ def build_yolo(teacher_conf: float = 0.5, coco_val: int = 200) -> dict[str, Any]
         f"path: {out}\n"
         "train: images/train\n"
         "val: images/val\n"
+        "test: images/test  # test-серии CAUCAFall и COCO вне обучения (ml/datasets/falls.py yolo-test)\n"
         "kpt_shape: [17, 3]\n"
         f"flip_idx: {COCO_FLIP_IDX}\n"
         "names:\n  0: person\n"
     )
+    (out / "images" / "test").mkdir(parents=True, exist_ok=True)
+    splits: dict[str, dict[str, dict[str, int]]] = defaultdict(dict)
+    for key, value in counts.items():
+        split, tag = key.split("/", 1)
+        if split in ("train", "val"):
+            splits[split][tag] = {"images": value}
     manifest = {
+        "version": YOLO_VERSION,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "sources": {
-            "urfd": URFD_PAGE, "cauca": CAUCA_PAGE, "gmdcsa": GMDCSA_PAGE,
-            "coco": COCO_IMAGES_ZIP, "calib": "data/calib/manifest.csv (без demo_camera)",
+            "urfd": {"url": URFD_PAGE}, "cauca": {"url": CAUCA_PAGE}, "gmdcsa": {"url": GMDCSA_PAGE},
+            "coco": {"url": COCO_IMAGES_ZIP}, "calib": {"url": "data/calib/manifest.csv (без demo_camera)"},
         },
+        "splits": dict(splits),
         "split": {
             "urfd_test_persons": sorted(URFD_TEST_PERSONS), "urfd_val_persons": sorted(URFD_VAL_PERSONS),
             "cauca_test_subjects": sorted(CAUCA_TEST_SUBJECTS), "cauca_val_subjects": sorted(CAUCA_VAL_SUBJECTS),
@@ -1145,6 +1197,68 @@ def build_yolo(teacher_conf: float = 0.5, coco_val: int = 200) -> dict[str, Any]
     }
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     return manifest
+
+
+def pick_test_frames(series: Series, upright_every: int = 2) -> dict[int, bool]:
+    """Кадры test-серии CAUCAFall для теста детекции: номер кадра → лежит ли в нём человек.
+
+    Берём все размеченные кадры с рамкой класса fall и каждый upright_every-й размеченный кадр без неё.
+    Кадры без рамок пропускаем: в CAUCAFall это кадр без человека или без разметки.
+    """
+    out: dict[int, bool] = {}
+    upright = 0
+    for frame in sorted(series.boxes):
+        boxes = series.boxes[frame]
+        if not boxes:
+            continue
+        lying = any(int(box[0]) == 1 for box in boxes)
+        if not lying:
+            upright += 1
+            if (upright - 1) % upright_every:
+                continue
+        out[frame] = lying
+    return out
+
+
+def build_yolo_test(upright_every: int = 2) -> dict[str, int]:
+    """Тест детекции людей для гейта: test-серии CAUCAFall (люди 8–10, рамки разметки) и COCO вне обучения.
+
+    Кадры — в yolo/images/test, метки — в yolo/labels/test; точки не размечены (видимость 0), гейт считает
+    mAP50 рамок. Подмножества для гейта: test_lying.txt (лежит человек), test_upright.txt, test_coco.txt.
+    """
+    import cv2
+
+    out = falls_dir() / "yolo"
+    image_dir, label_dir = out / "images" / "test", out / "labels" / "test"
+    image_dir.mkdir(parents=True, exist_ok=True)
+    label_dir.mkdir(parents=True, exist_ok=True)
+    lists: dict[str, list[str]] = {"lying": [], "upright": [], "coco": []}
+    for series in cauca_series():
+        if series.split != "test":
+            continue
+        wanted = pick_test_frames(series, upright_every)
+        if not wanted:
+            continue
+        for frame_no, frame in iter_frames(series):
+            if frame_no not in wanted:
+                continue
+            height, width = frame.shape[:2]
+            name = f"cauca__{series.name}__{frame_no:05d}"
+            image = image_dir / f"{name}.jpg"
+            if not image.is_file():
+                cv2.imwrite(str(image), frame, [cv2.IMWRITE_JPEG_QUALITY, 92])
+            lines = [_yolo_pose_line(_xyxy(box, width, height), None, width, height) for box in series.boxes[frame_no]]
+            (label_dir / f"{name}.txt").write_text("\n".join(lines) + "\n")
+            lists["lying" if wanted[frame_no] else "upright"].append(str(image))
+    for _, path, lines in _coco_items(_coco_ids("test.json")):
+        link = image_dir / f"coco__{path.name}"
+        if not link.exists():
+            link.symlink_to(path.resolve())
+        (label_dir / f"coco__{path.stem}.txt").write_text("\n".join(lines) + ("\n" if lines else ""))
+        lists["coco"].append(str(link))
+    for key, items in lists.items():
+        (out / f"test_{key}.txt").write_text("\n".join(items) + "\n")
+    return {key: len(items) for key, items in lists.items()}
 
 
 # ---------------------------------------------------------------- разбор прогона по источникам и видам ADL
@@ -1231,6 +1345,7 @@ def main(argv: list[str] | None = None) -> int:
     download = sub.add_parser("download")
     download.add_argument("--only", default="urfd,cauca,gmdcsa,coco,teacher")
     download.add_argument("--coco-images", type=int, default=1500)
+    download.add_argument("--coco-test", type=int, default=0, help="изображений COCO для проверки забывания")
     download.add_argument("--subjects", default="8,9,10,1,2,3,4,5,6,7", help="люди CAUCAFall по порядку")
     download.add_argument("--label-step", type=int, default=4, help="метки CAUCAFall каждого N-го кадра")
     holdout = sub.add_parser("holdout")
@@ -1239,7 +1354,8 @@ def main(argv: list[str] | None = None) -> int:
     recall = sub.add_parser("recall")
     recall.add_argument("--models-config", type=Path, default=ROOT / "configs" / "models.yaml")
     recall.add_argument("--models-dir", type=Path, default=Path(os.environ.get("GUARD_MODELS_DIR") or ROOT / "models"))
-    recall.add_argument("--model", action="append", required=True)
+    recall.add_argument("--model", action="append", default=[])
+    recall.add_argument("--union", action="append", default=[], help="det+pose: объединение, как в конвейере")
     recall.add_argument("--split", default="test")
     recall.add_argument("--out", type=Path)
     prepare = sub.add_parser("prepare")
@@ -1249,6 +1365,8 @@ def main(argv: list[str] | None = None) -> int:
     teacher.add_argument("--device", default="mps")
     yolo = sub.add_parser("yolo")
     yolo.add_argument("--teacher-conf", type=float, default=0.5)
+    yolo_test = sub.add_parser("yolo-test")
+    yolo_test.add_argument("--upright-every", type=int, default=2)
     sub.add_parser("manifest")
     report = sub.add_parser("report")
     report.add_argument("result", type=Path)
@@ -1259,7 +1377,7 @@ def main(argv: list[str] | None = None) -> int:
             "urfd": download_urfd,
             "cauca": lambda: download_cauca(tuple(int(s) for s in args.subjects.split(",")), args.label_step),
             "gmdcsa": download_gmdcsa,
-            "coco": lambda: download_coco(args.coco_images),
+            "coco": lambda: download_coco(args.coco_images, args.coco_test),
             "teacher": download_teacher,
         }
         for name in args.only.split(","):
@@ -1273,7 +1391,8 @@ def main(argv: list[str] | None = None) -> int:
         summary = build_holdout(force=args.force, sources=tuple(args.sources.split(",")))
         print(json.dumps(summary, ensure_ascii=False, indent=2))
     elif args.command == "recall":
-        result = frame_recall(args.models_config, args.models_dir, args.model, split=args.split)
+        unions = [tuple(item.split("+", 1)) for item in args.union]
+        result = frame_recall(args.models_config, args.models_dir, args.model, split=args.split, unions=unions)
         text = json.dumps(result, ensure_ascii=False, indent=2)
         if args.out:
             args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -1285,6 +1404,8 @@ def main(argv: list[str] | None = None) -> int:
         print(run_teacher(download_teacher(), device=args.device))
     elif args.command == "yolo":
         print(json.dumps(build_yolo(args.teacher_conf), ensure_ascii=False, indent=2))
+    elif args.command == "yolo-test":
+        print(json.dumps(build_yolo_test(args.upright_every), ensure_ascii=False, indent=2))
     return 0
 
 

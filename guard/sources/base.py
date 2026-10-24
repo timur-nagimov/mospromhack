@@ -3,6 +3,12 @@
 Потребитель (CameraWorker) берёт самый свежий кадр; старые кадры перезаписываются,
 поэтому лаг не накапливается, даже если анализ медленнее источника.
 Колбэк on_frame вызывается на КАЖДЫЙ кадр (кольцевой буфер клипов, fps_in).
+
+Состояние источника (status()["state"], docs/STREAMS.md):
+connecting — первое подключение, кадров ещё не было; online — кадры идут;
+reconnecting — поток оборвался, идут повторные попытки; offline — нет сигнала
+(попытки не удаются дольше OFFLINE_AFTER_ATTEMPTS раз подряд, файл закончился, источник остановлен);
+error — ошибка конфигурации или адреса (файл не найден, ссылку не удалось разрешить).
 """
 
 from __future__ import annotations
@@ -10,15 +16,22 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import Any
 from uuid import uuid4
 
 import numpy as np
 
 from guard.contracts import SourceConfig
+from guard.sources.stream_url import mask_uri
 
 log = logging.getLogger(__name__)
+
+CONNECTING, ONLINE, RECONNECTING, OFFLINE, ERROR = "connecting", "online", "reconnecting", "offline", "error"
+SOURCE_STATES = (CONNECTING, ONLINE, RECONNECTING, OFFLINE, ERROR)
+FPS_WINDOW_S = 10.0  # окно расчёта fps_in источника
 
 
 @dataclass(slots=True)
@@ -54,6 +67,18 @@ class FrameSource:
         self.native_fps: float | None = None
         self.frame_size: tuple[int, int] | None = None  # (w, h)
         self.capture_id = str(uuid4())
+        # состояние и счётчики подключения (status())
+        self.state = CONNECTING
+        self.codec: str | None = None
+        self.reconnects = 0  # успешных переподключений после обрыва
+        self.drops = 0  # обрывов уже работавшего потока
+        self.attempts = 0  # неудачных попыток подключения подряд
+        self.connect_ms: float | None = None  # от начала попытки до первого кадра (последнее подключение)
+        self.last_outage_s: float | None = None  # длительность последнего обрыва: от потери до первого кадра
+        self.retry_at: float | None = None  # monotonic следующей попытки, пока ждём паузу
+        self.online_since: float | None = None  # epoch первого кадра текущего подключения
+        self._frame_times: deque[float] = deque(maxlen=600)
+        self._last_frame_mono: float | None = None
 
     def _new_capture(self) -> None:
         """A reconnect/file loop is a new capture, even if frame positions repeat."""
@@ -73,6 +98,9 @@ class FrameSource:
             self._cond.notify_all()
         if self._thread is not None:
             self._thread.join(timeout=timeout)
+        self.retry_at = None
+        if self.state != ERROR:
+            self.state = OFFLINE
 
     @property
     def running(self) -> bool:
@@ -83,6 +111,7 @@ class FrameSource:
             self._run()
         except Exception as exc:  # noqa: BLE001 — поток источника не должен падать молча
             self._error(exc)
+            self.state = ERROR
             log.exception("source %s crashed", self.camera_id)
         finally:
             self.connected = False
@@ -96,7 +125,7 @@ class FrameSource:
 
     def _error(self, exc: BaseException | str) -> None:
         self.errors += 1
-        self.last_error = str(exc)[:300]
+        self.last_error = mask_uri(str(exc))[:300]  # пароль и токены из адреса не попадают в API и логи
 
     # ---- выдача кадров ----
 
@@ -104,8 +133,11 @@ class FrameSource:
         self._seq += 1
         pkt = FramePacket(frame=frame, ts=time.time() if ts is None else ts, seq=self._seq, decode_ms=decode_ms, pos_s=pos_s, capture_id=self.capture_id)
         self.frame_size = (frame.shape[1], frame.shape[0])
+        now = time.monotonic()
         with self._cond:
             self._latest = pkt
+            self._frame_times.append(now)
+            self._last_frame_mono = now
             self._cond.notify_all()
         if self.on_frame is not None:
             try:
@@ -130,14 +162,55 @@ class FrameSource:
                 self._cond.wait(remaining)
         return None
 
-    def status(self) -> dict:
+    # ---- состояние ----
+
+    def fps_in(self, now: float | None = None) -> float:
+        """Кадров в секунду на входе за последние FPS_WINDOW_S; поток встал — значение падает к нулю."""
+        now = time.monotonic() if now is None else now
+        with self._cond:
+            times = [t for t in self._frame_times if now - t <= FPS_WINDOW_S]
+        if len(times) < 2:
+            return 0.0
+        span = now - times[0]
+        return (len(times) - 1) / span if span > 0 else 0.0
+
+    def last_frame_age_s(self, now: float | None = None) -> float | None:
+        if self._last_frame_mono is None:
+            return None
+        return max(0.0, (time.monotonic() if now is None else now) - self._last_frame_mono)
+
+    def brief_status(self) -> dict[str, Any]:
+        """Компактный статус для метрик (WS metrics каждые 2 с и транспорт edge)."""
+        now = time.monotonic()
+        w, h = self.frame_size or (None, None)
+        age = self.last_frame_age_s(now)
+        return {
+            "state": self.state,
+            "fps_in": round(self.fps_in(now), 2),
+            "last_frame_age_s": None if age is None else round(age, 2),
+            "width": w,
+            "height": h,
+            "reconnects": self.reconnects,
+            "drops": self.drops,
+            "last_error": self.last_error,
+        }
+
+    def status(self) -> dict[str, Any]:
+        now = time.monotonic()
+        retry_in = None if self.retry_at is None else round(max(0.0, self.retry_at - now), 2)
         return {
             "kind": self.kind,
+            **self.brief_status(),
             "connected": self.connected,
             "eof": self.eof,
             "frames": self._seq,
             "errors": self.errors,
-            "last_error": self.last_error,
             "native_fps": self.native_fps,
             "frame_size": self.frame_size,
+            "codec": self.codec,
+            "attempts": self.attempts,
+            "connect_ms": None if self.connect_ms is None else round(self.connect_ms, 1),
+            "last_outage_s": None if self.last_outage_s is None else round(self.last_outage_s, 2),
+            "next_retry_s": retry_in,
+            "online_since": self.online_since,
         }

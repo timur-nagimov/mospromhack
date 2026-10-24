@@ -2,7 +2,7 @@
 # параметры правил, что в scenarios.yaml. Отличие одно — правило vehicle_proximity подключает модель forklift
 # (params.models). Параметры правил не менялись. Запуск:
 #   tools/heavy.sh .venv/bin/python -m ml.eval.run_offline --scenarios ml/eval/scenarios_forklift.yaml \
-#       --out .orchestra/metrics/eval-onnx-cpu-forklift-v1-<время>.json
+#       --out data/flywheel/runs/forklift-v1/eval-onnx-cpu-<время>.json
 #
 # Пути разрешаются относительно root; root — относительно этого YAML.
 # camera.source создаётся загрузчиком: file, loop=false, realtime=false.

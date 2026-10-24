@@ -65,6 +65,22 @@ JSON, NaN/Infinity и неверный `message_id` отклоняются до 
   `jpeg_b64` — кусок JPEG от 1 байта до 64 КБ. Путей нет: имя кадра на
   gateway строится из `sample_id`. Целый JPEG проверяет сборщик gateway.
 
+- **camera_config** (gateway → edge): `{"camera_id", "version", "op", "config"}`.
+  `op` — `upsert` с полным CameraConfig в `config` (его `camera_id` равен
+  `camera_id`) или `delete` с `config: null`. `version` — целое 1..2^63−1,
+  монотонное для камеры. ID камеры, зон, правил и тип правила — идентификаторы,
+  как в событиях; `source.uri` до 2048 символов, `edge://<edge_id>/<camera_id>`
+  означает «источник не меняется». До 256 зон и 256 правил.
+- **camera_config_ack** (edge → gateway): `{"camera_id", "version", "ok",
+  "error", "current_version"}`. При `ok=true` `error` = null, иначе текст
+  1..1000 символов. `current_version` — версия действующей правки (0 — базовый
+  файл камер).
+
+Конверт управляющих сообщений тот же. У `camera_config` producer — шлюз:
+`producer_id` и счётчик `sequence` хранятся в его `data/config_sync.db`,
+`edge_id` — edge назначения. У `camera_config_ack` producer — edge, sequence
+выделяет его Journal (`make_message`), как для телеметрии.
+
 Общие пределы: **2 MiB** на полное сериализованное сообщение, **1 MiB**
 на декодированный JPEG, глубина JSON до **32**, до **100 000** узлов.
 Размеры frame_meta — **1..4096** по каждой стороне, до **16 777 216**
@@ -205,3 +221,29 @@ ID и identity; повтор не создаёт вторую outbox revision. �
 
 Повторяемая проверка с настоящим RabbitMQ и аварийными границами:
 `docs/RABBIT_ACCEPTANCE.md`; CPU-инференс проверяется отдельно.
+
+## Управляющий канал gateway → edge
+
+Та же топология `guard.edge.v1` (direct, durable), ещё две durable-очереди:
+`guard.edge.<edge_id>.config` (routing key `<edge_id>.config`, читает edge) и
+`guard.gateway.<edge_id>.config_ack` (`<edge_id>.config_ack`, читает шлюз).
+Обе стороны объявляют обе очереди, поэтому команда, отправленная до старта edge,
+ждёт его. Сообщения persistent, публикация с publisher confirm, `mandatory`.
+Каждой стороной владеет один поток (`guard/transport/control.py`): входящее
+сообщение подтверждается брокеру после обработчика и публикации ответа.
+Неверный конверт или чужой kind — permanent reject, ошибка обработчика — NACK
+с возвратом в очередь и переподключение с ограниченной задержкой.
+
+Гарантия — at-least-once плюс идемпотентное применение по версии:
+- edge помнит последнюю обработанную версию каждой камеры в оверлее
+  (`docs/EDGE.md` §8.4) и применяет только более новую; на повтор отвечает
+  прежним результатом;
+- шлюз хранит одну желаемую команду на камеру с замороженным wire body и
+  повторяет неподтверждённые при каждом (пере)подключении и при новом процессе
+  edge (новый `run_id` каталога);
+- каталог edge сообщает действующую версию камеры (`statuses.<id>.config_version`),
+  поэтому потерянное подтверждение не оставляет правку в `pending`.
+
+`GUARD_RABBIT_SUFFIX` добавляет суффикс к exchange и ко всем очередям этого
+документа: проверка на общем брокере не касается рабочей топологии.
+

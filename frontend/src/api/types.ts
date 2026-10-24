@@ -8,6 +8,8 @@ import type {
   Health,
   MetricsSnapshot,
   RuleTypeInfo,
+  SourceConfig,
+  SourceProbeResult,
   StatsGroupBy,
   StatsResponse,
   WsMessage,
@@ -97,6 +99,8 @@ export interface GuardApi {
   createCamera(camera: CameraConfig): Promise<CameraConfig>;
   updateCamera(id: string, camera: CameraConfig): Promise<CameraConfig>;
   deleteCamera(id: string): Promise<void>;
+  /** POST /api/cameras/probe: открыть поток и дождаться кадра (docs/STREAMS.md) */
+  probeSource(source: SourceConfig, timeoutS?: number): Promise<SourceProbeResult>;
   listRuleTypes(): Promise<RuleTypeInfo[]>;
   listEvents(query: EventQuery, signal?: AbortSignal): Promise<EventPage>;
   getEvent(id: string): Promise<GuardEvent>;

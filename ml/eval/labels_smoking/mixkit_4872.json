@@ -1,0 +1,26 @@
+{
+  "video": "mixkit_4872.mp4",
+  "events": [],
+  "scenario": "clean",
+  "description": "Чистый: двое за ноутбуком, жестикулируют, в руках ручка — трудный негатив",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "2 человека, средний план",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/two-coworkers-talking-and-laughing-4872/",
+      "url": "https://assets.mixkit.co/videos/4872/4872-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 17.52,
+  "size": [
+    1280,
+    720
+  ]
+}

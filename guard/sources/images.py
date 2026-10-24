@@ -9,7 +9,7 @@ from pathlib import Path
 import cv2
 
 from guard.contracts import SourceConfig
-from guard.sources.base import FrameCallback, FrameSource
+from guard.sources.base import ERROR, OFFLINE, ONLINE, FrameCallback, FrameSource
 
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
@@ -39,10 +39,12 @@ class ImageFolderSource(FrameSource):
             if not files:
                 self._error(f"no images in {self.uri}")
                 self.connected = False
+                self.state = ERROR
                 if not self._sleep(2.0):
                     return
                 continue
             self.connected = True
+            self.state = ONLINE
             self._new_capture()
             next_t = time.monotonic()
             for f in files:
@@ -61,4 +63,5 @@ class ImageFolderSource(FrameSource):
             if not self.cfg.loop:
                 self.eof = True
                 self.connected = False
+                self.state = OFFLINE
                 return
