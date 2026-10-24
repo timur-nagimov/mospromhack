@@ -144,6 +144,27 @@ def test_frame_jpg_and_mjpeg_stream(env):
     assert b"--frame" in buf and b"Content-Type: image/jpeg" in buf and b"\xff\xd8" in buf
 
 
+def test_mjpeg_stream_ends_when_camera_deleted(env):
+    """Раньше поток удалённой камеры жил вечно (и замирал после PUT) — теперь завершается."""
+    client, _, _, tmp_path = env
+    client.post("/api/cameras", json=camera_body(tmp_path))
+    wait_for(lambda: client.get("/api/cameras/cam1/frame.jpg").status_code == 200)
+    with client.stream("GET", "/api/cameras/cam1/stream.mjpg?fps=30") as resp:
+        it = resp.iter_bytes()
+        buf = b""
+        while b"\xff\xd9" not in buf:
+            buf += next(it)
+        assert client.delete("/api/cameras/cam1").status_code == 204
+        deadline = time.time() + 10
+        finished = False
+        for _ in it:  # после удаления камеры генератор выходит, и итератор исчерпывается
+            if time.time() > deadline:
+                break
+        else:
+            finished = True
+        assert finished
+
+
 # ---------- события ----------
 
 
