@@ -226,6 +226,21 @@ def test_batch_scheduler_merges_cameras():
     assert all(r[0][0].shape[0] == 1 and r[1]["batch"] == 3 for r in results)
 
 
+def test_batch_scheduler_skips_cancelled_requests():
+    """Запросы, от которых отказались по таймауту, не уходят в бэкенд после его восстановления."""
+    be = FakeBackend(max_batch=4)
+    be.load(ModelSpec(model_id="det", onnx_path="x", classes=["person"] * 80))
+    sched = BatchScheduler(be, "det", max_batch=4, timeout_s=0.3)
+    try:
+        stale = sched.submit(np.zeros((1, 3, 640, 640), np.float32))
+        assert stale.cancel()  # ещё не взят в работу: таймаут детектора отменяет запрос
+        live = sched.submit(np.zeros((1, 3, 640, 640), np.float32))
+        live.result(timeout=2)
+    finally:
+        sched.stop()
+    assert be.calls == 1 and stale.cancelled()
+
+
 # ---------- заглушки (запасной вариант модулей Codex) ----------
 
 
