@@ -1,0 +1,34 @@
+{
+  "video": "s7_01.mp4",
+  "events": [
+    {
+      "type": "smoking_fire",
+      "t_start": 0.0,
+      "t_end": 35.1,
+      "uncertain": false,
+      "note": "Курит весь ролик: рука с сигаретой у рта, дым на 19–25 с"
+    }
+  ],
+  "scenario": "S7",
+  "description": "Несколько планов: мужчина сидит на столе и курит, выдыхает дым (видно на 19–25 с). Сигарета мелкая, часто закрыта рукой.",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "1 человек, средний и крупный план",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/man-smoking-in-an-abandoned-building-414/",
+      "url": "https://assets.mixkit.co/videos/414/414-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 35.08,
+  "size": [
+    1280,
+    720
+  ]
+}

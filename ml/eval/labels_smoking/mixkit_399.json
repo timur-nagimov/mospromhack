@@ -1,0 +1,34 @@
+{
+  "video": "mixkit_399.mp4",
+  "events": [
+    {
+      "type": "smoking_fire",
+      "t_start": 0.0,
+      "t_end": 15.1,
+      "uncertain": false,
+      "note": "Курит весь ролик: рука с сигаретой у рта 0–1 с, дым у лица на 8 с; дальше сигарету закрывает рука"
+    }
+  ],
+  "scenario": "S7",
+  "description": "Мужчина сидит в заброшенном здании и курит. Та же съёмка, что s7_01",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "1 человек, средний план",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/urban-man-smoking-at-a-ruined-building-399/",
+      "url": "https://assets.mixkit.co/videos/399/399-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 15.14,
+  "size": [
+    1280,
+    720
+  ]
+}

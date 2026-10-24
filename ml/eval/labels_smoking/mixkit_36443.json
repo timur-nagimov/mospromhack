@@ -1,0 +1,34 @@
+{
+  "video": "mixkit_36443.mp4",
+  "events": [
+    {
+      "type": "smoking_fire",
+      "t_start": 0.0,
+      "t_end": 18.7,
+      "uncertain": false,
+      "note": "Курит весь ролик у машины: прикуривает, сигарета у рта и в руке"
+    }
+  ],
+  "scenario": "S7",
+  "description": "Мужчина курит у машины ночью",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "1 человек, средний план",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/man-smoking-out-of-his-car-at-night-36443/",
+      "url": "https://assets.mixkit.co/videos/36443/36443-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 18.72,
+  "size": [
+    1280,
+    720
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "video": "mixkit_47755.mp4",
+  "events": [],
+  "scenario": "clean",
+  "description": "Чистый для сигареты: сварка и искры от болгарки. Огонь модели fire здесь — сварочная дуга, не курение",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "2 человека",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/workers-welding-heavy-metal-in-a-factory-47755/",
+      "url": "https://assets.mixkit.co/videos/47755/47755-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 14.4,
+  "size": [
+    1280,
+    720
+  ]
+}
