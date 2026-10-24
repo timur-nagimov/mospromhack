@@ -279,6 +279,30 @@ def test_cameras_yaml_roundtrip(tmp_path):
     assert "Склад" in path.read_text(encoding="utf-8")
 
 
+def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
+    """Неявная severity не должна превращаться в явную 'high' после сохранения (иначе теряется default плагина)."""
+    cam = CameraConfig(
+        camera_id="c1", name="c", site="s", source=SourceConfig(type="file", uri="a.mp4"),
+        rules=[RuleConfig(rule_id="r1", type="fall_immobile"), RuleConfig(rule_id="r2", type="zone_intrusion", severity="low")],
+    )
+    path = tmp_path / "cams.yaml"
+    save_cameras(path, [cam])
+    r1, r2 = load_cameras(path)[0].rules
+    assert "severity" not in r1.model_fields_set
+    assert r2.severity == "low"
+
+
+def test_load_cameras_skips_broken_entry(tmp_path):
+    path = tmp_path / "cams.yaml"
+    path.write_text(
+        "cameras:\n"
+        "- {camera_id: ok, name: n, site: s, source: {type: file, uri: a.mp4}}\n"
+        "- {camera_id: bad, name: n, site: s, source: {type: ftp, uri: a.mp4}}\n",
+        encoding="utf-8",
+    )
+    assert [c.camera_id for c in load_cameras(path)] == ["ok"]
+
+
 def test_repo_cameras_yaml_is_valid():
     from guard.pipeline.settings import CODE_ROOT
 
