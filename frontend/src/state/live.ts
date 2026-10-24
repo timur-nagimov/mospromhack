@@ -36,7 +36,7 @@ export interface LiveState {
   flywheelLastAt: number | null;
 }
 
-export const liveStore = createStore<LiveState>({
+const initialLiveState = (): LiveState => ({
   connection: 'connecting',
   feed: [],
   unreviewed: null,
@@ -50,6 +50,8 @@ export const liveStore = createStore<LiveState>({
   flywheelLastAt: null,
 });
 
+export const liveStore = createStore<LiveState>(initialLiveState());
+
 export const useLive = <T>(selector: (s: LiveState) => T): T => useStore(liveStore, selector);
 
 function sortFeed(items: GuardEvent[]): GuardEvent[] {
@@ -57,6 +59,11 @@ function sortFeed(items: GuardEvent[]): GuardEvent[] {
 }
 
 export const liveActions = {
+  /** Выход или смена пользователя: лента и метрики прежней сессии не переносятся */
+  reset() {
+    liveStore.set(() => initialLiveState());
+  },
+
   setConnection(connection: ConnectionStatus) {
     liveStore.set((s) => (s.connection === connection ? s : { ...s, connection }));
   },

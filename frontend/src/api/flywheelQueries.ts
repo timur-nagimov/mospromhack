@@ -15,6 +15,7 @@ import type {
 } from '../domain/flywheel';
 import { isHoldout, jobPhase } from '../domain/flywheel';
 import { nowSec, startOfDay } from '../domain/format';
+import { usePermission } from '../state/auth';
 import { api } from './index';
 import { ApiError } from './types';
 
@@ -82,13 +83,15 @@ export function useFlywheelSample(id: string | null, initial?: FlywheelSample) {
  * Ответ сверяем по event_id: сервер без этого фильтра вернул бы чужие сэмплы.
  */
 export function useSampleForEvent(eventId: string | null) {
+  // бейдж ведёт в очередь проверки — без flywheel.review не спрашиваем
+  const allowed = usePermission('flywheel.review');
   return useQuery({
     queryKey: flywheelKeys.byEvent(eventId ?? ''),
     queryFn: async ({ signal }) => {
       const page = await api().flywheel.listSamples({ event_id: eventId as string, limit: 5 }, signal);
       return page.items.find((s) => s.event_id === eventId) ?? null;
     },
-    enabled: Boolean(eventId),
+    enabled: allowed && Boolean(eventId),
     retry: false,
     staleTime: 30_000,
   });
