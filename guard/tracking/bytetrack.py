@@ -175,6 +175,11 @@ class Tracker:
     initialize tracks or revive lost ones. Remaining high-confidence detections
     confirm tentative tracks and initialize new ones.
 
+    After IoU association, unmatched high-confidence detections can recover
+    unmatched confirmed tracks last observed at most one second ago. This
+    fallback greedily matches bottom-center distances normalized by the larger
+    dimension of the last observed box, with a maximum distance of 0.6.
+
     Timestamps must be finite and nondecreasing. Repeated timestamps do not
     increase hits or duplicate history samples. Returned Track objects are
     mutable and retain their attributes across updates.
@@ -236,6 +241,37 @@ class Tracker:
             allowed,
         )
 
+    def _match_footpoints(
+        self, states: list[_State], dets: list[Detection]
+    ) -> list[tuple[int, int]]:
+        candidates = []
+        for state_index, state in enumerate(states):
+            # Use the last observation: a posture change can invalidate the
+            # Kalman prediction of the box's center and dimensions.
+            x1, y1, x2, y2 = state.track.bbox
+            foot_x = (x1 + x2) / 2.0
+            scale = max(x2 - x1, y2 - y1)
+            for det_index, det in enumerate(dets):
+                if state.track.cls != det.cls:
+                    continue
+                dx1, _, dx2, dy2 = det.bbox
+                distance = float(
+                    np.hypot((dx1 + dx2) / 2.0 - foot_x, dy2 - y2) / scale
+                )
+                if distance <= 0.6:
+                    candidates.append((distance, state_index, det_index))
+
+        matches = []
+        used_states: set[int] = set()
+        used_dets: set[int] = set()
+        for _, state_index, det_index in sorted(candidates):
+            if state_index in used_states or det_index in used_dets:
+                continue
+            matches.append((state_index, det_index))
+            used_states.add(state_index)
+            used_dets.add(det_index)
+        return matches
+
     def update(self, dets: list[Detection], ts: float) -> list[Track]:
         ts = float(ts)
         if not np.isfinite(ts):
@@ -295,6 +331,23 @@ class Tracker:
         remaining_high = [high[index] for index in remaining_indices]
         for state_index, det_index in self._match(tentative, remaining_high):
             tentative[state_index].observe(remaining_high[det_index], ts)
+            used_high.add(remaining_indices[det_index])
+
+        # Third association pass, after all existing IoU matches have priority.
+        # Low-confidence detections must not revive lost tracks.
+        footpoint_candidates = [
+            state
+            for state in confirmed
+            if not state.active and ts - state.track.last_seen <= 1.0 + 1e-9
+        ]
+        remaining_indices = [
+            index for index in range(len(high)) if index not in used_high
+        ]
+        remaining_high = [high[index] for index in remaining_indices]
+        for state_index, det_index in self._match_footpoints(
+            footpoint_candidates, remaining_high
+        ):
+            footpoint_candidates[state_index].observe(remaining_high[det_index], ts)
             used_high.add(remaining_indices[det_index])
 
         # Unmatched tentative tracks are discarded; confirmed tracks can be lost.
