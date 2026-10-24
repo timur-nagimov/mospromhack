@@ -104,6 +104,14 @@ models:
     iou_threshold: 0.5
     classes: [smoke, fire]
 
+  # --- погрузчик (S4), дообучение на открытых наборах: записи ds-forklift ниже ---
+
+  # --- лежащий человек (S3), наборы падений: записи ds-falls ниже ---
+
+  # --- сигарета (S7): записи ds-smoking ниже ---
+
+  # --- СИЗ (S2), SH17 + Construction-PPE: записи ds-ppe ниже ---
+
 meta:
   det:
     source: "Ultralytics YOLOv8n COCO, https://github.com/ultralytics/assets/releases"
@@ -140,3 +148,11 @@ meta:
     license: "AGPL-3.0 (веса); D-Fire — открытый датасет для исследований"
     weights: models/weights/fire_rabahdev_dfire_v8n.pt
     class_map: {smoke: smoke, fire: fire}
+
+  # --- meta погрузчика (ds-forklift) ---
+
+  # --- meta падений (ds-falls) ---
+
+  # --- meta сигареты (ds-smoking) ---
+
+  # --- meta СИЗ SH17 (ds-ppe) ---

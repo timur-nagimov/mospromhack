@@ -60,3 +60,11 @@ models:
     conf_threshold: 0.35
     iou_threshold: 0.5
     classes: [smoke, fire]
+
+  # --- погрузчик (S4): записи ds-forklift ниже ---
+
+  # --- лежащий человек (S3): записи ds-falls ниже ---
+
+  # --- сигарета (S7): записи ds-smoking ниже ---
+
+  # --- СИЗ (S2): записи ds-ppe ниже ---
