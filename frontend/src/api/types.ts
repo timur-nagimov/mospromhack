@@ -26,6 +26,7 @@ import type {
   SamplePatch,
   SampleQuery,
 } from '../domain/flywheel';
+import type { Employee, EmployeeInput, EmployeeReport } from '../domain/employees';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
@@ -43,6 +44,16 @@ export interface StatsQuery {
 export interface AnalyticsQuery {
   from?: number;
   to?: number;
+  employee_id?: string;
+}
+
+export interface EmployeesApi {
+  list(): Promise<Employee[]>;
+  create(body: EmployeeInput): Promise<Employee>;
+  forEvent(eventId: string): Promise<Employee[]>;
+  assign(eventId: string, employeeIds: string[]): Promise<Employee[]>;
+  report(employeeId: string, period: AnalyticsQuery, signal?: AbortSignal): Promise<EmployeeReport>;
+  exportReport(employeeId: string, period: AnalyticsQuery): Promise<string>;
 }
 
 /** Ссылки на медиа. В мок-режиме кадры рисуются на клиенте (data: URL) */
@@ -101,6 +112,7 @@ export interface GuardApi {
   subscribe(subscription: Subscription): () => void;
   media: MediaUrls;
   flywheel: FlywheelApi;
+  employees: EmployeesApi;
 }
 
 export class ApiError extends Error {

@@ -14,6 +14,7 @@ import type {
 import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
 import { ApiError, type FlywheelApi, type AnalyticsQuery, type GuardApi, type StatsQuery } from './types';
 import { EventSocket } from './ws';
+import { getRole } from '../state/role';
 
 /**
  * Базовый адрес API. По умолчанию — тот же origin (прод раздаёт FastAPI с /,
@@ -54,13 +55,16 @@ async function readError(res: Response): Promise<string> {
   return `${res.status} ${res.statusText || 'Ошибка запроса'}`;
 }
 
-async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-  const { json, headers, ...rest } = init;
+async function request<T>(path: string, init: RequestInit & { json?: unknown; responseType?: 'json' | 'text' } = {}): Promise<T> {
+  const { json, headers, responseType = 'json', ...rest } = init;
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set('X-Guard-Role', getRole());
+  if (json !== undefined) requestHeaders.set('Content-Type', 'application/json');
   let res: Response;
   try {
     res = await fetch(API_BASE + path, {
       ...rest,
-      headers: json !== undefined ? { 'Content-Type': 'application/json', ...headers } : headers,
+      headers: requestHeaders,
       body: json !== undefined ? JSON.stringify(json) : rest.body,
     });
   } catch (err) {
@@ -70,6 +74,7 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
   if (!res.ok) throw new ApiError(res.status, await readError(res));
   if (res.status === 204) return undefined as T;
   const text = await res.text();
+  if (responseType === 'text') return text as T;
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
@@ -231,5 +236,13 @@ export function createHttpApi(): GuardApi {
       clipUrl: (event) => `${API_BASE}/api/events/${enc(event.id)}/clip.mp4`,
     },
     flywheel: createFlywheelHttpApi(),
+    employees: {
+      list: () => request('/api/employees'),
+      create: (body) => request('/api/employees', { method: 'POST', json: body }),
+      forEvent: (id) => request(`/api/events/${enc(id)}/employees`),
+      assign: (id, employeeIds) => request(`/api/events/${enc(id)}/employees`, { method: 'PUT', json: { employee_ids: employeeIds } }),
+      report: (id, period, signal) => request(`/api/employees/${enc(id)}/report${toQuery({ ...period })}`, { signal }),
+      exportReport: (id, period) => request(`/api/employees/${enc(id)}/report${toQuery({ ...period, format: 'csv' })}`, { responseType: 'text' }),
+    },
   };
 }

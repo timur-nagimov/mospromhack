@@ -68,6 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--device", default="mps")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--hsv-v", type=float, default=0.5, help="разброс яркости: тёмные проёмы и ночные кадры")
+    ap.add_argument("--mixup", type=float, default=0.0, help="доля mixup: устойчивость к перекрытиям")
+    ap.add_argument("--lr0", type=float, default=0.01,
+                    help="начальный LR; для дообучения от своей же версии — 0.001–0.002 (иначе модель «забывает»)")
+    ap.add_argument("--warmup-epochs", type=float, default=3.0)
     ap.add_argument("--freeze", type=int, default=0, help="заморозить первые N слоёв базы")
     ap.add_argument("--note", default="", help="свободный комментарий в карточку")
     ap.add_argument("--dry-run", action="store_true", help="проверить входы и напечатать параметры без обучения")
@@ -151,8 +155,22 @@ def _split_dirs(yaml_path: Path, meta: dict[str, Any], key: str) -> list[str]:
     return [str(Path(v) if Path(v).is_absolute() else base / v) for v in items]
 
 
+POSE_KEYS = ("kpt_shape", "flip_idx")
+
+
+def data_task(data_yaml: Path) -> str:
+    """Задача по data.yaml: pose, если задан kpt_shape (набор ключевых точек), иначе detect."""
+    import yaml
+
+    meta = yaml.safe_load(data_yaml.read_text(encoding="utf-8"))
+    return "pose" if meta.get("kpt_shape") else "detect"
+
+
 def mix_data(primary: Path, mixes: list[Path], out: Path) -> tuple[Path, list[str]]:
-    """data.yaml смеси: train и val — всех наборов, test — только основного. Классы обязаны совпадать."""
+    """data.yaml смеси: train и val — всех наборов, test — только основного. Классы обязаны совпадать.
+
+    Для pose-наборов kpt_shape и flip_idx берутся из основного; у смешиваемых kpt_shape должен совпадать.
+    """
     import yaml
 
     meta = yaml.safe_load(primary.read_text(encoding="utf-8"))
@@ -162,10 +180,13 @@ def mix_data(primary: Path, mixes: list[Path], out: Path) -> tuple[Path, list[st
         m = yaml.safe_load(extra.read_text(encoding="utf-8"))
         if _names(m) != names:
             raise ValueError(f"{extra}: классы {_names(m)} не совпадают с {names} из {primary}")
+        if m.get("kpt_shape") != meta.get("kpt_shape"):
+            raise ValueError(f"{extra}: kpt_shape {m.get('kpt_shape')} не совпадает с {meta.get('kpt_shape')}")
         train += _split_dirs(extra, m, "train")
         val += _split_dirs(extra, m, "val")
     mixed = {"train": train, "val": val, "test": _split_dirs(primary, meta, "test"),
              "names": dict(enumerate(names))}
+    mixed.update({key: meta[key] for key in POSE_KEYS if meta.get(key) is not None})
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(yaml.safe_dump(mixed, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return out, names
@@ -233,7 +254,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     train_args = dict(data=str(mixed), imgsz=args.imgsz, epochs=args.epochs, time=args.time_min / 60.0,
                       patience=args.patience, batch=args.batch, workers=args.workers, device=args.device,
-                      cache=False, seed=args.seed, hsv_v=args.hsv_v, freeze=args.freeze or None,
+                      cache=False, seed=args.seed, hsv_v=args.hsv_v, mixup=args.mixup, freeze=args.freeze or None,
+                      lr0=args.lr0, warmup_epochs=args.warmup_epochs,
                       project=str(run_dir), name="train", exist_ok=True, plots=False, verbose=False)
     print(f"train: база {weights.name} ({scale}), классы {names}, данные {mixed}")
     print("train: " + json.dumps({k: v for k, v in train_args.items() if k != "data"}, ensure_ascii=False))
@@ -255,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         "version": args.version,
         "parent": args.parent or base_version,
         "created_at": now_iso(),
-        "task": "detect",
+        "task": data_task(data_yaml),
         "classes": names,
         "train": {
             "datasets": dataset_entries(data_yaml, [m.resolve() for m in args.mix]),
@@ -263,7 +285,8 @@ def main(argv: list[str] | None = None) -> int:
             "data_yaml": str(data_arg),
             "epochs": args.epochs, "imgsz": args.imgsz, "device": args.device, "minutes": minutes,
             "batch": args.batch, "workers": args.workers, "patience": args.patience, "time_min": args.time_min,
-            "hsv_v": args.hsv_v, "seed": args.seed, "base_weights": weights.name,
+            "hsv_v": args.hsv_v, "mixup": args.mixup, "lr0": args.lr0, "warmup_epochs": args.warmup_epochs,
+            "seed": args.seed, "base_weights": weights.name,
             **read_results(run_dir / "train"),
         },
         "weights": f"models/weights/{args.version}.pt",

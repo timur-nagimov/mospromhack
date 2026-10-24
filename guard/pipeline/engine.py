@@ -97,7 +97,7 @@ class PipelineEngine:
         self.media.start()
         start_flywheel(self)
         try:
-            cams = load_cameras(self.settings.cameras_config)
+            cams = self._load_camera_configs()
         except Exception:  # noqa: BLE001
             log.exception("cannot load %s", self.settings.cameras_config)
             cams = []
@@ -107,6 +107,10 @@ class PipelineEngine:
                 if cam.enabled:
                     self._start_worker(cam)
         log.info("pipeline started: %d cameras, backend %s, fallbacks %s", len(cams), self.backend.name, compat.FALLBACKS)
+
+    def _load_camera_configs(self) -> list[CameraConfig]:
+        """Камеры при старте. Edge с каналом конфигурации добавляет оверлей шлюза (guard/edge/config_sync.py)."""
+        return load_cameras(self.settings.cameras_config)
 
     def stop(self) -> None:
         if self._stopped:
@@ -628,4 +632,8 @@ class PipelineEngine:
             entry = models.setdefault(model_id, {})
             entry.setdefault("timings_ms", {})["queue"] = {"p50": q["p50"], "p95": q["p95"]}
             entry["batching"] = det.scheduler is not None
-        return {"backend": self.backend.name, "cameras": out, "inference": inference, "media": self.media.stats()}
+        result = {"backend": self.backend.name, "cameras": out, "inference": inference, "media": self.media.stats()}
+        flywheel = getattr(self, "flywheel", None)
+        if flywheel is not None:  # на edge уходит в metrics: шлюз видит, идёт ли сбор
+            result["flywheel"] = flywheel.stats()
+        return result

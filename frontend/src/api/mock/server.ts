@@ -19,6 +19,7 @@ import { moscowDayKey, moscowHour, moscowWeekdayHour } from '../../domain/moscow
 import { ApiError, type GuardApi, type StatsQuery, type Subscription } from '../types';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
 import { createFlywheelMock } from './flywheel';
+import { createEmployeesMock } from './employees';
 import { between, mulberry32 } from './random';
 import { renderToDataUrl } from './scene';
 
@@ -86,6 +87,7 @@ export function createMockApi(): GuardApi {
 
   // Маховик данных: сэмплы событий и живой сбор по фейковому WS
   const flywheel = createFlywheelMock({ cameras: () => cameras, events: () => events, emit, respond, fail });
+  const employees = createEmployeesMock(() => events);
 
   function findCamera(id: string): CameraConfig | undefined {
     return cameras.find((c) => c.camera_id === id);
@@ -205,10 +207,10 @@ export function createMockApi(): GuardApi {
     timers.length = 0;
   }
 
-  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }): GuardEvent[] {
+  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }, source = events): GuardEvent[] {
     const matches = (filter: string | undefined, value: string | null) =>
       !filter || filter.split(',').map((v) => v.trim()).includes(value ?? '');
-    return events.filter(
+    return source.filter(
       (e) =>
         matches(q.type, e.type) &&
         matches(q.camera_id, e.camera_id) &&
@@ -229,9 +231,9 @@ export function createMockApi(): GuardApi {
     return null;
   }
 
-  function statsItems(q: StatsQuery): StatsItem[] {
+  function statsItems(q: StatsQuery, source = events): StatsItem[] {
     const counts = new Map<string, number>();
-    for (const e of filterEvents(q)) {
+    for (const e of filterEvents(q, source)) {
       let key: string | null;
       switch (q.group_by) {
         case 'type':
@@ -332,8 +334,9 @@ export function createMockApi(): GuardApi {
     getStats: (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) }),
     getAnalytics: (q) => {
       // Все поля вычисляются синхронно до respond: обновления не вклиниваются между ними.
+      const source = q.employee_id ? employees.forAnalytics(q.employee_id) : events;
       const aggregate = (group_by: StatsQuery['group_by'], filters: { status?: string; severity?: string } = {}) =>
-        statsItems({ ...q, group_by, ...filters });
+        statsItems({ ...q, group_by, ...filters }, source);
       return respond({
         types: aggregate('type'), cameras: aggregate('camera'), sites: aggregate('site'),
         days: aggregate('day'), weekdayHours: aggregate('weekday_hour'),
@@ -384,5 +387,6 @@ export function createMockApi(): GuardApi {
       clipUrl: () => null,
     },
     flywheel: flywheel.api,
+    employees,
   };
 }

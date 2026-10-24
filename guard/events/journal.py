@@ -20,6 +20,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from guard.contracts import Event, EventStatus
+from guard.employees import EmployeeStore
 from guard.transport.protocol import Envelope, MessageKind, decode, encode
 from guard.transport.store import (
     IDENTITY_FIELDS, RUN_ID, ApplyResult, ReplicationStore, local_snapshot_path,
@@ -50,7 +51,7 @@ _COLUMNS = (
 )
 _JSON_COLUMNS = ("bbox", "details", "latency_ms")
 _FILTER_COLUMNS = frozenset(
-    {"type", "camera_id", "zone_id", "status", "severity"}
+    {"type", "camera_id", "zone_id", "status", "severity", "employee_id"}
 )
 _UPDATE_COLUMNS = frozenset(
     {
@@ -168,7 +169,12 @@ def _where(
             clauses.append("0")
             continue
         placeholders = ", ".join("?" for _ in values)
-        clauses.append(f"{column} IN ({placeholders})")
+        if column == "employee_id":
+            clauses.append("EXISTS (SELECT 1 FROM event_employees "
+                           "WHERE event_employees.event_id = events.id "
+                           f"AND event_employees.employee_id IN ({placeholders}))")
+        else:
+            clauses.append(f"{column} IN ({placeholders})")
         parameters.extend(
             item.value if isinstance(item, Enum) else item for item in values
         )
@@ -222,6 +228,7 @@ class Journal:
                         f"PRAGMA user_version = {_SCHEMA_VERSION}"
                     )
                 self._replication = ReplicationStore(self._conn, replication_edge_id)
+                self.employees = EmployeeStore(self._conn, self._lock)
         except BaseException:
             self._conn.close()
             raise
@@ -505,6 +512,8 @@ class Journal:
         ts_from: float | None = None,
         ts_to: float | None = None,
         tz: str = "Europe/Moscow",
+        *,
+        employee_id: str | None = None,
     ) -> dict[str, Any]:
         """Все агрегаты страницы из одного снимка SQLite, без загрузки Event.
 
@@ -515,7 +524,16 @@ class Journal:
         with self._lock, self._conn:
             self._conn.execute("BEGIN")
 
+            if employee_id is not None:
+                from guard.employees import UnknownEmployee
+                if not self._conn.execute("SELECT 1 FROM employees WHERE id = ?", (employee_id,)).fetchone():
+                    raise UnknownEmployee("Сотрудник не найден")
+
             def aggregate(group_by: str, **filters: Any) -> list[dict[str, Any]]:
+                if employee_id is not None:
+                    if filters.get("status", "confirmed") != "confirmed":
+                        return []
+                    filters.update(employee_id=employee_id, status="confirmed")
                 return self._stats_unlocked(group_by, ts_from, ts_to, tz, **filters)
 
             return {

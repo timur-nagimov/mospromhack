@@ -280,6 +280,246 @@ scenarios:
       site: Отложенная выборка падений
       zones: []
       rules: [*fall]
+  - id: cauca_S08_FallBackwards
+    video: falls_cauca/S08_FallBackwards.mp4
+    camera:
+      camera_id: falls_cauca_S08_FallBackwards
+      name: "cauca S08_FallBackwards (fall, FallBackwards)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_FallForward
+    video: falls_cauca/S08_FallForward.mp4
+    camera:
+      camera_id: falls_cauca_S08_FallForward
+      name: "cauca S08_FallForward (fall, FallForward)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_FallLeft
+    video: falls_cauca/S08_FallLeft.mp4
+    camera:
+      camera_id: falls_cauca_S08_FallLeft
+      name: "cauca S08_FallLeft (fall, FallLeft)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_FallRight
+    video: falls_cauca/S08_FallRight.mp4
+    camera:
+      camera_id: falls_cauca_S08_FallRight
+      name: "cauca S08_FallRight (fall, FallRight)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_FallSitting
+    video: falls_cauca/S08_FallSitting.mp4
+    camera:
+      camera_id: falls_cauca_S08_FallSitting
+      name: "cauca S08_FallSitting (fall, FallSitting)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_Hop
+    video: falls_cauca/S08_Hop.mp4
+    camera:
+      camera_id: falls_cauca_S08_Hop
+      name: "cauca S08_Hop (adl, Hop)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_Kneel
+    video: falls_cauca/S08_Kneel.mp4
+    camera:
+      camera_id: falls_cauca_S08_Kneel
+      name: "cauca S08_Kneel (adl, Kneel)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_Pickupobject
+    video: falls_cauca/S08_Pickupobject.mp4
+    camera:
+      camera_id: falls_cauca_S08_Pickupobject
+      name: "cauca S08_Pickupobject (adl, Pickupobject)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_SitDown
+    video: falls_cauca/S08_SitDown.mp4
+    camera:
+      camera_id: falls_cauca_S08_SitDown
+      name: "cauca S08_SitDown (adl, SitDown)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S08_Walk
+    video: falls_cauca/S08_Walk.mp4
+    camera:
+      camera_id: falls_cauca_S08_Walk
+      name: "cauca S08_Walk (adl, Walk)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_FallBackwards
+    video: falls_cauca/S09_FallBackwards.mp4
+    camera:
+      camera_id: falls_cauca_S09_FallBackwards
+      name: "cauca S09_FallBackwards (fall, FallBackwards)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_FallForward
+    video: falls_cauca/S09_FallForward.mp4
+    camera:
+      camera_id: falls_cauca_S09_FallForward
+      name: "cauca S09_FallForward (fall, FallForward)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_FallLeft
+    video: falls_cauca/S09_FallLeft.mp4
+    camera:
+      camera_id: falls_cauca_S09_FallLeft
+      name: "cauca S09_FallLeft (fall, FallLeft)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_FallRight
+    video: falls_cauca/S09_FallRight.mp4
+    camera:
+      camera_id: falls_cauca_S09_FallRight
+      name: "cauca S09_FallRight (fall, FallRight)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_FallSitting
+    video: falls_cauca/S09_FallSitting.mp4
+    camera:
+      camera_id: falls_cauca_S09_FallSitting
+      name: "cauca S09_FallSitting (fall, FallSitting)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_Hop
+    video: falls_cauca/S09_Hop.mp4
+    camera:
+      camera_id: falls_cauca_S09_Hop
+      name: "cauca S09_Hop (adl, Hop)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_Kneel
+    video: falls_cauca/S09_Kneel.mp4
+    camera:
+      camera_id: falls_cauca_S09_Kneel
+      name: "cauca S09_Kneel (adl, Kneel)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_Pickupobject
+    video: falls_cauca/S09_Pickupobject.mp4
+    camera:
+      camera_id: falls_cauca_S09_Pickupobject
+      name: "cauca S09_Pickupobject (adl, Pickupobject)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_SitDown
+    video: falls_cauca/S09_SitDown.mp4
+    camera:
+      camera_id: falls_cauca_S09_SitDown
+      name: "cauca S09_SitDown (adl, SitDown)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S09_Walk
+    video: falls_cauca/S09_Walk.mp4
+    camera:
+      camera_id: falls_cauca_S09_Walk
+      name: "cauca S09_Walk (adl, Walk)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_FallBackwards
+    video: falls_cauca/S10_FallBackwards.mp4
+    camera:
+      camera_id: falls_cauca_S10_FallBackwards
+      name: "cauca S10_FallBackwards (fall, FallBackwards)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_FallForward
+    video: falls_cauca/S10_FallForward.mp4
+    camera:
+      camera_id: falls_cauca_S10_FallForward
+      name: "cauca S10_FallForward (fall, FallForward)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_FallLeft
+    video: falls_cauca/S10_FallLeft.mp4
+    camera:
+      camera_id: falls_cauca_S10_FallLeft
+      name: "cauca S10_FallLeft (fall, FallLeft)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_FallRight
+    video: falls_cauca/S10_FallRight.mp4
+    camera:
+      camera_id: falls_cauca_S10_FallRight
+      name: "cauca S10_FallRight (fall, FallRight)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_FallSitting
+    video: falls_cauca/S10_FallSitting.mp4
+    camera:
+      camera_id: falls_cauca_S10_FallSitting
+      name: "cauca S10_FallSitting (fall, FallSitting)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_Hop
+    video: falls_cauca/S10_Hop.mp4
+    camera:
+      camera_id: falls_cauca_S10_Hop
+      name: "cauca S10_Hop (adl, Hop)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_Kneel
+    video: falls_cauca/S10_Kneel.mp4
+    camera:
+      camera_id: falls_cauca_S10_Kneel
+      name: "cauca S10_Kneel (adl, Kneel)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_Pickupobject
+    video: falls_cauca/S10_Pickupobject.mp4
+    camera:
+      camera_id: falls_cauca_S10_Pickupobject
+      name: "cauca S10_Pickupobject (adl, Pickupobject)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_SitDown
+    video: falls_cauca/S10_SitDown.mp4
+    camera:
+      camera_id: falls_cauca_S10_SitDown
+      name: "cauca S10_SitDown (adl, SitDown)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: cauca_S10_Walk
+    video: falls_cauca/S10_Walk.mp4
+    camera:
+      camera_id: falls_cauca_S10_Walk
+      name: "cauca S10_Walk (adl, Walk)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
   - id: gmdcsa_s1_fall_01
     video: falls_gmdcsa/s1_fall_01.mp4
     camera:

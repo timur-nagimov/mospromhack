@@ -148,6 +148,9 @@ def deserialize_task(body: bytes) -> tuple[dict[str, np.ndarray], dict[str, Any]
 # ---------------------------------------------------------------- raw-кодек
 
 
+_RAW_OUTPUT_DTYPES = {"int8": np.dtype(np.int8), "float16": np.dtype("<f2")}
+
+
 class RawCodec:
     """Упаковка user-тензоров в формат TPU и обратно по metadata.json."""
 
@@ -184,7 +187,13 @@ class RawCodec:
     def unpack(self, name: str, raw: np.ndarray) -> np.ndarray:
         t = self.outputs[name]
         uo, to = list(t["user_order"]), list(t["tpu_order"])
-        q = np.asarray(raw).reshape(-1)[: int(np.prod(t["tpu_shape"]))].view(np.int8).reshape(t["tpu_shape"])
+        # Тип элемента выхода — из metadata: у pose видимость точек (Sigmoid_1) приходит в float16.
+        dtype = _RAW_OUTPUT_DTYPES.get(t.get("tpu_dtype", "int8"))
+        if dtype is None:
+            raise NotImplementedError(f"raw: tpu_dtype {t.get('tpu_dtype')}")
+        count = int(np.prod(t["tpu_shape"]))
+        data = np.ascontiguousarray(raw).reshape(-1).view(np.uint8)
+        q = data[: count * dtype.itemsize].view(dtype).reshape(t["tpu_shape"])
         perm = [to.index(a) if a != "C" else to.index("C") for a in uo]
         ci = uo.index("C")
         perm = perm[:ci] + [to.index("C"), to.index("B")] + perm[ci + 1:]

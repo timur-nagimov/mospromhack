@@ -105,7 +105,7 @@
     "frames_check": {
       "fps": 2,
       "thr": 0.45,
-      "report": ".orchestra/metrics/frames-forklift-v1-20261024-1503.json",
+      "report": "frames-forklift-v1-20261024-1503.json",
       "s4_02 погрузчик 20.5–26.5 с": {
         "forklift-v1": "4/13, max 0.68",
         "keremberke": "0/13, max 0.18"
@@ -182,7 +182,7 @@
           "duplicates": 0
         }
       },
-      "report": ".orchestra/metrics/eval-onnx-cpu-forklift-v1-20261024-1514.json"
+      "report": "eval-onnx-cpu-forklift-v1-20261024-1514.json"
     }
   },
   "baseline": {
@@ -251,7 +251,7 @@
             "duplicates": 0
           }
         },
-        "report": ".orchestra/metrics/eval-onnx-cpu-forklift-base-20261024-1444.json"
+        "report": "eval-onnx-cpu-forklift-base-20261024-1444.json"
       }
     }
   },

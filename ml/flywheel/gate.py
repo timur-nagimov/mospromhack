@@ -18,8 +18,8 @@
     python ml/flywheel/gate.py --candidate forklift-v1 --onnx models/forklift_v1-480.onnx \\
         --data data/datasets/forklift/data.yaml --subset forklift_rf=data/datasets/forklift/test_forklift_rf.txt \\
         --reference keremberke=models/forklift-640.onnx:forklift,person \\
-        --events-baseline .orchestra/metrics/eval-forklift-base.json \\
-        --events-candidate .orchestra/metrics/eval-forklift-v1.json --baseline-name "det (yolov8n COCO)" --write
+        --events-baseline data/flywheel/runs/eval-forklift-base.json \\
+        --events-candidate data/flywheel/runs/eval-forklift-v1.json --baseline-name "det (yolov8n COCO)" --write
 """
 
 from __future__ import annotations
@@ -62,8 +62,13 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--scenarios-candidate", type=Path, help="посчитать события кандидата по этому scenarios")
     ap.add_argument("--scenarios-baseline", type=Path, help="посчитать события базы по этому scenarios")
     ap.add_argument("--only", help="ролики через запятую (для --scenarios-*)")
+    ap.add_argument("--models-config", type=Path, default=ROOT / "configs/models.yaml",
+                    help="реестр, в копии которого model_id кандидата смотрит на его ONNX (для --scenarios-candidate)")
     ap.add_argument("--events-out", type=Path, default=ROOT / "data/flywheel/runs",
                     help="куда сохранить посчитанные отчёты событий")
+    ap.add_argument("--cache-dir", type=Path,
+                    help="кэш детекций run_offline (ml/eval/replay_cache.py): det, pose, ppe и fire базы и кандидата "
+                         "считаются один раз. Ключ кэша включает файл ONNX и запись модели, версии не смешиваются")
     ap.add_argument("--imgsz", type=int, help="вход ONNX (по умолчанию — из модели)")
     ap.add_argument("--map-tol", type=float, default=MAP_TOL)
     ap.add_argument("--write", action="store_true", help="записать holdout, baseline и gate в карточку")
@@ -124,9 +129,19 @@ def load_gt(images: list[Path], names: list[str]) -> dict[str, dict[str, np.ndar
     return {c: {k: np.array(v) for k, v in d.items()} for c, d in gts.items()}
 
 
+def output_format_for(channels: int, classes: list[str]) -> str:
+    """Формат выхода YOLOv8 по числу каналов: pose — рамка, скор person и 17 точек (56), иначе detect."""
+    if len(classes) == 1 and channels == 4 + 1 + 17 * 3:
+        return "yolov8-pose"
+    return "yolov8"
+
+
 def predict_onnx(onnx: Path, classes: list[str], images: list[Path], conf: float = 0.001,
                  iou: float = 0.6) -> dict[str, list]:
-    """Предсказания ONNX на CPU: {класс: [(кадр, conf, box xyxy)]}. Декодер — ml/yolo_decode (как в сверке ONNX)."""
+    """Предсказания ONNX на CPU: {класс: [(кадр, conf, box xyxy)]}. Декодер — ml/yolo_decode (как в сверке ONNX).
+
+    Pose-модель (выход 1×56×N, класс person) декодируется как pose: mAP считается по рамкам людей.
+    """
     import cv2
     import onnxruntime as ort
 
@@ -138,8 +153,10 @@ def predict_onnx(onnx: Path, classes: list[str], images: list[Path], conf: float
     sess = ort.InferenceSession(str(onnx), opts, providers=["CPUExecutionProvider"])
     inp = sess.get_inputs()[0]
     size = tuple(int(v) for v in inp.shape[2:4])
+    channels = sess.get_outputs()[0].shape[1]
+    output_format = output_format_for(channels if isinstance(channels, int) else 0, classes)
     spec = ModelSpec(model_id=onnx.stem, onnx_path=str(onnx), input_size=size, classes=classes,
-                     conf_threshold=conf, iou_threshold=iou)
+                     conf_threshold=conf, iou_threshold=iou, output_format=output_format)
     preds: dict[str, list] = defaultdict(list)
     for img_path in images:
         img = cv2.imread(str(img_path))
@@ -197,11 +214,54 @@ def event_summary(report: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def run_events(scenarios: Path, only: str | None, out: Path) -> dict[str, Any]:
+def candidate_registry(base: Path, model_id: str, onnx: Path, classes: list[str], out: Path) -> Path:
+    """Копия реестра, где model_id смотрит на ONNX кандидата: конвейер меряет кандидата без правки configs."""
+    import onnx as onnx_lib
+    import yaml
+
+    raw = yaml.safe_load(base.read_text(encoding="utf-8"))
+    entry = next((m for m in raw["models"] if m.get("model_id") == model_id), None)
+    if entry is None:
+        entry = {"model_id": model_id, "task": "detect", "output_format": "yolov8",
+                 "conf_threshold": 0.3, "iou_threshold": 0.5}
+        raw["models"].append(entry)
+    dims = [d.dim_value for d in onnx_lib.load(str(onnx)).graph.input[0].type.tensor_type.shape.dim]
+    entry.update(onnx_path=str(onnx.resolve()), input_size=[int(dims[2]), int(dims[3])], classes=list(classes))
+    entry.pop("tpu_program", None)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return out
+
+
+def rel_path(path: Path) -> str:
+    """Путь в карточку: относительно корня репозитория (карточка одна для main и всех worktree)."""
+    try:
+        return str(Path(path).absolute().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
+def code_version() -> str:
+    """Коммит кода конвейера: события базы и кандидата сравнимы, только если посчитаны одним кодом."""
+    import subprocess
+
+    def git(*cmd: str) -> str:
+        return subprocess.run(["git", *cmd], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+    head = git("rev-parse", "--short", "HEAD") or "unknown"
+    dirty = git("status", "--porcelain", "--untracked-files=no", "--", "guard", "ml/eval")
+    return head + ("+dirty" if dirty else "")
+
+
+def run_events(scenarios: Path, only: str | None, out: Path, models_config: Path | None = None,
+               cache_dir: Path | None = None) -> dict[str, Any]:
+    """Прогон run_offline. Кэш детекций (CX-022) общий: модели базы не считаются второй раз."""
     from ml.eval import run_offline
 
-    suite = run_offline.load_scenarios(scenarios)
-    report = run_offline.run_evaluation(suite, only=only.split(",") if only else None)
+    suite = run_offline.load_scenarios(scenarios, models_config=models_config)
+    report = run_offline.run_evaluation(suite, only=only.split(",") if only else None, cache_dir=cache_dir)
+    report["code"] = code_version()
+    report["scenarios"] = str(scenarios)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return report
@@ -290,17 +350,22 @@ def main(argv: list[str] | None = None) -> int:
                 references[rname][f"dataset_test_{sname}"] = dataset_map(rpath, rclasses, sub_images, names)
 
     stamp = time.strftime("%Y%m%d-%H%M")
+    cand_path, base_path = args.events_candidate, args.events_baseline
     if args.events_candidate:
         cand_report = json.loads(args.events_candidate.read_text(encoding="utf-8"))
     elif args.scenarios_candidate:
-        cand_report = run_events(args.scenarios_candidate, args.only,
-                                 args.events_out / f"events-{card['version']}-{stamp}.json")
+        out_dir = args.events_out / card["version"]
+        registry = candidate_registry(args.models_config, card["model_id"], onnx, card["classes"],
+                                      out_dir / "models_candidate.yaml")
+        cand_path = out_dir / f"events-{card['version']}-{stamp}.json"
+        cand_report = run_events(args.scenarios_candidate, args.only, cand_path, registry, args.cache_dir)
     else:
         cand_report = None
     if args.events_baseline:
         base_report = json.loads(args.events_baseline.read_text(encoding="utf-8"))
     elif args.scenarios_baseline:
-        base_report = run_events(args.scenarios_baseline, args.only, args.events_out / f"events-base-{stamp}.json")
+        base_path = args.events_out / f"events-base-{stamp}.json"
+        base_report = run_events(args.scenarios_baseline, args.only, base_path, None, args.cache_dir)
     else:
         base_report = None
     if cand_report is None or base_report is None:
@@ -308,9 +373,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     holdout["events"] = event_summary(cand_report)
     baseline_holdout["events"] = event_summary(base_report)
-    for target, path in ((holdout, args.events_candidate), (baseline_holdout, args.events_baseline)):
+    for target, path, report in ((holdout, cand_path, cand_report), (baseline_holdout, base_path, base_report)):
         if path is not None:
-            target["events"]["report"] = str(path)
+            target["events"]["report"] = rel_path(path)
+        if report.get("code"):
+            target["events"]["code"] = report["code"]
+    codes = {holdout["events"].get("code"), baseline_holdout["events"].get("code")}
+    if None not in codes and len(codes) > 1:
+        # Разный код конвейера — разница в событиях может быть не от модели (phone_usage в гейте forklift-v2).
+        print(f"gate: внимание — события посчитаны разным кодом: {sorted(codes)}", file=sys.stderr)
     if holdout["events"]["videos"] != baseline_holdout["events"]["videos"]:
         print("gate: события кандидата и базы посчитаны на разных роликах", file=sys.stderr)
         return 2
@@ -324,6 +395,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.write:
         # Остальные поля holdout (например, покадровая проверка) сохраняются.
         card["holdout"] = {**(card.get("holdout") or {}), **holdout}
+        card["onnx"] = card.get("onnx") or onnx.name
         card["baseline"] = {"version": args.baseline_name or "база", "holdout": baseline_holdout}
         if references:
             card["references"] = references
