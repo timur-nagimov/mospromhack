@@ -43,10 +43,10 @@ EXCHANGE = "zazerkalye"
 GATEWAY_QUEUE = "zazerkalye.gateway"
 BINDINGS = ("edge.event", "edge.frame_meta", "edge.metrics")
 FRAME_TTL_SECONDS = 10.0
-# Сколько неподтверждённых сообщений брокер держит у потребителя. С prefetch 1 следующее сообщение
-# приходит только после ack, то есть одно за RTT: через VPN стенда (225 мс) ~4 сообщения/с при ~20/с
-# от edge, и оповещение ждёт за frame_meta ~TTL (замер A10, docs/EDGE.md §7.1: 12.6 с вместо 2.2 с).
-DEFAULT_PREFETCH = 200
+# Потребитель шлюза держит до 200 неподтверждённых сообщений: при prefetch=1 через VPN (RTT ~225 мс)
+# приходит одно сообщение за RTT — 3.5 сообщения/с при 20.7 отправляемых; задержка оповещения 12.6 с
+# вместо 2.2 с, потеря 93 % frame_meta (A10, .orchestra/metrics/edge-tpu-prefetch1-20261024-1009.json).
+CONSUMER_PREFETCH = 200
 
 _ROUTING_KEYS = {
     "event": "edge.event",
@@ -255,7 +255,7 @@ def _safe_close(connection: Any) -> None:
 
 
 def _connect(
-    params: pika.URLParameters, max_length: int, *, publisher: bool, prefetch: int = DEFAULT_PREFETCH
+    params: pika.URLParameters, max_length: int, *, publisher: bool
 ) -> tuple[Any, Any]:
     connection = pika.BlockingConnection(params)
     try:
@@ -264,7 +264,7 @@ def _connect(
         if publisher:
             channel.confirm_delivery()
         else:
-            channel.basic_qos(prefetch_count=prefetch)
+            channel.basic_qos(prefetch_count=CONSUMER_PREFETCH)
         return connection, channel
     except Exception:
         _safe_close(connection)
@@ -423,15 +423,11 @@ class RabbitSource:
         backoff_initial: float = 0.25,
         backoff_max: float = 5.0,
         auto_start: bool = True,
-        prefetch: int = DEFAULT_PREFETCH,
     ) -> None:
         _validate_options(max_length, backoff_initial, backoff_max)
         if callback is not None and not callable(callback):
             raise TypeError("callback must be callable")
-        if type(prefetch) is not int or prefetch < 1:
-            raise ValueError("prefetch must be a positive integer")
         self._params = _parameters(url)
-        self._prefetch = prefetch
         self._max_length = max_length
         self._backoff_initial = backoff_initial
         self._backoff_max = backoff_max
@@ -482,7 +478,7 @@ class RabbitSource:
             connection = None
             try:
                 connection, channel = _connect(
-                    self._params, self._max_length, publisher=False, prefetch=self._prefetch
+                    self._params, self._max_length, publisher=False
                 )
                 for method, properties, body in channel.consume(
                     queue=GATEWAY_QUEUE,
