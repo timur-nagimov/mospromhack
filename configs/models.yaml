@@ -79,7 +79,9 @@ models:
   - model_id: ppe
     task: detect
     onnx_path: ppe-640.onnx
-    # tpu_program: tpu/ppe_640/ppe_640_b1_o5_h1m.tpu   # собрана (O5); раскомментировать после копирования в /auto/cache/hackathon10864/
+    # A1, сверка TPU (raw) с CPU на 43 кадрах ppe_check: при пороге TPU 0.35 recall 0.91 / precision 0.95
+    # относительно CPU при 0.4 (int8 занижает conf на ~0.05). На TPU ставить conf_threshold 0.35 (так в models.stand.yaml).
+    tpu_program: tpu/ppe_640/ppe_640_b1_o5_h1m.tpu      # O5, в /auto/cache/hackathon10864/
     input_size: [640, 640]
     output_format: yolov8
     conf_threshold: 0.4            # см. docs/MODELS.md: no_helmet/no_vest требуют подтверждения по треку
@@ -91,7 +93,11 @@ models:
   - model_id: fire
     task: detect
     onnx_path: fire-640.onnx
-    # tpu_program: tpu/fire_640/fire_640_b1_o5_h1m.tpu # собрана (O5); раскомментировать после копирования в /auto/cache/hackathon10864/
+    # A1: fire_640s1 — та же модель, но порогам Sigmoid выставлено 1.0 (tpu/fix_thresholds.py). У исходной fire_640
+    # int8 обрезал уверенность до 0.42/0.50/0.57 по страйдам (калибровка без огня), Δconf −0.19. У s1 Δconf −0.05,
+    # IoU 0.92. Сверка на 28 кадрах (огонь и негативы): при пороге TPU 0.35 recall 0.87 / precision 0.93 относительно
+    # CPU при 0.4; огонь найден на всех 11 кадрах, где его видит CPU. На TPU ставить conf_threshold 0.35.
+    tpu_program: tpu/fire_640s1/fire_640s1_b1_o5_h1m.tpu  # O5, в /auto/cache/hackathon10864/
     input_size: [640, 640]
     output_format: yolov8
     conf_threshold: 0.4
