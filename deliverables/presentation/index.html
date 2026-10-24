@@ -1,0 +1,640 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Зазеркалье — одно нарушение, одно оповещение. На LinQ TPU</title>
+<meta name="viewport" content="width=1920">
+<link rel="stylesheet" href="deck.css">
+</head>
+<body>
+
+<!-- ============================ 1. Титул ============================ -->
+<section class="slide" id="s1" data-src="Скриншот: живой бэкенд на ноутбуке, режим local, CPU, 24.10 01:09 · deliverables/screens/real-02-event-card.jpg">
+  <div class="t1">
+    <div class="event" data-bind="meta.event">Хакатон «Открой#Моспром» · кейс LinQ</div>
+    <div class="name">Зазеркалье</div>
+    <div class="claim">Одно нарушение —<br>одно оповещение.<br><em>На LinQ TPU.</em></div>
+    <div class="lead">Веб-сервис видеоаналитики техники безопасности в реальном времени. Камеры уже стоят — превращаем архив в систему предупреждения.</div>
+    <div class="chips">
+      <span class="tag lime">10 типов нарушений — 10 плагинов</span>
+      <span class="tag lime">edge-узел рядом с камерами</span>
+      <span class="tag lime">замеры на стенде LinQ</span>
+    </div>
+  </div>
+  <div class="shotwrap">
+    <div class="win shot">
+      <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Карточка события · S1 «Вход в опасную зону»</span><span class="b"><i></i><i></i><i></i></span></div>
+      <div class="pane"><img src="../screens/real-02-event-card.jpg" alt="Карточка события" style="object-position: 50% 50%"></div>
+    </div>
+    <div class="cap">Одна карточка на нарушение: кадр с рамкой, клип ±5 с, камера, зона, время, задержка по этапам. Оператор решает клавишей 1 / 2 / 3.</div>
+  </div>
+  <div class="team"><span data-bind="meta.team">Команда «Зазеркалье»</span> · <span data-bind="meta.defense">Защита 25.10.2026</span></div>
+  <svg class="pixels" style="right:60px; top:136px" width="120" height="70" viewBox="0 0 120 70"><rect x="0" y="28" width="22" height="22" fill="#a8d42c"/><rect x="46" y="0" width="14" height="14" fill="#a8d42c" opacity=".7"/><rect x="88" y="40" width="30" height="30" fill="#a8d42c" opacity=".9"/></svg>
+</section>
+
+<!-- ============================ 2. Проблема ============================ -->
+<section class="slide" id="s2" data-src="Кейс LinQ, слайды 2–3, 7 · Росстат, «Производственный травматизм», pr_travm_2025.xlsx · docs/ANALYTICS.md §1.3, §2">
+  <div class="head">
+    <div class="kicker">Проблема <span class="crit">О · А</span></div>
+    <h1>Камеры пишут архив. Разбор — уже <em>после</em> инцидента</h1>
+  </div>
+  <div class="body">
+    <div class="stats">
+      <div class="panel stat">
+        <div class="big">20–30 мин</div>
+        <div class="txt">через столько падает внимание оператора у стены мониторов</div>
+        <div class="src-in">кейс LinQ, слайд 3</div>
+      </div>
+      <div class="panel stat">
+        <div class="big">20.8 тыс.</div>
+        <div class="txt">пострадавших при несчастных случаях на производстве в РФ за 2025 год</div>
+        <div class="src-in">Росстат, 2025</div>
+      </div>
+      <div class="panel stat">
+        <div class="big">1.07 тыс.</div>
+        <div class="txt">из них — со смертельным исходом</div>
+        <div class="src-in">Росстат, 2025</div>
+      </div>
+    </div>
+    <div class="ba">
+      <div class="panel">
+        <svg width="300" height="352" viewBox="0 0 300 352" aria-label="Стена мониторов">
+          <g fill="none" stroke="#5f7d8c" stroke-width="2">
+            <rect x="4" y="30" width="62" height="44"/><rect x="78" y="30" width="62" height="44"/><rect x="152" y="30" width="62" height="44"/><rect x="226" y="30" width="62" height="44"/>
+            <rect x="4" y="86" width="62" height="44"/><rect x="78" y="86" width="62" height="44"/><rect x="152" y="86" width="62" height="44"/><rect x="226" y="86" width="62" height="44"/>
+            <rect x="4" y="142" width="62" height="44"/><rect x="78" y="142" width="62" height="44"/><rect x="152" y="142" width="62" height="44"/><rect x="226" y="142" width="62" height="44"/>
+            <rect x="4" y="198" width="62" height="44"/><rect x="78" y="198" width="62" height="44"/><rect x="152" y="198" width="62" height="44"/><rect x="226" y="198" width="62" height="44"/>
+          </g>
+          <g fill="#5f7d8c" opacity=".35">
+            <rect x="10" y="36" width="50" height="32"/><rect x="84" y="36" width="50" height="32"/><rect x="158" y="36" width="50" height="32"/><rect x="232" y="36" width="50" height="32"/>
+            <rect x="10" y="92" width="50" height="32"/><rect x="84" y="92" width="50" height="32"/><rect x="232" y="92" width="50" height="32"/>
+            <rect x="10" y="148" width="50" height="32"/><rect x="84" y="148" width="50" height="32"/><rect x="158" y="148" width="50" height="32"/><rect x="232" y="148" width="50" height="32"/>
+            <rect x="10" y="204" width="50" height="32"/><rect x="84" y="204" width="50" height="32"/><rect x="158" y="204" width="50" height="32"/><rect x="232" y="204" width="50" height="32"/>
+          </g>
+          <rect x="158" y="92" width="50" height="32" fill="#ff5d52" opacity=".85"/>
+          <rect x="176" y="100" width="14" height="16" fill="#2a0a08"/>
+          <text x="150" y="286" text-anchor="middle" font-size="20" fill="#7f9cab">нарушение на 1 экране из 16</text>
+          <text x="150" y="314" text-anchor="middle" font-size="20" fill="#7f9cab">— никто не смотрит</text>
+        </svg>
+        <div>
+          <h3 class="muted">Сейчас</h3>
+          <ul class="px dim-bul">
+            <li>Камеры — архив: видео смотрят, когда инцидент уже случился</li>
+            <li>Контроль выборочный: инженер ОТ не может быть на всех участках</li>
+            <li>Ложные тревоги убивают доверие, дубли забивают ленту</li>
+          </ul>
+        </div>
+      </div>
+      <div class="arrow">
+        <svg width="70" height="70" viewBox="0 0 70 70"><g fill="#a8d42c"><rect x="0" y="29" width="12" height="12"/><rect x="14" y="29" width="12" height="12"/><rect x="28" y="29" width="12" height="12"/><rect x="42" y="29" width="12" height="12"/><rect x="56" y="29" width="12" height="12"/><rect x="42" y="15" width="12" height="12"/><rect x="42" y="43" width="12" height="12"/><rect x="28" y="1" width="12" height="12"/><rect x="28" y="57" width="12" height="12"/></g></svg>
+      </div>
+      <div class="panel hl">
+        <div class="feed" role="img" aria-label="Лента тревог, живой бэкенд"></div>
+        <div>
+          <h3>С «Зазеркальем»</h3>
+          <ul class="px">
+            <li>Лента событий вместо стены мониторов, критичные — сверху и со звуком</li>
+            <li>Одно нарушение — одно оповещение: кадр, клип, камера, зона, время</li>
+            <li>~2–3 с от начала нарушения до карточки у оператора</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 3. Для кого ============================ -->
+<section class="slide" id="s3" data-src="docs/ANALYTICS.md §1.1–1.2 · роли — кейс LinQ, слайды 9–12">
+  <div class="head">
+    <div class="kicker">Для кого <span class="crit">А · UX</span></div>
+    <h1>Семь ролей кейса — у каждой свой экран и своя польза</h1>
+  </div>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th style="width:330px">Роль</th><th style="width:430px">Боль сейчас</th><th>Что даёт «Зазеркалье»</th><th style="width:250px">Экран</th></tr></thead>
+      <tbody>
+        <tr><td><span class="n">1</span>Специалист по ОТ</td><td class="muted">не может быть на всех участках, обходы периодические</td><td>рисует зону на кадре, ставит расписание, включает правило формой — без кода</td><td class="scr">Камеры и правила</td></tr>
+        <tr><td><span class="n">2</span>Мастер смены</td><td class="muted">узнаёт о нарушении поздно или не узнаёт вовсе</td><td>одно оповещение с кадром, камерой и зоной; пока человек в кадре — без повторов</td><td class="scr">Карточка события</td></tr>
+        <tr><td><span class="n">3</span>Оператор, диспетчер</td><td class="muted">внимание падает через 20–30 минут</td><td>лента вместо стены мониторов, критичные сверху; решение клавишей 1 / 2 / 3</td><td class="scr">Мониторинг</td></tr>
+        <tr><td><span class="n">4</span>Работники, водители</td><td class="muted">контроль выборочный, правила — «под проверку»</td><td>фиксация всегда и для всех одинаково; видео не покидает площадку</td><td class="scr dim">— косвенно</td></tr>
+        <tr><td><span class="n">5</span>Служба ОТ, юристы</td><td class="muted">нет визуальных доказательств</td><td>журнал: кадр, клип, решение и комментарий оператора; фильтры, экспорт CSV</td><td class="scr">Журнал</td></tr>
+        <tr><td><span class="n">6</span>Менеджмент</td><td class="muted">нет статистики: где, когда и что нарушают</td><td>по типам, участкам, сменам; «день недели × час»; доля ложных по правилам</td><td class="scr">Аналитика</td></tr>
+        <tr><td><span class="n">7</span>ИТ-служба, интеграторы</td><td class="muted">непонятно, сколько потоков выдержит железо</td><td>FPS и задержка по этапам; расчёт камер на TPU; новый тип — новый плагин</td><td class="scr">Производительность</td></tr>
+      </tbody>
+    </table>
+    <div class="who">
+      <div class="panel"><div class="lbl">Покупает</div>служба ОТ / ПБ и менеджмент: меньше инцидентов и доказательная база перед надзором</div>
+      <div class="panel"><div class="lbl">Пользуются каждый день</div>диспетчер, мастер, специалист ОТ: доверие к тревогам и скорость разбора</div>
+      <div class="panel"><div class="lbl">Внедряет</div>ИТ-служба или интегратор: прозрачный расчёт железа, отечественная платформа</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 4. Как это работает ============================ -->
+<section class="slide" id="s4" data-src="docs/ARCHITECTURE.md §1, §3 · канал: docs/BENCHMARKS.md §4.3 · решение D-005">
+  <div class="head">
+    <div class="kicker">Как это работает <span class="crit">П · О</span></div>
+    <h1>Камера → edge-узел LinQ → <em>одно событие</em> → оператор</h1>
+  </div>
+  <div class="body">
+    <svg class="arch" width="1728" height="452" viewBox="0 0 1728 452" role="img" aria-label="Схема архитектуры">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#b9cbd2"/></marker>
+        <marker id="arL" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a8d42c"/></marker>
+      </defs>
+      <g>
+        <rect x="0" y="78" width="170" height="140" rx="10" fill="rgba(10,32,49,.85)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+        <g fill="#b9cbd2"><rect x="56" y="100" width="46" height="28"/><rect x="102" y="106" width="16" height="16"/><rect x="72" y="128" width="10" height="16"/></g>
+        <text x="85" y="176" text-anchor="middle" font-size="23" font-weight="650" fill="#eef4f1">Камеры</text>
+        <text x="85" y="202" text-anchor="middle" font-size="18" fill="#7f9cab">RTSP, видеофайлы</text>
+      </g>
+      <line x1="172" y1="148" x2="222" y2="148" stroke="#b9cbd2" stroke-width="2.5" marker-end="url(#ar)"/>
+      <rect x="228" y="32" width="1498" height="246" rx="14" fill="rgba(168,212,44,.05)" stroke="#a8d42c" stroke-width="2" stroke-dasharray="10 7"/>
+            <text x="230" y="20" font-family="Tektur" font-size="21" letter-spacing="2" fill="#a8d42c">EDGE-УЗЕЛ LINQ НА ПЛОЩАДКЕ</text>
+      <text x="252" y="262" font-size="19" fill="#a8d42c">видео не покидает периметр предприятия</text>
+      <g font-size="22">
+        <g><rect x="252" y="66" width="212" height="150" rx="8" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+          <text x="358" y="122" text-anchor="middle" font-weight="650" fill="#eef4f1">Декод и выборка</text>
+          <text x="358" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">4–5 к/с на камеру,</text>
+          <text x="358" y="176" text-anchor="middle" font-size="18" fill="#b9cbd2">упаковка raw uint8</text></g>
+        <g><rect x="502" y="66" width="212" height="150" rx="8" fill="#a8d42c"/>
+          <text x="608" y="116" text-anchor="middle" font-family="Tektur" font-weight="700" font-size="26" fill="#0b1d10">LinQ TPU</text>
+          <text x="608" y="150" text-anchor="middle" font-size="18" fill="#0b1d10">YOLOv8n det + pose,</text>
+          <text x="608" y="174" text-anchor="middle" font-size="18" fill="#0b1d10">int8, окно 4–8 задач</text></g>
+        <g><rect x="752" y="66" width="212" height="150" rx="8" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+          <text x="858" y="122" text-anchor="middle" font-weight="650" fill="#eef4f1">Хвост и NMS</text>
+          <text x="858" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">декод рамок</text>
+          <text x="858" y="176" text-anchor="middle" font-size="18" fill="#b9cbd2">и keypoint’ов на CPU</text></g>
+        <g><rect x="1002" y="66" width="212" height="150" rx="8" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+          <text x="1108" y="122" text-anchor="middle" font-weight="650" fill="#eef4f1">Трекинг</text>
+          <text x="1108" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">ByteTrack, атрибуты:</text>
+          <text x="1108" y="176" text-anchor="middle" font-size="18" fill="#b9cbd2">СИЗ, поза, телефон</text></g>
+        <g><rect x="1252" y="66" width="212" height="150" rx="8" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+          <text x="1358" y="122" text-anchor="middle" font-weight="650" fill="#eef4f1">Правила</text>
+          <text x="1358" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">10 плагинов, зоны</text>
+          <text x="1358" y="176" text-anchor="middle" font-size="18" fill="#b9cbd2">и расписания</text></g>
+        <g><rect x="1502" y="66" width="204" height="150" rx="8" fill="rgba(10,32,49,.9)" stroke="#a8d42c" stroke-width="2.5"/>
+          <text x="1604" y="122" text-anchor="middle" font-weight="650" fill="#eef4f1">EventManager</text>
+          <text x="1604" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">окно 2 с, ≥ 70 %,</text>
+          <text x="1604" y="176" text-anchor="middle" font-size="18" fill="#b9cbd2">1 событие на трек</text></g>
+        <g stroke="#b9cbd2" stroke-width="2.5">
+          <line x1="466" y1="141" x2="498" y2="141" marker-end="url(#ar)"/>
+          <line x1="716" y1="141" x2="748" y2="141" marker-end="url(#ar)"/>
+          <line x1="966" y1="141" x2="998" y2="141" marker-end="url(#ar)"/>
+          <line x1="1216" y1="141" x2="1248" y2="141" marker-end="url(#ar)"/>
+          <line x1="1466" y1="141" x2="1498" y2="141" marker-end="url(#ar)"/>
+        </g>
+      </g>
+      <line x1="1604" y1="218" x2="1604" y2="326" stroke="#a8d42c" stroke-width="3" marker-end="url(#arL)"/>
+      <g>
+        <rect x="1236" y="330" width="490" height="116" rx="10" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+        <text x="1258" y="368" font-size="22" font-weight="650" fill="#eef4f1">Канал RabbitMQ · exchange zazerkalye</text>
+        <text x="1258" y="398" font-size="19" fill="#b9cbd2">только события, метаданные кадров, метрики</text>
+        <text x="1258" y="426" font-size="19" fill="#a8d42c">событие 2 КБ — 0.47 с (p50)</text>
+      </g>
+      <line x1="1234" y1="388" x2="1176" y2="388" stroke="#b9cbd2" stroke-width="2.5" marker-end="url(#ar)"/>
+      <g>
+        <rect x="690" y="330" width="482" height="116" rx="10" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
+        <text x="712" y="368" font-size="22" font-weight="650" fill="#eef4f1">Шлюз у оператора</text>
+        <text x="712" y="398" font-size="19" fill="#b9cbd2">журнал SQLite, статистика,</text>
+        <text x="712" y="426" font-size="19" fill="#b9cbd2">HTTP API (FastAPI), WebSocket</text>
+      </g>
+      <line x1="688" y1="388" x2="630" y2="388" stroke="#b9cbd2" stroke-width="2.5" marker-end="url(#ar)"/>
+      <g>
+        <rect x="0" y="330" width="626" height="116" rx="10" fill="rgba(168,212,44,.10)" stroke="#a8d42c" stroke-width="2"/>
+        <text x="22" y="368" font-size="22" font-weight="650" fill="#eef4f1">Веб-интерфейс: 6 экранов</text>
+        <text x="22" y="398" font-size="19" fill="#b9cbd2">мониторинг, карточка, журнал, аналитика,</text>
+        <text x="22" y="426" font-size="19" fill="#b9cbd2">камеры и правила, производительность</text>
+      </g>
+      <text x="0" y="306" font-size="19" fill="#7f9cab">зоны, правила и решения оператора возвращаются через API — без перезапуска</text>
+    </svg>
+    <div class="tl">
+      <div class="cap">Сквозной пример кейса</div>
+      <div class="pt"><div class="time">07:55</div><div class="what">Специалист ОТ включает зону у стеллажей: «активна до 12:00»</div></div>
+      <div class="pt crit"><div class="time">14:05</div><div class="what">Падение работника → критическая тревога с кадром и клипом, мастер получает карточку</div></div>
+      <div class="pt"><div class="time">Конец месяца</div><div class="what">Аналитика: где, когда и что нарушали, доля ложных по правилам</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 5. Демо ============================ -->
+<section class="slide" id="s5" data-src="Скриншоты: живой бэкенд на ноутбуке, режим local, CPU, 3 камеры, 24.10 ~01:10 · deliverables/screens/real-*.jpg · BENCHMARKS §5">
+  <div class="head">
+    <div class="kicker">Демо <span class="crit">П · О · UX</span></div>
+    <h1>Человек вошёл в зону → через ~2 с <em>одна</em> карточка</h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="main">
+        <div class="win shot">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">2 · Карточка события: кадр, клип ±5 с, камера, зона, время</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><img src="../screens/real-02-event-card.jpg" alt="Карточка события"></div>
+        </div>
+        <div class="cap">Оператор решает клавишей: <b>1</b> подтверждено · <b>2</b> ложное · <b>3</b> передано мастеру. Пока человек в зоне — без повторов</div>
+      </div>
+      <div class="steps">
+        <div class="step"><div class="th"><img src="../screens/real-01-monitoring.jpg" alt=""></div><div><div class="st"><span>1</span>Мониторинг</div><div class="sd">Камеры с зонами и рамками, лента тревог: критичные сверху, звук</div></div></div>
+        <div class="step"><div class="th"><img src="../screens/real-03-journal.jpg" alt=""></div><div><div class="st"><span>3</span>Журнал</div><div class="sd">Решение оператора уже в журнале: фильтры, экспорт CSV</div></div></div>
+        <div class="step"><div class="th"><img src="../screens/real-04-analytics.jpg" alt=""></div><div><div class="st"><span>4</span>Аналитика</div><div class="sd">По типам и участкам, «день недели × час», доля ложных</div></div></div>
+        <div class="lat">
+          <div class="panel">
+            <div class="k">Задержка оповещения, local, CPU</div>
+            <div class="big v" data-bind="pending.edge_latency.local_cpu_s" data-suffix=" с">2.1 с</div>
+            <div class="n">окно 2.0 с + обработка 65 мс</div>
+          </div>
+          <div class="panel" data-latency>
+            <div class="k">Сквозная задержка, edge + TPU</div>
+            <div class="v">—</div>
+            <div class="n"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 6. Надёжность ============================ -->
+<section class="slide" id="s6" data-src="docs/ARCHITECTURE.md §5 · guard/events/manager.py · метрики: ml/eval/events_eval.py → metrics/eval-*.json">
+  <div class="head">
+    <div class="kicker">Надёжность тревог <span class="crit">О · В</span></div>
+    <h1>Ложные срабатывания и дубли отсекаем <em>до</em> оператора</h1>
+  </div>
+  <div class="body">
+    <svg id="frames" width="1728" height="160" viewBox="0 0 1728 160" role="img" aria-label="Окно подтверждения по кадрам"></svg>
+    <div class="steps">
+      <div class="panel stp"><div class="no">01</div><div class="nm">Правило без памяти</div><div class="ds">Плагин отвечает только «есть ли нарушение на этом кадре»</div></div>
+      <div class="panel stp"><div class="no">02</div><div class="nm">Окно подтверждения</div><div class="ds">Нарушение длится 2 с и есть не меньше чем на 70 % кадров</div></div>
+      <div class="panel stp"><div class="no">03</div><div class="nm">Одно событие на трек</div><div class="ds">Ключ — камера, правило, трек. Пока трек жив, повторов нет</div></div>
+      <div class="panel stp"><div class="no">04</div><div class="nm">Дедуп при смене ID</div><div class="ds">IoU ≥ 0.3 к недавнему событию в пределах cooldown — не новое</div></div>
+      <div class="panel stp"><div class="no">05</div><div class="nm">Осторожные правила</div><div class="ds">«СИЗ не видно» — не нарушение; порог det подобран под int8</div></div>
+      <div class="panel stp loop"><div class="no">06 ↺</div><div class="nm">Решения оператора</div><div class="ds">«Ложное» → доля ложных по правилу → пороги и дообучение</div></div>
+    </div>
+    <div class="panel eval pending-box" id="eval">
+      <div class="hd"><span class="lbl" data-bind="pending.eval.title">Качество на размеченных роликах</span><span class="ptag" data-ptag="pending.eval">будет обновлено к защите</span><span class="src-in" data-bind="pending.eval.source"></span></div>
+      <div class="ds" data-bind="pending.eval.dataset"></div>
+      <div class="tiles" id="eval-tiles"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 7. LinQ TPU: цифры ============================ -->
+<section class="slide" id="s7" data-src="Замеры 24.10.2026 00:52–01:55 МСК · контейнер стенда 1.5 CPU, 4 ГиБ · LinQ H1M через облачный воркер, очередь общая с другими командами · docs/BENCHMARKS.md §1–3">
+  <div class="head">
+    <div class="kicker">LinQ TPU: цифры <span class="crit">П · В · Н</span></div>
+    <h1>TPU даёт в <em>4.9–7.1 раза</em> больше кадров/с, чем CPU</h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="win chart">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t" data-bind="tpu_vs_cpu.title">Кадров в секунду</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane">
+          <div class="legend" id="tpu-legend"></div>
+          <svg id="tpu-chart" width="956" height="480" viewBox="0 0 956 480" role="img" aria-label="TPU против CPU, кадров в секунду"></svg>
+          <div class="src-in" data-bind="tpu_vs_cpu.note"></div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="panel kpi"><div class="big">40<small>мс</small></div><div class="d"><b>кадр det 480, p50</b> при окне 1; чистый инференс — 8 мс. CPU — 107–120 мс</div></div>
+        <div class="panel kpi"><div class="big">21.1<small>к/с</small></div><div class="d"><b>det + pose 480 на каждый кадр</b>, батч 8 — для падения, телефона, перелезания</div></div>
+        <div class="panel kpi"><div class="big sm">0.95 / 0.97</div><div class="d"><b>recall / precision det 480</b>: TPU int8 против CPU fp32, 30 отложенных кадров. pose 480 — 0.98 / 1.00</div></div>
+        <div class="panel finds">
+          <div class="lbl">Нашли и закрыли особенности платформы</div>
+          <ul class="px">
+            <li><b>raw-упаковка</b> на клиенте: ×1.9–2.3 к/с, выходы бит в бит</li>
+            <li><b>срез головы YOLO</b>: хвост на CPU, иначе int8 обнуляет вероятности</li>
+            <li><b>порог det под int8</b>: 0.25 вместо 0.35, recall 0.90 → 0.95</li>
+          </ul>
+        </div>
+        <div class="panel pend pending-box" data-latency-compact>
+          <div class="k">Сквозная задержка, edge + TPU</div>
+          <div class="pval">—</div>
+          <div><span class="ptag" data-ptag="pending.edge_latency">будет обновлено к защите</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 8. Почему edge и сколько камер ============================ -->
+<section class="slide" id="s8" data-src="docs/BENCHMARKS.md §4 (канал, замеры 24.10 00:52–01:26) и §5 (расчёт камер) · решение D-005 · docs/ARCHITECTURE.md §3, §7">
+  <div class="head">
+    <div class="kicker">Edge и масштаб <span class="crit">В · Э</span></div>
+    <h1>Видео обрабатываем на площадке — наружу только события</h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="panel">
+        <div class="lbl">Один кадр YOLOv8n det 480 на TPU, total p50</div>
+        <div class="vs">
+          <div class="vsrow"><div class="k"><span>С ноутбука через VPN</span><b>3305 мс</b></div><div class="trk"><div class="fill" style="width:100%"></div></div><div class="n">0.29 к/с — для видеоаналитики непригодно</div></div>
+          <div class="vsrow good"><div class="k"><span>Рядом с TPU, на стенде</span><b>40.5 мс</b></div><div class="trk"><div class="fill" style="width:1.23%"></div></div><div class="n">22.8 к/с при окне 1, 45.7 к/с при окне 8</div></div>
+        </div>
+        <ul class="px facts">
+          <li>Обратный канал со стенда — 0.1–0.4 МБ/с, а вход YOLO 480 весит 2.76 МБ: возить кадры бессмысленно</li>
+          <li>Событие 2 КБ доходит до шлюза за <b>0.47 с</b> (p50), канал держит 42 сообщения/с</li>
+          <li>Так же устроены лидеры рынка: Intenseye, Protex AI, Visionify</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="lbl">Сколько камер выдержит один TPU</div>
+        <div class="formula">N = ⌊ F<sub>конвейера</sub> / <b>f<sub>анализа</sub></b> ⌋, <b>f = <span data-bind="cameras_per_tpu.sample_fps">5</span> к/с</b> на камеру</div>
+        <div class="cams" id="cams"></div>
+        <div class="note">5 к/с хватает правилам с окном 2 с: 10 кадров на окно. Узкое место — 1.5 CPU контейнера, а не ускоритель: чистый инференс 8–9 мс из 41. Декод, трекинг и правила в том же контейнере съедят часть запаса — нагрузку полного конвейера edge меряем.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 9. Без кода ============================ -->
+<section class="slide" id="s9" data-src="docs/ARCHITECTURE.md §6 · README.md «Как добавить новый тип нарушения» · guard/rules/plugins/ · скриншот 05b — мок-режим UI">
+  <div class="head">
+    <div class="kicker">Настройка и расширяемость <span class="crit">В · UX</span></div>
+    <h1>Зоны — мышью на кадре. Новый тип нарушения — <em>один файл</em></h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="main">
+        <div class="win shot">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Камеры и правила · зона «Проход у стеллажей», активна 07:55–12:00</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><img src="../screens/05b-zone-drawing.jpg" alt="Редактор зон"></div>
+        </div>
+        <div class="cap"><span class="tag mock">мок-режим UI, демо-данные</span> Полигон по стоп-кадру, расписание у зоны, правило — формой</div>
+      </div>
+      <div>
+        <div class="win code">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">guard/rules/plugins/crowding.py · сокращено</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><pre><span class="d">@register_rule</span>
+<span class="k">class</span> CrowdingRule(RulePlugin):
+    type = <span class="s">"crowding"</span>
+    title = <span class="s">"Скопление людей в зоне"</span>
+    required_models = frozenset({<span class="s">"det"</span>})
+    params_schema = {...}  <span class="c"># по ней UI строит форму</span>
+
+    <span class="k">def</span> evaluate(self, ctx):
+        <span class="c"># только «есть ли нарушение на кадре»;</span>
+        <span class="c"># окно и дубли ведёт EventManager</span>
+        limit = self.cfg.params.get(<span class="s">"max_people"</span>, 3)
+        <span class="k">for</span> zone <span class="k">in</span> self.camera.zones:
+            <span class="k">if</span> is_zone_active(zone, ctx.ts) \
+               <span class="k">and</span> count_in(zone, ctx) > limit:
+                <span class="k">yield</span> self.violation(ctx, zone)</pre></div>
+        </div>
+        <div class="plugs">
+          <span class="tag"><b>S1</b>опасная зона</span><span class="tag"><b>S2</b>каска, жилет</span><span class="tag"><b>S3</b>падение</span><span class="tag"><b>S4</b>сближение с техникой</span><span class="tag"><b>S5</b>бег</span><span class="tag"><b>S6</b>телефон</span><span class="tag"><b>S7</b>курение, огонь</span><span class="tag"><b>S8</b>перелезание</span><span class="tag"><b>S9</b>высота без привязи</span><span class="tag"><b>S10</b>переноска груза</span>
+        </div>
+        <ul class="px facts">
+          <li>Плагины находятся автоматически; подтверждение и дедуп — общий EventManager</li>
+          <li>Новая модель: ONNX → компиляция под TPU → строка в models.yaml</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 10. Рынок ============================ -->
+<section class="slide" id="s10" data-src="docs/ANALYTICS.md §3 — страницы продуктов проверены 24.10.2026, ссылки там же · «—» — в открытых источниках не указано">
+  <div class="head">
+    <div class="kicker">Рынок и конкуренты <span class="crit">А · Н</span></div>
+    <h1>У аналогов <em>отечественный ускоритель</em> не заявлен</h1>
+  </div>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th style="width:290px">Продукт</th><th>Что детектирует</th><th style="width:480px">Железо по открытым данным</th><th style="width:220px">Отеч. ускоритель</th><th style="width:230px">«Камер на узел»</th></tr></thead>
+      <tbody>
+        <tr class="us"><td>Зазеркалье</td><td>10 типов: зоны, СИЗ, падение, техника, бег, телефон, огонь, ограждения, высота, груз</td><td>edge-узел с LinQ TPU, det + pose int8</td><td class="yes">да, замерено</td><td class="yes">по своим замерам</td></tr>
+        <tr><td>TRASSIR<span class="sub">DSSL</span></td><td class="muted">каска, жилет, опасные зоны</td><td class="muted">серверы NeuroStation; GPU не указан</td><td class="no">не заявлен</td><td class="no">—</td></tr>
+        <tr><td>Macroscop</td><td class="muted">каска, жилет, респиратор, очки, перчатки</td><td class="muted">NVIDIA с CUDA, от 4 ГБ памяти</td><td class="no">не заявлен</td><td class="no">—</td></tr>
+        <tr><td>ITV<span class="sub">AxxonSoft</span></td><td class="muted">человек без экипировки: каски, жилеты</td><td class="muted">CPU, NVIDIA GPU, Intel GPU, Huawei NPU</td><td class="no">не заявлен</td><td class="no">—</td></tr>
+        <tr><td>VizorLabs H&amp;S</td><td class="muted">СИЗ, зоны, техника, падение, огонь, курение</td><td class="muted">не указано; 120 000 ₽ за видеопоток</td><td class="no">не заявлен</td><td class="no">—</td></tr>
+        <tr><td>SEES<span class="sub">JSA Group</span></td><td class="muted">СИЗ, опасные зоны, местоположение</td><td class="muted">ARM edge, x86, серверы с видеокартами</td><td class="no">не заявлен</td><td class="no">—</td></tr>
+        <tr><td>Intenseye</td><td class="muted">50+ типов рисков, остановка станка через ПЛК</td><td class="muted">edge-блок на NVIDIA Jetson Orin NX</td><td class="no">зарубежный</td><td class="no">—</td></tr>
+        <tr><td>Visionify</td><td class="muted">12 видов СИЗ, огонь, телефон, погрузчики</td><td class="muted">edge-сервер NVIDIA RTX A4000</td><td class="no">зарубежный</td><td class="muted">«до 10 камер»</td></tr>
+      </tbody>
+    </table>
+    <div class="take">
+      <div class="panel"><div class="lbl">Что берём у лидеров</div>edge-обработка, наружу только события (Intenseye, Protex AI, Visionify) — наша схема D-005 устроена так же</div>
+      <div class="panel"><div class="lbl">Куда расти</div>интеграции с исполнительными системами: остановка станка через ПЛК, СКУД, АСУ ТП, мессенджеры</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 11. Экономика ============================ -->
+<section class="slide" id="s11" data-src="docs/PITCH.md «Экономика внедрения» · КоАП РФ ст. 5.27.1, УК РФ ст. 143 (consultant.ru) · Росстат 2025 · vizorlabs.ru/tariffs · Д-n — условные допущения">
+  <div class="head">
+    <div class="kicker">Экономика внедрения · на условных допущениях <span class="crit">Э</span></div>
+    <h1>Пилот окупается, если предотвратить <em>0.6</em> инцидента в год</h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="panel facts">
+        <div class="lbl">Факты с источниками</div>
+        <div class="row"><b>130–150 тыс. ₽</b>штраф юрлицу за необеспечение СИЗ<span class="src-in">ч. 4 ст. 5.27.1 КоАП РФ</span></div>
+        <div class="row"><b>до 90 суток</b>приостановки деятельности или 100–200 тыс. ₽ при повторном нарушении<span class="src-in">ч. 5 ст. 5.27.1 КоАП РФ</span></div>
+        <div class="row"><b>до 4 лет</b>лишения свободы руководителю, если погиб человек<span class="src-in">ст. 143 УК РФ</span></div>
+        <div class="row"><b>46.1 человеко-дня</b>нетрудоспособности на одного пострадавшего<span class="src-in">Росстат, 2025</span></div>
+        <div class="row"><b>120 000 ₽</b>за видеопоток — ориентир цены ПО конкурента<span class="src-in">VizorLabs Platform 3.0 Basic, от 5 потоков</span></div>
+      </div>
+      <div class="right">
+        <div class="panel assum">
+          <div class="lbl">Условные допущения — заменим данными заказчика и вендора</div>
+          <table class="t">
+            <tbody>
+              <tr><td><span class="dtag">Д-1</span>edge-узел: сервер + ускоритель LinQ (цены в открытом доступе нет)</td><td class="num">1.5 млн ₽</td></tr>
+              <tr><td><span class="dtag">Д-2</span>внедрение пилота: монтаж, зоны и правила, обучение</td><td class="num">0.5 млн ₽</td></tr>
+              <tr><td><span class="dtag">Д-3</span>сопровождение: 20 % от Д-1 в год</td><td class="num">0.3 млн ₽/год</td></tr>
+              <tr><td><span class="dtag">Д-4</span>срок службы узла</td><td class="num">3 года</td></tr>
+              <tr><td><span class="dtag">Д-5</span>пилот: 8 камер — 2 узла при det + pose или 1 узел только с det</td><td class="num">8 камер</td></tr>
+              <tr><td><span class="dtag">Д-6</span>полная цена одного серьёзного инцидента для предприятия</td><td class="num">3 млн ₽</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="panel calc">
+          <div class="bars">
+            <div class="lbl" style="margin-bottom:10px">В год, млн ₽ — условно</div>
+            <div class="b"><div class="k"><span>1 узел, только det, 8 камер</span><b>≈ 1.0</b></div><div class="tr"><div class="f" style="width:33.3%"></div></div></div>
+            <div class="b"><div class="k"><span>2 узла, det + pose, 8 камер</span><b>≈ 1.77</b></div><div class="tr"><div class="f" style="width:59%"></div></div></div>
+            <div class="b inc"><div class="k"><span>один серьёзный инцидент, Д-6</span><b>3.0</b></div><div class="tr"><div class="f" style="width:100%"></div></div></div>
+            <div class="src-in">(2×1.5 + 0.5)/3 + 2×0.3 ≈ 1.77, на камеру ≈ 0.22</div>
+          </div>
+          <div class="be">
+            <div class="lbl" style="margin-bottom:6px">Порог окупаемости</div>
+            <div class="big">≥ 0.6</div>
+            <div class="t">серьёзного инцидента в год (1.77 / 3.0) или <b>12 штрафов</b> по ч. 4 ст. 5.27.1. Только det — ≈ 0.33</div>
+            <div class="warn" style="margin-top:10px">Через месяц пилота Д-6 и долю пресечённых нарушений заменят данные журнала</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 12. Что дальше ============================ -->
+<section class="slide" id="s12" data-src="docs/PITCH.md · docs/ARCHITECTURE.md §6–7 · docs/ANALYTICS.md §3.2 · кейс LinQ, «Направления развития»">
+  <div class="head">
+    <div class="kicker">Что дальше <span class="crit">Э · Н</span></div>
+    <h1>Пилот → масштаб узлами → интеграции</h1>
+  </div>
+  <div class="body">
+    <div class="road">
+      <div class="st"><div class="bar"></div><div class="no">Шаг 1</div><h3>Пилот на 2–3 самых опасных участках</h3>
+        <ul class="px"><li>1–2 узла LinQ, зоны и правила настраивает специалист ОТ</li><li>Журнал меряет эффект сам: пресечённые нарушения, доля ложных, динамика по сменам</li></ul></div>
+      <div class="st"><div class="bar"></div><div class="no">Шаг 2</div><h3>Масштабирование узлами</h3>
+        <ul class="px"><li>Число узлов — по формуле из замеров, а не по обещаниям</li><li>Шлюз сводит площадки в общий журнал; фильтры по полю site уже есть</li></ul></div>
+      <div class="st"><div class="bar"></div><div class="no">Шаг 3</div><h3>Интеграции и качество</h3>
+        <ul class="px"><li>СКУД, MES, наряды-допуски, мессенджеры, световой и звуковой сигнал у зоны</li><li>Дообучение на решениях оператора, отчёты по смене</li></ul></div>
+    </div>
+    <div class="closing">
+      <div class="win lime">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">главное</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane">Одно нарушение — одно оповещение за секунды.<br>На отечественном LinQ TPU — подтверждено замерами.</div>
+      </div>
+      <div class="panel links">
+        <div class="lbl">Ссылки</div>
+        <div data-bind="links.repo"></div>
+        <div><span data-bind="links.readme"></span> — запуск и сценарии</div>
+        <div><span data-bind="links.benchmarks"></span> — все замеры</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Б1. Замеры TPU целиком ============================ -->
+<section class="slide" id="b1" data-backup="1" data-src="docs/BENCHMARKS.md §1 · ключи jupyter.tpu.* и jupyter.combo_det_pose_per_frame в .orchestra/metrics/tpu-baseline.json · 24.10 01:17–01:40 МСК">
+  <div class="head">
+    <div class="kicker">Резерв · замеры TPU</div>
+    <h1>Окна 1 / 4 / 8, raw и не-raw: откуда скорость</h1>
+  </div>
+  <div class="body">
+    <div class="bk-grid">
+      <div class="win">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t" data-bind="det480_windows.title"></span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane">
+          <div class="legend" id="win-legend"></div>
+          <svg id="win-chart" width="704" height="460" viewBox="0 0 704 460" role="img" aria-label="det 480: окна и режимы"></svg>
+          <div class="src-in">raw — ×1.9–2.3 при тех же выходах; окно 8 — ещё ×2 к окну 1</div>
+        </div>
+      </div>
+      <div>
+        <table class="t">
+          <thead><tr><th>Модель, вход</th><th>Режим</th><th class="num">к/с: окно 1 / 4 / 8</th><th class="num">кадр p50 / p95, мс</th><th class="num">инференс p50</th></tr></thead>
+          <tbody>
+            <tr><td>det 480</td><td class="muted">не-raw</td><td class="num">11.8 / 18.5 / 22.7</td><td class="num">81.6 / 100.6</td><td class="num">20.2</td></tr>
+            <tr><td>det 480</td><td>raw</td><td class="num yes">22.8 / 38.0 / 45.7</td><td class="num">40.5 / 64.0</td><td class="num">8.1</td></tr>
+            <tr><td>det 640</td><td class="muted">не-raw</td><td class="num">6.3 / 11.1 / 12.6</td><td class="num">155.1 / 170.6</td><td class="num">35.2</td></tr>
+            <tr><td>det 640</td><td>raw</td><td class="num yes">14.6 / 23.3 / 26.7</td><td class="num">66.1 / 89.7</td><td class="num">14.1</td></tr>
+            <tr><td>pose 480</td><td>raw</td><td class="num yes">24.1 / 44.7 / 50.1</td><td class="num">39.4 / 60.2</td><td class="num">8.2</td></tr>
+            <tr><td>pose 640</td><td>raw</td><td class="num yes">14.2 / 24.6 / 27.9</td><td class="num">66.4 / 97.8</td><td class="num">15.4</td></tr>
+            <tr><td>det 480, срез conv</td><td>raw</td><td class="num">17.3 / 31.2 / 34.5</td><td class="num">55.0 / 90.1</td><td class="num">8.1</td></tr>
+          </tbody>
+        </table>
+        <table class="t" style="margin-top:22px">
+          <thead><tr><th>det + pose на каждый кадр, raw</th><th class="num">окно 1</th><th class="num">батч 4</th><th class="num">батч 8</th><th class="num">батч 8 p50 / p95, мс</th></tr></thead>
+          <tbody>
+            <tr><td>det 480 + pose 480</td><td class="num">9.0</td><td class="num">14.6</td><td class="num yes">21.1</td><td class="num">385 / 432</td></tr>
+            <tr><td>det 640 + pose 640</td><td class="num">5.9</td><td class="num">10.4</td><td class="num">12.1</td><td class="num">625 / 821</td></tr>
+          </tbody>
+        </table>
+        <div class="src-in" style="margin-top:14px">Ошибок за прогоны нет. pose в режиме не-raw не мерили. Все прогоны — ночью 24.10; повторяемость в другое время суток не проверена.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Б2. Канал ============================ -->
+<section class="slide" id="b2" data-backup="1" data-src="docs/BENCHMARKS.md §4 · ключи laptop.net, jupyter.net, laptop.channel_server_to_client · 24.10 00:52–01:26 МСК">
+  <div class="head">
+    <div class="kicker">Резерв · канал «ноутбук ↔ стенд»</div>
+    <h1>Почему конвейер стоит рядом с TPU (решение D-005)</h1>
+  </div>
+  <div class="body">
+    <div class="cols">
+      <table class="t">
+        <thead><tr><th>Брокер и TPU</th><th class="num">Ноутбук, VPN</th><th class="num">Сервер стенда</th></tr></thead>
+        <tbody>
+          <tr><td>RTT до брокера, p50 / p95</td><td class="num">235.5 / 363.7 мс</td><td class="num yes">1.04 / 98.4 мс</td></tr>
+          <tr><td>Подключение AMQP</td><td class="num">2376 мс</td><td class="num">500 мс</td></tr>
+          <tr><td>Петля 0.1 МБ через брокер, p50</td><td class="num">2116 мс</td><td class="num yes">1.76 мс</td></tr>
+          <tr><td>Петля 1 МБ, p50</td><td class="num">7955 мс</td><td class="num yes">104 мс</td></tr>
+          <tr><td>Петля 5 МБ, p50</td><td class="num">27 645 мс</td><td class="num yes">901 мс</td></tr>
+          <tr><td>Скорость туда и обратно</td><td class="num">0.11–0.37 МБ/с</td><td class="num">11–278 МБ/с</td></tr>
+          <tr><td>resnet50 (пример организаторов), total p50</td><td class="num">712 мс</td><td class="num">100.7 мс</td></tr>
+          <tr><td>YOLOv8n det 480 raw, total p50</td><td class="num">3305 мс</td><td class="num yes">40.5 мс</td></tr>
+          <tr><td>YOLOv8n det 480 raw, к/с</td><td class="num">0.29–0.33</td><td class="num yes">22.8–45.7</td></tr>
+        </tbody>
+      </table>
+      <div>
+        <table class="t">
+          <thead><tr><th>Стенд → ноутбук, своя очередь</th><th class="num">p50 / p95</th><th class="num">поток</th></tr></thead>
+          <tbody>
+            <tr><td>64 Б, запрос-ответ</td><td class="num">237 / 308 мс</td><td class="num">—</td></tr>
+            <tr><td>2 КБ — событие и метаданные</td><td class="num yes">467 / 470 мс</td><td class="num">42 сообщ./с</td></tr>
+            <tr><td>60 КБ — снапшот JPEG</td><td class="num">703 / 1860 мс</td><td class="num">5.8 сообщ./с</td></tr>
+          </tbody>
+        </table>
+        <ul class="px" style="margin-top:26px; font-size:22px">
+          <li>Вход YOLO 480 в float32 — 2.76 МБ; обратный канал — 0.1–0.4 МБ/с</li>
+          <li>Поэтому декод, TPU, трекинг и правила — на стенде, на шлюз — только события и метаданные</li>
+          <li>Живое видео через канал не гоняем: шлюз проигрывает те же файлы, рамки рисует по метаданным</li>
+          <li>В продукте это edge-узел на площадке: видео не покидает периметр</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Б3. Сценарии ============================ -->
+<section class="slide" id="b3" data-backup="1" data-src="README.md «Сценарии и статус» · guard/rules/plugins/ · tests/ — 672 теста на 24.10 08:40">
+  <div class="head">
+    <div class="kicker">Резерв · сценарии кейса</div>
+    <h1>Сценарии S1–S10: 10 плагинов, статус на <span data-bind="scenarios.as_of">24.10</span></h1>
+  </div>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th style="width:90px">#</th><th style="width:450px">Нарушение</th><th style="width:240px">Плагин</th><th style="width:160px">Модели</th><th>Статус</th></tr></thead>
+      <tbody id="scen-rows"></tbody>
+    </table>
+    <div class="legend" style="margin-top:16px; font-size:19px">
+      <span><span class="st live"></span>работает в живом конвейере</span>
+      <span><span class="st wip"></span>плагин готов, модель или прогон в работе</span>
+      <span><span class="st ready"></span>плагин и тесты готовы</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ Б4. Риски ============================ -->
+<section class="slide" id="b4" data-backup="1" data-src="docs/CHECKPOINT_2.md §4 · README.md «Модели и лицензии»">
+  <div class="head">
+    <div class="kicker">Резерв · ограничения и риски</div>
+    <h1>Что может помешать и что мы с этим делаем</h1>
+  </div>
+  <div class="body">
+    <div class="cols">
+      <table class="t">
+        <thead><tr><th style="width:420px">Риск</th><th>Что делаем</th></tr></thead>
+        <tbody>
+          <tr><td>Очередь TPU общая с другими командами</td><td class="muted">окно 4–8, raw, det 480; цифры даём с датой и условиями</td></tr>
+          <tr><td>Контейнер стенда — 1.5 CPU, 4 ГиБ</td><td class="muted">OMP_NUM_THREADS=2, батч между камерами, 480 вместо 640</td></tr>
+          <tr><td>Сервер Jupyter гасится по простою</td><td class="muted">keepalive раз в 5 мин, скрипты подъёма edge-процесса</td></tr>
+          <tr><td>Канал VPN: 0.1–0.4 МБ/с от стенда</td><td class="muted">по каналу только события; резерв — мок-режим и видео-демо</td></tr>
+          <tr><td>int8 занижает уверенность det на 0.04–0.05</td><td class="muted">порог det на TPU 0.25–0.30 вместо 0.35, recall 0.95</td></tr>
+          <tr><td>СИЗ — десятки пикселей, окклюзии</td><td class="muted">только явное «нет каски»; окно 2 с; доля ложных в аналитике</td></tr>
+          <tr><td>Демо-ролики зациклены</td><td class="muted">каждый проход — новое событие; дубли меряем на разметке</td></tr>
+          <tr><td>Ноутбук падал по OOM</td><td class="muted">сторож памяти, тяжёлое — строго по одному</td></tr>
+        </tbody>
+      </table>
+      <div class="panel lic">
+        <div class="lbl" style="margin-bottom:12px">Модели и лицензии</div>
+        <ul class="px">
+          <li>YOLOv8n и YOLOv8n-pose (COCO), Ultralytics — AGPL-3.0; основа det и pose на TPU</li>
+          <li>СИЗ: construction-site-safety-hazards v0.3 (YOLOv8s), веса AGPL-3.0, данные CC BY 4.0 — подключение в работе</li>
+          <li>Огонь и дым: fire-smoke-yolov8n (D-Fire), AGPL-3.0 — подключение в работе</li>
+          <li>Для внедрения — дообучение на своих данных и лицензирование</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script src="deck.js"></script>
+</body>
+</html>
