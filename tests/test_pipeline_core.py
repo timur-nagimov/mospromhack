@@ -112,6 +112,17 @@ def test_ring_budget_downscales_further():
     assert ring.stats()["mb"] <= 20 * 640 * 360 * 3 / 2**20 + 0.01
 
 
+def test_ring_restores_resolution_when_budget_grows():
+    """Удалили камеры -> бюджет буфера вырос -> кадры снова 640 px (раньше оставались мелкими навсегда)."""
+    ring = FrameRing(seconds=100, fps=10, max_width=640, budget_bytes=20 * 640 * 360 * 3, max_frames=150)
+    frame = np.zeros((360, 640, 3), np.uint8)
+    for i in range(100):
+        ring.push(frame, i * 0.1)
+    assert ring.max_width < 640
+    ring.set_budget(200 * 640 * 360 * 3)
+    assert ring.max_width == 640 and not ring.downscaled
+
+
 def test_write_clip_is_browser_h264(tmp_path):
     frames = [np.full((241, 321, 3), i * 10 % 255, np.uint8) for i in range(15)]  # нечётный размер
     path = tmp_path / "c.mp4"
@@ -266,6 +277,30 @@ def test_cameras_yaml_roundtrip(tmp_path):
     save_cameras(path, [cam])
     assert load_cameras(path) == [cam]
     assert "Склад" in path.read_text(encoding="utf-8")
+
+
+def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
+    """Неявная severity не должна превращаться в явную 'high' после сохранения (иначе теряется default плагина)."""
+    cam = CameraConfig(
+        camera_id="c1", name="c", site="s", source=SourceConfig(type="file", uri="a.mp4"),
+        rules=[RuleConfig(rule_id="r1", type="fall_immobile"), RuleConfig(rule_id="r2", type="zone_intrusion", severity="low")],
+    )
+    path = tmp_path / "cams.yaml"
+    save_cameras(path, [cam])
+    r1, r2 = load_cameras(path)[0].rules
+    assert "severity" not in r1.model_fields_set
+    assert r2.severity == "low"
+
+
+def test_load_cameras_skips_broken_entry(tmp_path):
+    path = tmp_path / "cams.yaml"
+    path.write_text(
+        "cameras:\n"
+        "- {camera_id: ok, name: n, site: s, source: {type: file, uri: a.mp4}}\n"
+        "- {camera_id: bad, name: n, site: s, source: {type: ftp, uri: a.mp4}}\n",
+        encoding="utf-8",
+    )
+    assert [c.camera_id for c in load_cameras(path)] == ["ok"]
 
 
 def test_repo_cameras_yaml_is_valid():

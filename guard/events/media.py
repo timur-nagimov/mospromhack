@@ -45,6 +45,7 @@ class FrameRing:
         self.seconds = seconds
         self.fps = max(1.0, fps)
         self.max_width = max_width
+        self._base_max_width = max_width
         self.budget_bytes = budget_bytes
         self._frames: deque[tuple[float, np.ndarray]] = deque(maxlen=max(2, max_frames))
         self._bytes = 0
@@ -55,6 +56,10 @@ class FrameRing:
 
     def set_budget(self, budget_bytes: int) -> None:
         with self._lock:
+            if budget_bytes > self.budget_bytes and self.max_width < self._base_max_width:
+                # бюджет вырос (камеру удалили) — возвращаем исходное разрешение, иначе клипы остаются мелкими навсегда
+                self.max_width = self._base_max_width
+                self.downscaled = False
             self.budget_bytes = budget_bytes
 
     def _due(self, ts: float) -> bool:
