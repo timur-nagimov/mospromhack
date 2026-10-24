@@ -16,7 +16,7 @@ from guard.transport.messages import (
     MetricsMsg,
     TransportClosed,
 )
-from guard.transport.rabbit import RabbitSink, RabbitSource, _Outbox, _Packet
+from guard.transport.rabbit import DEFAULT_PREFETCH, RabbitSink, RabbitSource, _Outbox, _Packet
 
 
 def event_message(event_id="event-1", kind="event"):
@@ -375,7 +375,7 @@ def test_source_reconnects_declares_and_acknowledges_after_callback(monkeypatch)
     assert callback_threads[0] != threading.get_ident()
     assert_topology(first_channel)
     assert_topology(second_channel)
-    second_channel.basic_qos.assert_called_once_with(prefetch_count=1)
+    second_channel.basic_qos.assert_called_once_with(prefetch_count=DEFAULT_PREFETCH)
     second_channel.consume.assert_called_once_with(
         queue="zazerkalye.gateway",
         auto_ack=False,
@@ -506,3 +506,14 @@ def test_default_url_and_idle_source_shutdown(monkeypatch):
     connection.close.assert_called_once_with()
     with pytest.raises(TransportClosed):
         source.start()
+
+
+def test_source_prefetch_is_configurable_and_validated():
+    """prefetch 1 через VPN (RTT 225 мс) — ~4 сообщения/с при ~20/с от edge (docs/EDGE.md §7.1)."""
+    assert DEFAULT_PREFETCH >= 50
+    with pytest.raises(ValueError):
+        RabbitSource(prefetch=0, auto_start=False)
+    with pytest.raises(ValueError):
+        RabbitSource(prefetch=1.5, auto_start=False)
+    source = RabbitSource(prefetch=7, auto_start=False)
+    assert source._prefetch == 7
