@@ -14,6 +14,10 @@ from fastapi import APIRouter, HTTPException, Query, Request
 from fastapi.responses import FileResponse, PlainTextResponse
 from pydantic import BaseModel, Field
 
+from guard.auth import audit
+from guard.auth.deps import require
+from guard.auth.roles import FLYWHEEL_REVIEW, FLYWHEEL_TRAIN
+from guard.auth.service import CurrentUser
 from guard.flywheel.cards import load_model_cards, models_summary
 from guard.flywheel.collector import SampleJob, sample_url
 from guard.flywheel.jobs import JobError, JobForbidden, JobManager
@@ -105,7 +109,7 @@ def _collector_stats(engine: Any) -> dict[str, Any] | None:
 # ---------------------------------------------------------------- сводка и сэмплы
 
 
-@router.get("/summary")
+@router.get("/summary", dependencies=[require(FLYWHEEL_REVIEW)])
 def summary(request: Request) -> dict[str, Any]:
     engine = _engine(request)
     data = _store(request).summary()
@@ -136,7 +140,7 @@ def summary(request: Request) -> dict[str, Any]:
     return data
 
 
-@router.get("/samples")
+@router.get("/samples", dependencies=[require(FLYWHEEL_REVIEW)])
 def list_samples(
     request: Request,
     status: str | None = None,
@@ -160,12 +164,12 @@ def list_samples(
     return {"items": [sample_out(s) for s in items], "total": total}
 
 
-@router.get("/samples/{sample_id}")
+@router.get("/samples/{sample_id}", dependencies=[require(FLYWHEEL_REVIEW)])
 def get_sample(sample_id: str, request: Request) -> dict[str, Any]:
     return sample_out(_sample_or_404(_store(request), sample_id))
 
 
-@router.get("/samples/{sample_id}/frame.jpg")
+@router.get("/samples/{sample_id}/frame.jpg", dependencies=[require(FLYWHEEL_REVIEW)])
 def sample_frame(sample_id: str, request: Request) -> FileResponse:
     store = _store(request)
     sample = _sample_or_404(store, sample_id)
@@ -176,7 +180,9 @@ def sample_frame(sample_id: str, request: Request) -> FileResponse:
 
 
 @router.patch("/samples/{sample_id}")
-def patch_sample(sample_id: str, body: SamplePatch, request: Request) -> dict[str, Any]:
+def patch_sample(
+    sample_id: str, body: SamplePatch, request: Request, user: CurrentUser = require(FLYWHEEL_REVIEW)
+) -> dict[str, Any]:
     store = _store(request)
     _sample_or_404(store, sample_id)
     labels = None
@@ -188,10 +194,13 @@ def patch_sample(sample_id: str, body: SamplePatch, request: Request) -> dict[st
         raise HTTPException(422, str(exc)) from exc
     if updated is None:
         raise HTTPException(404, f"sample {sample_id} not found")
+    audit.record(request, audit.FLYWHEEL_REVIEW, sample_id, {
+        "status": body.status, "labels": None if labels is None else len(labels), "camera_id": updated.get("camera_id"),
+    }, user=user)
     return sample_out(updated)
 
 
-@router.post("/capture/{camera_id}", status_code=201)
+@router.post("/capture/{camera_id}", status_code=201, dependencies=[require(FLYWHEEL_REVIEW)])
 def capture(camera_id: str, request: Request) -> dict[str, Any]:
     """Текущий кадр камеры → сэмпл source = operator."""
     engine = _engine(request)
@@ -261,22 +270,28 @@ def _capture_playback(engine: Any, cam: Any, writer: Any) -> dict[str, Any] | No
 
 
 @router.post("/datasets", status_code=201)
-def create_dataset(body: DatasetRequest, request: Request) -> dict[str, Any]:
+def create_dataset(
+    body: DatasetRequest, request: Request, user: CurrentUser = require(FLYWHEEL_TRAIN)
+) -> dict[str, Any]:
     store = _store(request)
     from ml.flywheel.export import ExportError, export_dataset
 
     try:
-        return export_dataset(store, include_holdout=body.include_holdout, classes=body.classes)
+        dataset = export_dataset(store, include_holdout=body.include_holdout, classes=body.classes)
     except ExportError as exc:
         raise HTTPException(422, str(exc)) from exc
+    audit.record(request, audit.FLYWHEEL_JOB, str(dataset.get("version") or ""), {
+        "kind": "dataset", "include_holdout": body.include_holdout, "classes": body.classes,
+    }, user=user)
+    return dataset
 
 
-@router.get("/datasets")
+@router.get("/datasets", dependencies=[require(FLYWHEEL_REVIEW)])
 def list_datasets(request: Request) -> list[dict[str, Any]]:
     return _store(request).list_datasets()
 
 
-@router.get("/models")
+@router.get("/models", dependencies=[require(FLYWHEEL_REVIEW)])
 def list_models() -> list[dict[str, Any]]:
     return load_model_cards()
 
@@ -285,7 +300,7 @@ def list_models() -> list[dict[str, Any]]:
 
 
 @router.post("/jobs", status_code=201)
-def create_job(body: JobRequest, request: Request) -> dict[str, Any]:
+def create_job(body: JobRequest, request: Request, user: CurrentUser = require(FLYWHEEL_TRAIN)) -> dict[str, Any]:
     manager = _jobs(request)
     try:
         job = manager.start(body.kind, body.args)
@@ -293,16 +308,20 @@ def create_job(body: JobRequest, request: Request) -> dict[str, Any]:
         raise HTTPException(403, str(exc)) from exc
     except JobError as exc:
         raise HTTPException(422, str(exc)) from exc
-    return manager.to_dict(job, tail=False)
+    out = manager.to_dict(job, tail=False)
+    audit.record(request, audit.FLYWHEEL_JOB, str(out.get("id") or ""), {
+        "kind": body.kind, "args": body.args, "status": out.get("status"),
+    }, user=user)
+    return out
 
 
-@router.get("/jobs")
+@router.get("/jobs", dependencies=[require(FLYWHEEL_REVIEW)])
 def list_jobs(request: Request) -> list[dict[str, Any]]:
     manager = _jobs(request)
     return [manager.to_dict(j, tail=False) for j in manager.list()]
 
 
-@router.get("/jobs/{job_id}")
+@router.get("/jobs/{job_id}", dependencies=[require(FLYWHEEL_REVIEW)])
 def get_job(job_id: str, request: Request) -> dict[str, Any]:
     manager = _jobs(request)
     job = manager.get(job_id)
@@ -311,7 +330,7 @@ def get_job(job_id: str, request: Request) -> dict[str, Any]:
     return manager.to_dict(job, tail=True)
 
 
-@router.get("/jobs/{job_id}/log", response_class=PlainTextResponse)
+@router.get("/jobs/{job_id}/log", response_class=PlainTextResponse, dependencies=[require(FLYWHEEL_REVIEW)])
 def job_log(job_id: str, request: Request) -> str:
     manager = _jobs(request)
     if manager.get(job_id) is None:

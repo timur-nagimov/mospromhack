@@ -52,3 +52,34 @@ def test_memory_is_bounded():
     for i in range(1000):
         lim.failure(f"user{i}", "ip")
     assert len(lim) <= 100
+
+
+def test_active_block_survives_eviction():
+    lim = LoginLimiter(max_failures=2, block_s=60.0, clock=FakeClock(0.0), max_keys=10)
+    lim.failure("admin", "ip")
+    lim.failure("admin", "ip")
+    for i in range(100):
+        lim.failure(f"user{i}", "ip")
+    assert lim.retry_after("admin", "ip") == 60.0
+
+
+def test_api_answers_429_after_ten_failed_logins(tmp_path, monkeypatch):
+    from guard.auth import passwords
+    from guard.auth.testing import auth_env
+
+    monkeypatch.setattr(passwords, "SCRYPT_N", 2**10)
+    with auth_env(tmp_path) as env:
+        bad = {"username": "admin", "password": "wrong"}
+        for _ in range(10):
+            assert env.client.post("/api/auth/login", json=bad).status_code == 401
+        r = env.client.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+        assert r.status_code == 429  # даже верный пароль во время паузы
+        assert r.headers["retry-after"] == "60"
+        assert r.json() == {"detail": "too many attempts", "retry_after": 60}
+        # другой логин с того же адреса не затронут
+        env.login("worker")
+        env.clock.advance(61)
+        headers = env.login("admin")
+        failed = env.client.get("/api/audit", params={"action": "auth.login_failed"}, headers=headers).json()
+        assert failed["total"] == 10
+        assert failed["items"][0]["details"]["locked_for_s"] == 60

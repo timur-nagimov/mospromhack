@@ -47,7 +47,12 @@ _COLUMNS = (
     "operator_note",
     "details",
     "latency_ms",
+    "handled_by",
+    "handled_at",
 )
+# Колонки, добавленные после первой версии схемы: в старую базу они дописываются ALTER TABLE при открытии.
+# user_version остаётся 1, чтобы прежний код по-прежнему открывал обновлённую базу.
+_ADDED_COLUMNS = (("handled_by", "TEXT"), ("handled_at", "REAL"))
 _JSON_COLUMNS = ("bbox", "details", "latency_ms")
 _FILTER_COLUMNS = frozenset(
     {"type", "camera_id", "zone_id", "status", "severity"}
@@ -60,6 +65,8 @@ _UPDATE_COLUMNS = frozenset(
         "snapshot_path",
         "clip_path",
         "details",
+        "handled_by",
+        "handled_at",
     }
 )
 _GROUP_COLUMNS = {
@@ -89,6 +96,8 @@ _CSV_HEADERS = (
     "Комментарий ответственного",
     "Подробности",
     "Задержки обработки (мс, JSON)",
+    "Кто обработал",
+    "Время обработки (UTC)",
 )
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS events (
@@ -109,7 +118,9 @@ CREATE TABLE IF NOT EXISTS events (
     status TEXT NOT NULL,
     operator_note TEXT,
     details TEXT NOT NULL,
-    latency_ms TEXT NOT NULL
+    latency_ms TEXT NOT NULL,
+    handled_by TEXT,
+    handled_at REAL
 )
 """
 _CREATE_INDEXES = (
@@ -221,10 +232,21 @@ class Journal:
                     self._conn.execute(
                         f"PRAGMA user_version = {_SCHEMA_VERSION}"
                     )
+                self._add_missing_columns()
                 self._replication = ReplicationStore(self._conn, replication_edge_id)
         except BaseException:
             self._conn.close()
             raise
+
+    def _add_missing_columns(self) -> None:
+        """Дописать в существующую базу колонки, появившиеся позже (handled_by, handled_at).
+
+        Только ADD COLUMN со значением NULL: старые строки и прежний код не затрагиваются.
+        """
+        existing = {row[1] for row in self._conn.execute("PRAGMA table_info(events)")}
+        for name, sql_type in _ADDED_COLUMNS:
+            if name not in existing:
+                self._conn.execute(f"ALTER TABLE events ADD COLUMN {name} {sql_type}")
 
     def __enter__(self) -> Journal:
         return self
@@ -373,6 +395,8 @@ class Journal:
             data.update(
                 status=EventStatus.new if current is None else current.status,
                 operator_note=None if current is None else current.operator_note,
+                handled_by=None if current is None else current.handled_by,
+                handled_at=None if current is None else current.handled_at,
                 snapshot_path=snapshot_path if snapshot_path is not None else (
                     None if current is None else current.snapshot_path
                 ),
@@ -553,7 +577,7 @@ class Journal:
             writer.writerow(_CSV_HEADERS)
             for row in rows:
                 values = dict(row)
-                for column in ("started_at", "confirmed_at", "ended_at"):
+                for column in ("started_at", "confirmed_at", "ended_at", "handled_at"):
                     if values[column] is not None:
                         values[column] = datetime.fromtimestamp(
                             values[column], timezone.utc

@@ -126,6 +126,12 @@ class Settings:
     flywheel_shadow_period_s: float = 30.0
     flywheel_allow_train: bool = False  # задачи train и deploy из UI
     flywheel_edge_kbps: float = 4.0  # edge: прибавка трафика на камеру, КБ/с (контракт — не больше 10)
+    # вход и роли (docs/ROLES.md). В коде вход по умолчанию выключен: тесты и скрипты собирают приложение
+    # без входа и работают как admin. Settings.from_env() включает его (GUARD_AUTH=1 по умолчанию).
+    auth: bool = False
+    demo_login: bool = True  # кнопки «Войти как …» и смена роли для показа
+    auth_db: Path | None = None  # None — <data_dir>/auth.db
+    session_ttl_s: float = 12 * 3600.0  # смена; срок сдвигается при активности
 
     def __post_init__(self) -> None:
         if self.ppe_input_mode not in {"full_frame", "person_crop"}:
@@ -152,6 +158,10 @@ class Settings:
     @property
     def flywheel_root(self) -> Path:
         return Path(self.flywheel_dir).expanduser() if self.flywheel_dir else self.data_dir / "flywheel"
+
+    @property
+    def auth_db_path(self) -> Path:
+        return Path(self.auth_db).expanduser() if self.auth_db else self.data_dir / "auth.db"
 
     @classmethod
     def from_env(cls) -> Settings:
@@ -200,4 +210,16 @@ class Settings:
             flywheel_shadow_period_s=_env_float("GUARD_FLYWHEEL_SHADOW_PERIOD_S", 30.0),
             flywheel_allow_train=_env_bool("GUARD_FLYWHEEL_ALLOW_TRAIN", False),
             flywheel_edge_kbps=_env_float("GUARD_FLYWHEEL_EDGE_KBPS", 4.0),
+            auth=_env_bool("GUARD_AUTH", True),
+            demo_login=_env_bool("GUARD_DEMO_LOGIN", True),
+            auth_db=Path(os.environ["GUARD_AUTH_DB"]).expanduser() if os.environ.get("GUARD_AUTH_DB") else None,
+            **_cors_from_env(),
         )
+
+
+def _cors_from_env() -> dict[str, list[str]]:
+    """GUARD_CORS_ORIGINS — источники через запятую; не задано — умолчание Settings (dev-сервер Vite)."""
+    raw = os.environ.get("GUARD_CORS_ORIGINS")
+    if not raw:
+        return {}
+    return {"cors_origins": [o.strip() for o in raw.split(",") if o.strip()]}

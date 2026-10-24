@@ -34,4 +34,6 @@ fi
 # Унаследованный PYTHONPATH не берём: на этом маке там FUSE-монтирование arcadia, оно иногда отвечает
 # «Device not configured», и интерпретатор падает на старте.
 export PYTHONPATH="$PWD"
+# Вход и роли (docs/ROLES.md): включён ли вход и демо-учётки при GUARD_DEMO_LOGIN=1 (умолчание).
+"$PY" -m guard.auth banner >&2 || true
 exec "$PY" -m uvicorn guard.api.app:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}" --log-level info "$@"

@@ -20,7 +20,17 @@ SALT_BYTES = 16
 _MAXMEM = 64 * 1024 * 1024
 _PREFIX = "scrypt"
 
+PASSWORD_MIN = 4  # мягко: демо-показ; для объекта задайте длинные пароли
+PASSWORD_MAX = 128
+
 _burn_hash: str | None = None
+
+
+def password_problem(password: str) -> str | None:
+    """Почему пароль не подходит, или None."""
+    if not PASSWORD_MIN <= len(password) <= PASSWORD_MAX:
+        return f"password: {PASSWORD_MIN}-{PASSWORD_MAX} symbols"
+    return None
 
 
 def _derive(password: str, salt: bytes, n: int, r: int, p: int, dklen: int) -> bytes:
