@@ -331,7 +331,8 @@ print(json.dumps([str(compile.ROOT), str(compile.MODELS_DIR)]))
     environment = {key: value for key, value in os.environ.items() if key not in {"GUARD_ROOT", "GUARD_MODELS_DIR"}}
     result = subprocess.run([sys.executable, "-c", code], env=environment, text=True, capture_output=True, timeout=10)
     assert result.returncode == 0, result.stderr
-    assert json.loads(result.stdout) == [str(preflight.ROOT), str(preflight.ROOT / "models")]
+    # models может быть симлинком на внешний диск: compile.py резолвит путь
+    assert json.loads(result.stdout) == [str(preflight.ROOT), str((preflight.ROOT / "models").resolve())]
     environment.update(GUARD_ROOT=str(tmp_path / "repo"), GUARD_MODELS_DIR=str(tmp_path / "assets"))
     result = subprocess.run([sys.executable, "-c", code], env=environment, text=True, capture_output=True, timeout=10)
     assert result.returncode == 0, result.stderr
