@@ -4,7 +4,9 @@
   "use strict";
   const NS = "http://www.w3.org/2000/svg";
   const get = (o, path) => path.split(".").reduce((a, k) => (a == null ? undefined : a[k]), o);
-  const fmt = (v, d) => (v == null ? "—" : (typeof v === "number" ? (d != null ? v.toFixed(d) : String(v)) : String(v)));
+  // округление «половина вверх» без артефактов float: 22.65 → 22.7
+  const round = (v, d) => (Math.round((v + Number.EPSILON) * 10 ** d) / 10 ** d).toFixed(d);
+  const fmt = (v, d) => (v == null ? "—" : (typeof v === "number" ? (d != null ? round(v, d) : String(v)) : String(v)));
 
   /* HTML-узел: h("div", {class: "x"}, "текст", h("b", null, "жирный")) */
   function h(tag, attrs, ...kids) {
@@ -115,6 +117,16 @@
     }
   }
 
+  /* ---- строки статуса (data-status="pending.xxx"): текст из pending_text / done_text ---- */
+  function statusLines(data) {
+    document.querySelectorAll("[data-status]").forEach(n => {
+      const b = get(data, n.dataset.status);
+      if (!b) return;
+      const t = n.querySelector("[data-status-text]");
+      if (t) t.textContent = isDone(b) ? b.done_text : b.pending_text;
+    });
+  }
+
   /* ---- график: TPU против CPU (горизонтальные сгруппированные бары) ---- */
   function tpuChart(data) {
     const D = data.tpu_vs_cpu, svg = document.getElementById("tpu-chart");
@@ -146,7 +158,7 @@
       bar(r.tpu, y + bh + gap, "#a8d42c", "TPU");
       const g = s("g", {}, svg);
       s("rect", { x: 862, y: y + 5, width: 92, height: 46, rx: 6, fill: "rgba(168,212,44,.12)", stroke: "#a8d42c", "stroke-width": 1.5 }, g);
-      s("text", { x: 908, y: y + 37, "text-anchor": "middle", "font-family": "Tektur", "font-size": 26, "font-weight": 700, fill: "#eef4f1" }, g, "×" + (r.tpu / r.cpu).toFixed(1));
+      s("text", { x: 908, y: y + 37, "text-anchor": "middle", "font-family": "Tektur", "font-size": 26, "font-weight": 700, fill: "#eef4f1" }, g, "×" + round(r.tpu / r.cpu, 1));
     });
     s("line", { x1: x0, x2: x0, y1: top - 10, y2: plotB, class: "base" }, svg);
   }
@@ -187,7 +199,7 @@
       host.append(h("div", { class: "cam" },
         h("div", { class: "nm" }, r.set, h("small", null, r.use)),
         h("div", null, px, h("div", { class: "src-in", style: "margin-top:6px" },
-          fmt(r.fps) + " / " + C.sample_fps + " = " + (r.fps / C.sample_fps).toFixed(1))),
+          fmt(r.fps) + " / " + C.sample_fps + " = " + round(r.fps / C.sample_fps, 1))),
         h("div", { class: "cn" }, String(r.cams), h("small", null, r.cams < 5 ? "камеры" : "камер"))));
     });
   }
@@ -199,7 +211,7 @@
     const lit = new Set([3, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 23, 24, 25, 26]);
     const n = 34, pitch = 44, sz = 36, x0 = 236, y = 64;
     s("text", { x: 0, y: y + 14, "font-size": 20, fill: "#b9cbd2" }, svg, "Кадры анализа,");
-    s("text", { x: 0, y: y + 38, "font-size": 20, fill: "#b9cbd2" }, svg, "5 к/с");
+    s("text", { x: 0, y: y + 38, "font-size": 20, fill: "#b9cbd2" }, svg, "5 к/с · схема");
     for (let i = 0; i < n; i++) {
       const on = lit.has(i);
       s("rect", { x: x0 + i * pitch, y: y, width: sz, height: sz, fill: on ? "#a8d42c" : "none",
@@ -256,7 +268,7 @@
       return;
     }
     try {
-      bind(data); ptags(data); evalTiles(data); latency(data);
+      bind(data); ptags(data); statusLines(data); evalTiles(data); latency(data);
       tpuChart(data); winChart(data); cams(data); scen(data);
     } catch (e) {
       fail("ошибка сборки: " + e.message);

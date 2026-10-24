@@ -64,17 +64,20 @@ function layoutCheck() {
     if (src && src.scrollHeight > src.clientHeight + 1) out.push(sid + ": источник в подвале не влез в 2 строки");
     const S = sl.getBoundingClientRect();
     const body = sl.querySelector(".body");
-    const limitBottom = body ? body.getBoundingClientRect().bottom : S.bottom - 110;
+    const B = body ? body.getBoundingClientRect() : null;
+    const limitBottom = B ? B.bottom : S.bottom - 110;
+    const limitRight = B ? B.right : S.right - 96;
     sl.querySelectorAll("*").forEach(n => {
       if (n.closest(".chrome") || n.closest(".foot") || n.closest("svg.pixels")) return;
       const r = n.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      if (r.right > S.right - 40 + 1) out.push(sid + ": за правым краем на " + Math.round(r.right - (S.right - 40)) + "px — " + label(n));
+      if (r.right > limitRight + 1) out.push(sid + ": за правым краем контента на " + Math.round(r.right - limitRight) + "px — " + label(n));
       if (body && body.contains(n) && r.bottom > limitBottom + 1) out.push(sid + ": ниже области контента на " + Math.round(r.bottom - limitBottom) + "px — " + label(n));
       const cs = getComputedStyle(n);
       if ((cs.overflow === "hidden" || cs.overflowX === "hidden") && n.tagName !== "svg" && !n.classList.contains("slide") && !n.classList.contains("win") && !n.classList.contains("pane") && !n.classList.contains("th") && !n.classList.contains("feed")) {
         if (n.scrollWidth > n.clientWidth + 1) out.push(sid + ": обрезан текст по ширине — " + label(n));
       }
+      if (n.tagName === "PRE" && n.parentElement && n.scrollWidth > n.parentElement.clientWidth) out.push(sid + ": код шире окна — " + label(n));
     });
   });
   return [...new Set(out)];
