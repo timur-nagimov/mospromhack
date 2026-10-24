@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import pytest
 
 from guard.contracts import Detection
@@ -211,8 +212,345 @@ def test_invalid_detection_is_ignored():
         {"match_iou": 1.1},
         {"track_buffer_s": -1},
         {"min_hits": 0},
+        {"history_s": 0},
+        {"history_s": -1},
+        {"history_s": float("nan")},
+        {"history_s": float("inf")},
     ],
 )
 def test_invalid_configuration(kwargs):
     with pytest.raises(ValueError):
         Tracker({"person"}, **kwargs)
+
+
+@pytest.mark.parametrize("epoch", [0.0, 1_700_000_000.0])
+def test_default_history_retains_eight_seconds_at_high_frame_rate(epoch):
+    tracker = Tracker({"person"}, min_hits=1)
+    for frame in range(241):
+        track = tracker.update([detection()], epoch + frame / 20.0)[0]
+
+    assert tracker.history_s == 8.0
+    assert track.history.maxlen is None
+    assert len(track.history) == 161
+    assert track.history[0][0] == pytest.approx(epoch + 4.0, rel=0, abs=1e-6)
+    assert track.history[-1][0] == pytest.approx(epoch + 12.0, rel=0, abs=1e-6)
+    assert track.history[-1][0] - track.history[0][0] == pytest.approx(8.0)
+    assert track.hits == 241
+
+
+@pytest.mark.parametrize("history_s", [0.5, 3.5, 10.0])
+def test_history_retention_is_configurable(history_s):
+    tracker = Tracker({"person"}, min_hits=1, history_s=history_s)
+    for frame in range(241):
+        track = tracker.update([detection()], frame / 20.0)[0]
+
+    assert len(track.history) == round(history_s * 20) + 1
+    assert track.history[0][0] == pytest.approx(12.0 - history_s)
+    assert track.history[-1][0] == 12.0
+
+
+@pytest.mark.parametrize("history_s", [0.5, 2.0, 8.0, 20.0])
+def test_running_start_and_stop_keep_original_two_second_speed(history_s):
+    tracker = Tracker({"person"}, min_hits=1, history_s=history_s)
+    observations = []
+    identities = set()
+    for frame in range(121):
+        ts = frame / 10.0
+        # Stand, run for four seconds at 2 body heights/s, then stop.
+        x = 200.0 * min(max(ts - 4.0, 0.0), 4.0)
+        track = tracker.update(
+            [detection(x=x, width=100, height=100)], ts
+        )[0]
+        identities.add(track.track_id)
+        observations.append((ts, x + 50.0, 100.0, 100.0))
+        recent = np.asarray(
+            [sample for sample in observations if sample[0] >= ts - 2.0 - 1e-9]
+        )
+        if len(recent) < 2:
+            expected = np.zeros(2)
+        else:
+            times = recent[:, 0] - recent[-1, 0]
+            times -= times.mean()
+            positions = recent[:, 1:3] - recent[:, 1:3].mean(axis=0)
+            expected = (times @ positions) / (times @ times)
+
+        assert track.velocity == pytest.approx(tuple(expected), abs=1e-8)
+        assert track.speed_bh == pytest.approx(
+            float(np.linalg.norm(expected) / recent[:, 3].mean()),
+            abs=1e-8,
+        )
+        if frame == 80:
+            assert track.speed_bh == pytest.approx(2.0)
+        if frame == 120:
+            assert track.speed_bh == pytest.approx(0.0, abs=1e-8)
+
+    assert len(identities) == 1
+
+
+def test_lost_track_keeps_pose_and_first_loss_timestamp_until_recovery():
+    tracker = Tracker({"person"}, min_hits=1)
+    det = detection()
+    det.keypoints = np.ones((17, 3), dtype=float)
+    track = tracker.update([det], 0.0)[0]
+    track.attributes.update(
+        pose_state="lying",
+        lying_since=0.0,
+        custom="preserved",
+    )
+    original_box = track.bbox
+    original_points = track.keypoints.copy()
+    original_history = list(track.history)
+
+    assert tracker.update([], 0.2) == []
+    assert track.attributes["lost_since"] == 0.2
+    assert tracker.update([], 0.8) == []
+    assert track.attributes["lost_since"] == 0.2
+    assert track.attributes["pose_state"] == "lying"
+    assert track.attributes["lying_since"] == 0.0
+    assert track.attributes["custom"] == "preserved"
+    assert track.bbox == original_box
+    assert track.last_seen == 0.0
+    assert list(track.history) == original_history
+    np.testing.assert_array_equal(track.keypoints, original_points)
+
+    recovered = tracker.update([det], 1.0)[0]
+    assert recovered is track
+    assert "lost_since" not in recovered.attributes
+    assert recovered.attributes["pose_state"] == "lying"
+
+    assert tracker.update([], 1.2) == []
+    assert recovered.attributes["lost_since"] == 1.2
+
+
+def test_lost_history_is_trimmed_without_adding_predictions():
+    tracker = Tracker({"person"}, min_hits=1, history_s=1.0)
+    for frame in range(6):
+        track = tracker.update([detection()], frame / 5.0)[0]
+
+    assert tracker.update([], 1.8) == []
+    assert [sample[0] for sample in track.history] == pytest.approx([0.8, 1.0])
+    assert track.last_seen == 1.0
+    assert track.bbox == detection().bbox
+
+
+@pytest.mark.parametrize(
+    "standing, fallen",
+    [
+        ((461, 362, 725, 608), (495, 466, 907, 691)),
+        ((0, 0, 20, 100), (-20, 80, 80, 100)),
+    ],
+)
+@pytest.mark.parametrize("submit_empty_frame", [False, True])
+def test_posture_footpoint_recovery_preserves_track(standing, fallen, submit_empty_frame):
+    tracker = Tracker({"person"})
+    x1, y1, x2, y2 = standing
+    before = detection(x=x1, y=y1, width=x2 - x1, height=y2 - y1)
+    assert tracker.update([before], 0.0) == []
+    original = tracker.update([before], 0.2)[0]
+    original.attributes.update(pose_state="lying", lying_since=0.0, custom="kept")
+    if submit_empty_frame:
+        assert tracker.update([], 0.4) == []
+        assert original.attributes["lost_since"] == 0.4
+
+    x1, y1, x2, y2 = fallen
+    # High enough for association, but below the new-track threshold.
+    after = detection(
+        x=x1, y=y1, width=x2 - x1, height=y2 - y1, conf=0.55
+    )
+    after.keypoints = np.ones((17, 3), dtype=float)
+    recovered = tracker.update([after], 0.6)
+
+    assert len(recovered) == 1
+    assert recovered[0] is original
+    assert original.bbox == after.bbox
+    assert original.first_seen == 0.0
+    assert original.last_seen == 0.6
+    assert original.hits == 3
+    assert original.conf == 0.55
+    assert original.attributes["pose_state"] == "lying"
+    assert original.attributes["lying_since"] == 0.0
+    assert original.attributes["custom"] == "kept"
+    assert "lost_since" not in original.attributes
+    assert [sample[0] for sample in original.history] == [0.0, 0.2, 0.6]
+    np.testing.assert_array_equal(original.keypoints, after.keypoints)
+    assert original.keypoints is not after.keypoints
+
+
+@pytest.mark.parametrize("width, height", [(20.0, 100.0), (100.0, 20.0)])
+@pytest.mark.parametrize("distance, same_id", [(60.0, True), (60.01, False)])
+def test_posture_footpoint_distance_boundary_uses_larger_old_dimension(
+    width, height, distance, same_id
+):
+    tracker = Tracker({"person"}, min_hits=1)
+    original = tracker.update([detection(width=width, height=height)], 0.0)[0]
+    fallen = detection(
+        x=width / 2.0 + distance - height / 2.0,
+        y=height - width,
+        width=height,
+        height=width,
+    )
+    result = tracker.update([fallen], 0.2)
+    assert len(result) == 1
+    assert (result[0].track_id == original.track_id) == same_id
+
+
+@pytest.mark.parametrize("gap, same_id", [(1.0, True), (1.001, False)])
+@pytest.mark.parametrize("submit_empty_frame", [False, True])
+def test_posture_footpoint_recovery_window_uses_last_observation(
+    gap, same_id, submit_empty_frame
+):
+    tracker = Tracker({"person"}, min_hits=1, track_buffer_s=3.0)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    if submit_empty_frame:
+        assert tracker.update([], 0.8) == []
+    result = tracker.update(
+        [detection(x=-20, y=80, width=100, height=20)], gap
+    )
+    assert len(result) == 1
+    assert (result[0].track_id == original.track_id) == same_id
+
+
+def test_posture_footpoint_recovery_respects_shorter_track_buffer():
+    tracker = Tracker({"person"}, min_hits=1, track_buffer_s=0.5)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    result = tracker.update(
+        [detection(x=-20, y=80, width=100, height=20)], 0.6
+    )
+    assert len(result) == 1
+    assert result[0].track_id != original.track_id
+
+
+def test_posture_footpoint_gate_uses_old_box_not_larger_detection():
+    tracker = Tracker({"person"}, min_hits=1)
+    original = tracker.update(
+        [detection(x=555, y=235, width=278, height=321)], 0.0
+    )[0]
+    # The first demo pair is outside the specified gate:
+    # hypot(133.5, 156) / 321 ~= 0.640, despite the new box being wider.
+    result = tracker.update(
+        [detection(x=496, y=490, width=663, height=222)], 0.2
+    )
+    assert len(result) == 1
+    assert result[0].track_id != original.track_id
+
+
+@pytest.mark.parametrize("reverse_detections", [False, True])
+def test_posture_footpoint_matching_is_greedy_and_one_to_one(reverse_detections):
+    tracker = Tracker({"person"}, min_hits=1)
+    first, second = tracker.update(
+        [
+            detection(x=0, width=20, height=100),
+            detection(x=80, width=20, height=100),
+        ],
+        0.0,
+    )
+    first_id, second_id = first.track_id, second.track_id
+    # Every IoU is below 0.3. The first listed detection is nearer the
+    # second track, although both tracks are within its footpoint gate.
+    fallen = [
+        detection(x=20, y=80, width=100, height=20),
+        detection(x=-50, y=80, width=100, height=20),
+    ]
+    if reverse_detections:
+        fallen.reverse()
+    result = tracker.update(fallen, 0.2)
+    assert len(result) == 2
+    assert {track.bbox[0]: track.track_id for track in result} == {
+        -50.0: first_id,
+        20.0: second_id,
+    }
+    assert all(track.hits == 2 for track in result)
+
+
+def test_posture_footpoint_matching_consumes_track_only_once():
+    tracker = Tracker({"person"}, min_hits=1)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    result = tracker.update(
+        [
+            detection(x=-10, y=80, width=100, height=20),
+            detection(x=-40, y=80, width=100, height=20),
+        ],
+        0.2,
+    )
+    assert len(result) == 2
+    by_x = {track.bbox[0]: track for track in result}
+    assert by_x[-40.0] is original
+    assert by_x[-10.0].track_id != original.track_id
+    assert original.hits == 2
+
+
+def test_posture_footpoint_matching_keeps_distant_people_separate():
+    tracker = Tracker({"person"}, min_hits=1)
+    before = tracker.update(
+        [
+            detection(x=0, width=20, height=100),
+            detection(x=1000, width=20, height=100),
+        ],
+        0.0,
+    )
+    ids = [track.track_id for track in before]
+    after = tracker.update(
+        [
+            detection(x=980, y=80, width=100, height=20),
+            detection(x=-20, y=80, width=100, height=20),
+        ],
+        0.2,
+    )
+    assert len(after) == 2
+    assert {track.bbox[0]: track.track_id for track in after} == {
+        -20.0: ids[0],
+        980.0: ids[1],
+    }
+
+
+def test_posture_footpoint_matching_does_not_cross_classes():
+    tracker = Tracker({"person", "truck"}, min_hits=1)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    result = tracker.update(
+        [detection(x=-20, y=80, width=100, height=20, cls="truck")], 0.2
+    )
+    assert len(result) == 1
+    assert result[0].cls == "truck"
+    assert result[0].track_id != original.track_id
+    assert original.last_seen == 0.0
+
+
+def test_posture_footpoint_matching_does_not_revive_from_low_confidence():
+    tracker = Tracker({"person"}, min_hits=1)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    assert tracker.update([], 0.2) == []
+    assert tracker.update(
+        [detection(x=-20, y=80, width=100, height=20, conf=0.2)], 0.4
+    ) == []
+    assert original.last_seen == 0.0
+    assert original.hits == 1
+    assert original.attributes["lost_since"] == 0.2
+
+
+def test_posture_footpoint_matching_does_not_confirm_tentative_track():
+    tracker = Tracker({"person"})
+    assert tracker.update([detection(width=20, height=100)], 0.0) == []
+    fallen = detection(x=-20, y=80, width=100, height=20)
+    assert tracker.update([fallen], 0.2) == []
+    result = tracker.update([fallen], 0.4)
+    assert len(result) == 1
+    assert result[0].first_seen == 0.2
+    assert result[0].hits == 2
+
+
+def test_posture_footpoint_fallback_preserves_existing_iou_match():
+    tracker = Tracker({"person"}, min_hits=1)
+    original = tracker.update([detection(width=20, height=100)], 0.0)[0]
+    result = tracker.update(
+        [
+            detection(x=-40, y=80, width=100, height=20),
+            detection(x=2, width=20, height=100),
+        ],
+        0.2,
+    )
+    assert len(result) == 2
+    by_x = {track.bbox[0]: track for track in result}
+    # The fallen box has a closer footpoint, but IoU association wins.
+    assert by_x[2.0] is original
+    assert by_x[-40.0].track_id != original.track_id
+    assert original.hits == 2

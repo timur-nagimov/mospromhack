@@ -60,6 +60,16 @@ class Settings:
     frontend_dist: Path
     backend: str = "onnx-cpu"
     autostart: bool = True
+    # режим запуска (D-005): local — всё в одном процессе; edge — конвейер у TPU, публикует
+    # event/frame_meta/metrics в транспорт; gateway — API/UI/журнал/клипы на ноутбуке
+    mode: str = "local"
+    transport: str = "rabbit"  # memory | rabbit | log
+    rabbit_url: str | None = None
+    publish_frame_meta: bool = True
+    clips_enabled: bool = True  # на edge выключено: клипы собирает gateway из своего буфера
+    edge_snapshot_width: int = 640
+    edge_snapshot_quality: int = 70
+    edge_snapshot_max_kb: int = 60
     # батчинг между камерами: включается, если бэкенд принимает batch > 1
     batching: bool = True
     max_batch: int = 8
@@ -69,7 +79,7 @@ class Settings:
     clip_post_s: float = 5.0
     clip_fps: float = 10.0
     clip_max_width: int = 640
-    clip_buffer_mb: int = 256
+    clip_buffer_mb: int = 512
     # поток MJPEG
     stream_fps: float = 10.0
     stream_max_width: int = 1280
@@ -81,7 +91,7 @@ class Settings:
     tracker_match_iou: float = 0.25
     tracker_buffer_s: float = 3.0
     tracker_min_hits: int = 2
-    ort_threads: int = 4
+    ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
 
     @property
@@ -105,6 +115,11 @@ class Settings:
             frontend_dist=Path(os.environ.get("GUARD_FRONTEND_DIST") or CODE_ROOT / "frontend" / "dist"),
             backend=backend_name_from_env(),
             autostart=_env_bool("GUARD_AUTOSTART", True),
+            mode=(os.environ.get("GUARD_MODE") or "local").strip().lower(),
+            transport=(os.environ.get("GUARD_TRANSPORT") or "rabbit").strip().lower(),
+            rabbit_url=os.environ.get("GUARD_RABBIT_URL") or None,
+            publish_frame_meta=_env_bool("GUARD_FRAME_META", True),
+            clips_enabled=_env_bool("GUARD_CLIPS", (os.environ.get("GUARD_MODE") or "local").strip().lower() != "edge"),
             batching=_env_bool("GUARD_BATCHING", True),
             max_batch=_env_int("GUARD_MAX_BATCH", 8),
             batch_timeout_ms=_env_float("GUARD_BATCH_TIMEOUT_MS", 4.0),
@@ -112,7 +127,7 @@ class Settings:
             clip_post_s=_env_float("GUARD_CLIP_POST_S", 5.0),
             clip_fps=_env_float("GUARD_CLIP_FPS", 10.0),
             clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
-            clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 256),
+            clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 512),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
-            ort_threads=_env_int("GUARD_ORT_THREADS", 4),
+            ort_threads=_env_int("GUARD_ORT_THREADS", 2),
         )
