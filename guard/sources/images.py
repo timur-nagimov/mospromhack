@@ -43,6 +43,7 @@ class ImageFolderSource(FrameSource):
                     return
                 continue
             self.connected = True
+            self._new_capture()
             next_t = time.monotonic()
             for f in files:
                 if self._stop.is_set():

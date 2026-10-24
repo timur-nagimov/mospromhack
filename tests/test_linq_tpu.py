@@ -22,6 +22,13 @@ OUT_META = {"y": {"user_shape": [1, 5, 300], "user_order": ["N", "W", "C"], "use
                   "padding": [[0, 0], [0, 0], [0, -84]], "size": 1920}}
 
 
+@pytest.fixture(autouse=True)
+def isolated_linq_settings(monkeypatch):
+    # Never read the real repository .env from fake-transport tests.
+    monkeypatch.setattr(lt, "_dotenv", lambda: {})
+    monkeypatch.setenv("GUARD_BACKEND_FALLBACK", "none")
+
+
 def test_wire_roundtrip():
     x = {"a": np.random.rand(1, 3, 4, 4).astype(np.float32), "b": np.arange(6, dtype=np.uint8).reshape(2, 3)}
     data, worker = lt.deserialize_task(lt.serialize_task(x))

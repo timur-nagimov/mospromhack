@@ -113,7 +113,7 @@ export interface EventPatch {
   operator_note?: string | null;
 }
 
-export type StatsGroupBy = 'type' | 'camera' | 'zone' | 'hour' | 'day';
+export type StatsGroupBy = 'type' | 'camera' | 'zone' | 'site' | 'severity' | 'status' | 'hour' | 'day' | 'weekday_hour';
 
 export interface StatsItem {
   key: string;
@@ -123,6 +123,17 @@ export interface StatsItem {
 export interface StatsResponse {
   group_by: StatsGroupBy;
   items: StatsItem[];
+}
+
+/** Все показатели страницы рассчитаны сервером в одном снимке журнала. */
+export interface AnalyticsResponse {
+  types: StatsItem[];
+  cameras: StatsItem[];
+  sites: StatsItem[];
+  days: StatsItem[];
+  weekdayHours: StatsItem[];
+  criticalTypes: StatsItem[];
+  statusTypes: Record<EventStatus, StatsItem[]>;
 }
 
 export const TIMING_KEYS = [
@@ -187,6 +198,8 @@ export interface RuleTypeInfo {
   required_models: string[];
   default_severity: Severity;
   params_schema: JsonSchema;
+  /** Если отсутствует, действует совместимый выбор «весь кадр» / несколько зон. */
+  zone_schema?: JsonSchema;
 }
 
 export interface Health {
@@ -211,12 +224,18 @@ export interface JsonSchema {
   enum?: unknown[];
   minimum?: number;
   maximum?: number;
+  exclusiveMinimum?: number;
+  exclusiveMaximum?: number;
   multipleOf?: number;
   minLength?: number;
   maxLength?: number;
+  minItems?: number;
+  maxItems?: number;
+  uniqueItems?: boolean;
   items?: JsonSchema;
   properties?: Record<string, JsonSchema>;
   required?: string[];
+  additionalProperties?: boolean;
   /** Расширение: подписи для enum */
   enumNames?: string[];
   'x-unit'?: string;

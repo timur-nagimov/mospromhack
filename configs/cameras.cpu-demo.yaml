@@ -1,0 +1,28 @@
+# One-camera CPU smoke. Source: Intel CC BY 4.0; see docs/MODELS.md.
+# Uses the original worker-zone video and the annotated S1 zone from tools/data_manifest.json.
+cameras:
+  - camera_id: cpu_demo_s1
+    name: Intel worker-zone CPU demo
+    site: Public sample
+    enabled: true
+    sample_fps: 5.0
+    source:
+      type: file
+      uri: videos/a3dev_worker_zone_detection/worker-zone-detection.mp4
+      loop: false
+      realtime: true
+    zones:
+      - zone_id: behind_tape
+        name: Behind the marked safety tape
+        kind: danger
+        polygon: [[0.0, 0.3], [0.07, 0.31], [0.4, 0.7], [0.22, 1.0], [0.0, 1.0]]
+    rules:
+      - rule_id: s1_zone
+        type: zone_intrusion
+        zones: [behind_tape]
+        params: {min_conf: 0.35, min_box_h_px: 40}
+        min_duration_s: 2.0
+        min_ratio: 0.7
+        close_after_s: 3.0
+        cooldown_s: 30.0
+        severity: high

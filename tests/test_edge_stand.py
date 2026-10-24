@@ -9,7 +9,7 @@ import yaml
 
 from guard import edge
 from guard.pipeline.config import load_cameras, load_models
-from guard.pipeline.testing import make_settings
+from guard.pipeline.testing import FakeBackend, make_settings
 from guard.rules.base import available_rules, load_plugins
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -120,7 +120,7 @@ def test_default_rabbit_url_on_stand(monkeypatch):
 
 
 def test_build_applies_stand_section(tmp_path, monkeypatch):
-    for name in ("GUARD_BACKEND", "GUARD_MODELS_CONFIG", "GUARD_MODELS_DIR", "GUARD_RABBIT_URL", "LINQ_RAW"):
+    for name in ("GUARD_BACKEND", "GUARD_MODELS_CONFIG", "GUARD_MODELS_DIR", "GUARD_RABBIT_URL", "GUARD_EDGE_ID", "GUARD_NODE_ID", "LINQ_RAW"):
         monkeypatch.delenv(name, raising=False)
     monkeypatch.setenv("GUARD_DATA_DIR", str(tmp_path / "data"))
     cams = tmp_path / "cams.yaml"
@@ -129,10 +129,16 @@ def test_build_applies_stand_section(tmp_path, monkeypatch):
         "cameras": [],
     }), encoding="utf-8")
     args = edge.parse_args(["--config", str(cams), "--transport", "log", "--backend", "onnx-cpu"])
-    settings, engine = edge.build(args)
+    monkeypatch.setattr(edge.Settings, "from_env", lambda: make_settings(tmp_path, backend="onnx-cpu"))
+    monkeypatch.setattr(edge, "load_dotenv_guard", lambda: None)
+    settings, engine = edge.build(args, backend=FakeBackend())
     try:
         assert settings.mode == "edge" and settings.backend == "onnx-cpu"  # флаг CLI важнее секции
         assert engine.edge_node_id == "n1"
-        assert isinstance(engine.sink, edge.EdgeSink) and engine.sink.guard is None  # log: защита не нужна
+        from guard.edge.runner import EdgeEngine
+        from guard.events.journal import Journal
+        assert isinstance(engine, EdgeEngine) and isinstance(engine.journal, Journal)
+        assert engine.sink is None  # production wire проходит только через durable replication
+        assert isinstance(engine.replication.publisher, edge.EnvelopeMemoryPublisher)
     finally:
         engine.stop()

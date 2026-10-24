@@ -347,7 +347,17 @@ class EventManager:
         violations: list[Violation],
         timings: dict[str, float] | None = None,
     ) -> tuple[list[Event], list[Event]]:
-        """Return newly confirmed and newly closed events for this frame.
+        created, closed, _ = self.process_with_updates(camera, ts, violations, timings)
+        return created, closed
+
+    def process_with_updates(
+        self,
+        camera: CameraConfig,
+        ts: float,
+        violations: list[Violation],
+        timings: dict[str, float] | None = None,
+    ) -> tuple[list[Event], list[Event], list[Event]]:
+        """Return confirmations, closures and reopened lifecycle snapshots.
 
         Empty frames count in confirmation ratios. Reopening an existing event
         preserves its ID and does not produce another confirmation notification.
@@ -359,6 +369,7 @@ class EventManager:
             raise ValueError("ts must be finite")
 
         with self._lock:
+            reopened: dict[str, Event] = {}
             state = self._cameras.setdefault(camera.camera_id, _CameraState())
             if state.frames and ts < state.frames[-1]:
                 raise ValueError("ts must be nondecreasing for each camera")
@@ -480,7 +491,10 @@ class EventManager:
                 if record is not None:
                     state.aliases[key] = record.event.id
                     reserved.add(record.event.id)
+                    was_closed = record.closed_at is not None
                     _touch(record, violation, ts)
+                    if was_closed and record.closed_at is None:
+                        reopened[record.event.id] = record.event.model_copy(deep=True)
                     state.candidates.pop(key, None)
                     continue
 
@@ -540,7 +554,10 @@ class EventManager:
                 if record is not None:
                     state.aliases[key] = record.event.id
                     reserved.add(record.event.id)
+                    was_closed = record.closed_at is not None
                     _touch(record, violation, candidate.last_violation_ts)
+                    if was_closed and record.closed_at is None:
+                        reopened[record.event.id] = record.event.model_copy(deep=True)
                 else:
                     event = Event(
                         id=uuid4().hex,
@@ -569,7 +586,12 @@ class EventManager:
 
             # Confirmation on an empty frame can create an already stale event.
             closed.extend(_close_stale(state, ts, rules))
-            return created, closed
+            # A stale candidate may reopen an event on an empty frame and be
+            # closed again immediately. Only emit its final lifecycle state.
+            closed = list({event.id: event for event in closed}.values())
+            reopened_final = [state.events[event_id].event.model_copy(deep=True)
+                              for event_id in reopened if state.events[event_id].closed_at is None]
+            return created, closed, reopened_final
 
     def open_events(self, camera_id: str | None = None) -> list[Event]:
         """Return independent snapshots of currently open events."""
@@ -586,3 +608,22 @@ class EventManager:
         """Forget candidates, frame history, events and aliases for one camera."""
         with self._lock:
             self._cameras.pop(camera_id, None)
+
+    def capture_closures(self, camera_id: str) -> list[Event]:
+        """Freeze old-capture closures; reset only after the caller persists all.
+
+        No empty frame or wall timestamp is invented. In-memory candidates,
+        aliases and events remain available if persistence must be retried.
+        """
+        with self._lock:
+            state = self._cameras.get(camera_id)
+            if state is None:
+                return []
+            result = []
+            for record in state.events.values():
+                if record.closed_at is None:
+                    event = record.event.model_copy(deep=True)
+                    event.ended_at = record.last_violation_ts
+                    event.details["active_duration_s"] = record.active_duration_s
+                    result.append(event)
+            return result

@@ -1,7 +1,7 @@
 import { Cctv, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
-import { useCameras, useDeleteCamera, useSaveCamera } from '../../api/queries';
+import { useCameras, useDeleteCamera, useRuleTypes, useSaveCamera } from '../../api/queries';
 import { toast } from '../../components/ui/toast';
 import { formatNumber, plural } from '../../domain/format';
 import { SOURCE_TYPE_LABELS } from '../../domain/labels';
@@ -9,7 +9,7 @@ import type { CameraConfig, Zone } from '../../domain/types';
 import { isValidHoursRange } from '../../domain/zones';
 import { useLive } from '../../state/live';
 import { confirmLeave, setUnsaved } from '../../state/unsaved';
-import { RulesEditor } from './RulesEditor';
+import { RulesEditor, validateRules, zoneRemovalError } from './RulesEditor';
 import { CAMERA_ID_RE, SourceForm } from './SourceForm';
 import { ZoneEditor } from './ZoneEditor';
 import './cameras.css';
@@ -36,7 +36,7 @@ function validate(c: CameraConfig, isNew: boolean): string | null {
   if (isNew && !CAMERA_ID_RE.test(c.camera_id)) return 'Некорректный ID камеры';
   if (!c.name.trim()) return 'Укажите название камеры';
   if (!c.source.uri.trim()) return 'Укажите адрес источника';
-  if (!(c.sample_fps > 0)) return 'Частота анализа должна быть больше 0';
+  if (!Number.isFinite(c.sample_fps) || !(c.sample_fps > 0) || c.sample_fps > 30) return 'Частота анализа должна быть в пределах (0, 30]';
   for (const z of c.zones) {
     if (!z.name.trim()) return 'У каждой зоны должно быть название';
     if (z.polygon.length < 3) return `Зона «${z.name}»: нужно минимум 3 вершины`;
@@ -48,25 +48,30 @@ function validate(c: CameraConfig, isNew: boolean): string | null {
   return null;
 }
 
-function CameraEditor({ original, isNew, existing }: { original: CameraConfig; isNew: boolean; existing: CameraConfig[] }) {
+export function CameraEditor({ original, isNew, existing }: { original: CameraConfig; isNew: boolean; existing: CameraConfig[] }) {
   const navigate = useNavigate();
   const save = useSaveCamera();
   const remove = useDeleteCamera();
+  const { data: ruleTypes = [] } = useRuleTypes();
   // baseline — последняя загруженная или сохранённая версия; с ней сравниваем черновик
   const [baseline, setBaseline] = useState<CameraConfig>(original);
   const [draft, setDraft] = useState<CameraConfig>(() => structuredClone(original));
   const [tab, setTab] = useState<Tab>(isNew ? 'source' : 'zones');
+  const [zoneError, setZoneError] = useState<string | null>(null);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
-  const error = validate(draft, isNew);
+  const error = validate(draft, isNew) ?? validateRules(draft, ruleTypes);
 
   // Перезапрос списка камер (рантайм-поле status меняется постоянно) не должен
-  // затирать несохранённые правки: синхронизируемся, только если черновик чистый
+  // затирать несохранённые правки. Baseline обновляем всегда: «Отменить» возвращает
+  // последнюю загруженную версию, а чистый черновик синхронизируем сразу.
   const dirtyRef = useRef(dirty);
   dirtyRef.current = dirty;
   useEffect(() => {
-    if (dirtyRef.current) return;
     setBaseline(original);
-    setDraft(structuredClone(original));
+    if (!dirtyRef.current) {
+      setDraft(structuredClone(original));
+      setZoneError(null);
+    }
   }, [original]);
 
   useEffect(() => {
@@ -83,6 +88,14 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
   }, [dirty]);
 
   const onZonesChange = (zones: Zone[], removedZoneId?: string) => {
+    if (removedZoneId) {
+      const blocked = zoneRemovalError(draft, removedZoneId, ruleTypes);
+      if (blocked) {
+        setZoneError(blocked);
+        return;
+      }
+    }
+    setZoneError(null);
     if (!removedZoneId) {
       setDraft((d) => ({ ...d, zones }));
       return;
@@ -149,14 +162,14 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
               <Trash2 size={14} /> Удалить
             </button>
           )}
-          <button type="button" className="btn btn--sm" onClick={() => setDraft(structuredClone(baseline))} disabled={!dirty}>
+          <button type="button" className="btn btn--sm" onClick={() => { setDraft(structuredClone(baseline)); setZoneError(null); }} disabled={!dirty}>
             <RotateCcw size={14} /> Отменить
           </button>
           <button
             type="button"
             className="btn btn--primary btn--sm"
             onClick={onSave}
-            disabled={(!dirty && !isNew) || save.isPending}
+            disabled={Boolean(error) || (!dirty && !isNew) || save.isPending}
             title={error ?? 'PUT /api/cameras/{id}'}
           >
             <Save size={14} /> {save.isPending ? 'Сохранение…' : isNew ? 'Создать камеру' : 'Сохранить'}
@@ -177,7 +190,8 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
       </div>
 
       <div className="cam-editor__body">
-        {error && dirty && <div className="error-box cam-editor__error">{error}</div>}
+        {error && <div className="error-box cam-editor__error" role="alert">{error}</div>}
+        {zoneError && <div className="error-box cam-editor__error" role="alert">{zoneError}</div>}
         {tab === 'zones' &&
           (isNew ? (
             <div className="empty">
@@ -187,7 +201,7 @@ function CameraEditor({ original, isNew, existing }: { original: CameraConfig; i
           ) : (
             <ZoneEditor camera={draft} onChange={onZonesChange} />
           ))}
-        {tab === 'rules' && <RulesEditor camera={draft} onChange={(rules) => setDraft((d) => ({ ...d, rules }))} />}
+        {tab === 'rules' && <RulesEditor camera={draft} onChange={(rules) => { setZoneError(null); setDraft((d) => ({ ...d, rules })); }} />}
         {tab === 'source' && <SourceForm camera={draft} isNew={isNew} onChange={setDraft} />}
       </div>
     </section>

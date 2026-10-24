@@ -1,0 +1,20 @@
+# Exploratory resolution experiment; opt-in only. Same official x weights as x640.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: candidates/yolov8x-1280/yolov8x-1280.onnx
+    input_size: [1280, 1280]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.25
+    iou_threshold: 0.5
+meta:
+  det:
+    status: experimental
+    experiment: exploratory_resolution
+    source_weights: yolov8x.pt
+    source_weights_sha256: 3df4ada6b4dad6d657868f2fdf7faecfb34dcfccf3a25c4b82079064718524c8
+    input_size: [1280, 1280]
+    output_grid_count: 33600
+    comparison_control: same official yolov8x weights exported at 640
+    training_overlap_with_evaluation: unverified

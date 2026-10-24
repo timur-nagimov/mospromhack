@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "manifest": "manifest.snapshot.json",
+  "manifest_git": "79a8920d49f0de35cc37d7deb4ed92e08c1af927",
+  "manifest_sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449",
+  "download_report": "download-report.json",
+  "encode_report": "encode-report.json",
+  "videos": ["s2_01.mp4", "s2_02.mp4", "clean_01.mp4", "clean_02.mp4"],
+  "negative_videos": ["clean_01.mp4", "clean_02.mp4"],
+  "duration": "full_prepared_clip",
+  "sample_fps": 5.0,
+  "prepared_fps": 15.0,
+  "threads": 2,
+  "max_batch": 1,
+  "t0": 0.0,
+  "tol_s": 2.0,
+  "tracker": {
+    "high_thresh": 0.4,
+    "low_thresh": 0.1,
+    "new_track_thresh": 0.45,
+    "match_iou": 0.25,
+    "track_buffer_s": 3.0,
+    "min_hits": 2
+  },
+  "rule": {
+    "type": "ppe_missing",
+    "enabled": true,
+    "zones": [],
+    "params": {"required": ["helmet"], "min_box_h_px": 60},
+    "min_duration_s": 2.0,
+    "min_ratio": 0.7,
+    "close_after_s": 3.0,
+    "cooldown_s": 30.0,
+    "severity": "high"
+  },
+  "det": {
+    "onnx_path": "yolov8n-640.onnx",
+    "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99",
+    "conf_threshold": 0.35,
+    "iou_threshold": 0.5
+  },
+  "ppe_thresholds": {"conf_threshold": 0.35, "iou_threshold": 0.7},
+  "candidates": {
+    "buildvision": {
+      "registry": "configs/models.ppe-candidate.yaml",
+      "onnx_path": "candidates/buildvision-hazards-v0.3/buildvision-hazards-v0.3.onnx",
+      "sha256": "55f4dd2f53158eac4ff093d938b9fbda80c99454a03672145bbc36f539988249",
+      "source": "https://huggingface.co/constructelligence/construction-site-safety-hazards",
+      "revision": "79673cff5a8bb249fc8ec9cca3daa19e2ef95191",
+      "classes": ["person", "helmet", "no_helmet", "vest", "no_vest", "no-mask", "gloves", "safety shoes", "excavator", "wheel loader", "dump truck", "goggles", "no-goggles", "no-gloves"]
+    },
+    "vyra": {
+      "registry": "configs/models.ppe-vyra.yaml",
+      "onnx_path": "candidates/vyra-yolo-ppe-detection/best.onnx",
+      "sha256": "b99fed37bae1d111ddb622a0ef9077d42918a4daebd4a0bffbd8faaba273f246",
+      "source": "https://huggingface.co/Hexmon/vyra-yolo-ppe-detection",
+      "revision": "08895b33d95d2587423ebe4f7c1b9c41beebd642",
+      "classes": ["Fall-Detected", "Gloves", "Goggles", "helmet", "Ladder", "Mask", "NO-Gloves", "NO-Goggles", "no_helmet", "NO-Mask", "no_vest", "person", "Safety Cone", "vest"]
+    }
+  },
+  "primary_scope_exclusions": [
+    {
+      "video": "s2_01.mp4",
+      "index": 2,
+      "expected_label_sha256": "1b71854d1494c08b52ab754bba18f4280f3d9c710da17e070f5aef451261e86b",
+      "expected_note": "Мужчина в чёрном в центре группы: каска есть, жилета нет (нарушение только по жилету)",
+      "reason": "vest-only uncertain label is outside required=['helmet']; must not mask helmet FP"
+    },
+    {
+      "video": "s2_02.mp4",
+      "index": 3,
+      "expected_label_sha256": "23ac074caa50cf379e165f8d57cd71ea72f3a22e0c78de8cfb909b5b363c47de",
+      "expected_note": "Склад: рабочий в оранжевой каске в спецовке без сигнального жилета",
+      "reason": "vest-only uncertain label is outside required=['helmet']; must not mask helmet FP"
+    }
+  ]
+}

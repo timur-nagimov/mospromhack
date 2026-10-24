@@ -38,7 +38,7 @@ DEFAULT_URL = "http://127.0.0.1:8888/"
 DEFAULT_ENV = Path(getattr(jhub, "DEFAULT_ENV", REPO / ".env"))
 CODE_PATHS = ("guard", "configs", "ml/eval", "pyproject.toml")
 MANIFEST = ".stand-manifest.json"
-QUEUE = "zazerkalye.gateway"
+QUEUE = "guard.gateway.stand-linq.events"
 VIDEO_SUFFIXES = {".mp4", ".avi", ".mov", ".mkv", ".webm", ".m4v", ".mpeg", ".mpg", ".ts"}
 IGNORED_DIRS = {"__pycache__", "node_modules"}
 BLOCK = 1024 * 1024
@@ -462,7 +462,11 @@ def launch(request):
         os.set_inheritable(runtime_lock.fileno(), True)
         os.chdir(BASE)
         os.environ["OMP_NUM_THREADS"] = "2"
+        os.environ["GUARD_MODE"] = "edge"
         os.environ["GUARD_BACKEND"] = "linq-tpu"
+        os.environ["GUARD_BACKEND_FALLBACK"] = "none"
+        os.environ["LINQ_RAW"] = "1"
+        os.environ["LINQ_TIMEOUT_S"] = "5"
         with target("edge.log").open("ab", buffering=0) as log:
             os.dup2(log.fileno(), 1)
             os.dup2(log.fileno(), 2)
@@ -671,6 +675,7 @@ print(json.dumps(_reply))
             return {**current, "already_running": True}
         command = cmd if cmd is not None else (
             "exec ~/guard311/bin/python -m guard.edge --config " + shlex.quote(config)
+            + " --backend linq-tpu --transport rabbit"
         )
         launch_id = uuid.uuid4().hex
         payload = {"op": "launch", "command": command, "launch_id": launch_id}
@@ -738,8 +743,10 @@ print(json.dumps(_reply))
         )
         result["note"] = (
             "Passive declare не определяет возраст сообщений. "
-            "Пустая очередь также возможна при работающем потребителе."
+            "Пустая очередь также возможна при работающем потребителе. "
+            "PID и наличие очереди не подтверждают TPU inference; нужны свежие активные счётчики каждой модели."
         )
+        result["inference_verified"] = False
         return result
 
 
@@ -759,7 +766,10 @@ def queue_message_count() -> int:
         )
     )
     try:
-        reply = connection.channel().queue_declare(queue=QUEUE, passive=True)
+        edge_id = os.environ.get("GUARD_EDGE_ID") or "stand-linq"
+        from guard.transport.rabbit import RabbitConfig
+        queue = RabbitConfig("amqp://localhost/", edge_id).event_queue
+        reply = connection.channel().queue_declare(queue=queue, passive=True)
         return int(reply.method.message_count)
     finally:
         try:

@@ -1,3 +1,211 @@
+"""Independent edge→gateway AMQP channel; never uses the TPU inference queues."""
+
+from __future__ import annotations
+
+import threading
+from dataclasses import dataclass, field
+from typing import Any, Callable
+
+from guard.transport.protocol import Envelope, decode, encode
+
+
+@dataclass(frozen=True)
+class RabbitConfig:
+    url: str = field(repr=False)
+    edge_id: str
+    exchange: str = "guard.edge.v1"
+    queue_prefix: str = "guard.gateway"
+    telemetry_ttl_ms: int = 5000
+    telemetry_limit: int = 32
+
+    def __post_init__(self):
+        if not self.url.startswith(("amqp://", "amqps://")):
+            raise ValueError("Rabbit URL must use amqp or amqps")
+        for value in (self.edge_id, self.exchange, self.queue_prefix):
+            if not value or len(value) > 100 or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.-" for c in value):
+                raise ValueError("Invalid Rabbit topology identifier")
+        if self.telemetry_ttl_ms <= 0 or self.telemetry_limit <= 0:
+            raise ValueError("Telemetry TTL and limit must be positive")
+
+    @property
+    def event_queue(self) -> str:
+        return f"{self.queue_prefix}.{self.edge_id}.events"
+
+    @property
+    def telemetry_queue(self) -> str:
+        # RabbitMQ 4.4 rejects transient non-exclusive classic queues. A new
+        # topology name avoids PRECONDITION_FAILED for existing v1 declarations.
+        return f"{self.queue_prefix}.{self.edge_id}.telemetry.v2"
+
+    def routing_key(self, durable: bool) -> str:
+        return f"{self.edge_id}.{'events' if durable else 'telemetry'}"
+
+
+def _connection(config: RabbitConfig):
+    import pika
+
+    params = pika.URLParameters(config.url)
+    params.heartbeat = 30
+    params.socket_timeout = 5
+    params.blocked_connection_timeout = 5
+    params.connection_attempts = 1
+    return pika.BlockingConnection(params)
+
+
+def _topology(channel, config: RabbitConfig) -> None:
+    channel.exchange_declare(exchange=config.exchange, exchange_type="direct", durable=True)
+    channel.queue_declare(queue=config.event_queue, durable=True)
+    channel.queue_bind(queue=config.event_queue, exchange=config.exchange, routing_key=config.routing_key(True))
+    channel.queue_declare(
+        queue=config.telemetry_queue, durable=True,
+        arguments={"x-message-ttl": config.telemetry_ttl_ms, "x-max-length": config.telemetry_limit},
+    )
+    channel.queue_bind(queue=config.telemetry_queue, exchange=config.exchange, routing_key=config.routing_key(False))
+
+
+class RabbitPublisher:
+    """Use from one owning thread. Success means broker publisher-confirm, not gateway ACK."""
+
+    def __init__(self, config: RabbitConfig, connection_factory: Callable = _connection):
+        self.config = config
+        self._factory = connection_factory
+        self._connection = None
+        self._channel = None
+        self.last_error: str | None = None
+        self.published = 0
+
+    def _connect(self):
+        if self._connection is None or not self._connection.is_open:
+            self.close()
+            self._connection = self._factory(self.config)
+            self._channel = self._connection.channel()
+            _topology(self._channel, self.config)
+            self._channel.confirm_delivery()
+        return self._channel
+
+    def publish(self, envelope: Envelope, *, durable: bool = True) -> None:
+        import pika
+
+        if durable != (envelope.kind in {"event", "event_update"}):
+            raise ValueError("Only events belong in the durable channel")
+        data = encode(envelope)
+        try:
+            channel = self._connect()
+            confirmed = channel.basic_publish(
+                exchange=self.config.exchange,
+                routing_key=self.config.routing_key(durable),
+                body=data,
+                properties=pika.BasicProperties(
+                    content_type="application/json", message_id=envelope.message_id,
+                    delivery_mode=2 if durable else 1,
+                    expiration=None if durable else str(self.config.telemetry_ttl_ms),
+                ),
+                mandatory=True,
+            )
+            if confirmed is False:
+                raise ConnectionError("Broker did not confirm publication")
+            self.published += 1
+            self.last_error = None
+        except Exception as exc:
+            self.last_error = type(exc).__name__
+            self.close()
+            raise
+
+    def close(self) -> None:
+        connection, self._connection = self._connection, None
+        self._channel = None
+        if connection is not None:
+            try:
+                if connection.is_open:
+                    connection.close()
+            except Exception:
+                pass
+
+    def status(self) -> dict[str, Any]:
+        return {"connected": bool(self._connection and self._connection.is_open),
+                "published": self.published, "last_error": self.last_error}
+
+
+class RabbitConsumer:
+    """Manual ACK only after callback has committed its durable journal update."""
+
+    def __init__(self, config: RabbitConfig, connection_factory: Callable = _connection):
+        self.config = config
+        self._factory = connection_factory
+        self._connection = None
+        self._channel = None
+        self.last_error: str | None = None
+        self.received = 0
+        self.rejected = 0
+
+    def _connect(self):
+        if self._connection is None or not self._connection.is_open:
+            self.close()
+            self._connection = self._factory(self.config)
+            self._channel = self._connection.channel()
+            _topology(self._channel, self.config)
+            self._channel.basic_qos(prefetch_count=1)
+        return self._channel
+
+    def poll(self, callback: Callable[[Envelope], None]) -> int:
+        channel = self._connect()
+        received = 0
+        for queue, durable in ((self.config.event_queue, True), (self.config.telemetry_queue, False)):
+            method, _, body = channel.basic_get(queue=queue, auto_ack=False)
+            if method is None:
+                continue
+            try:
+                envelope = decode(body, expected_edge_id=self.config.edge_id)
+                if durable != (envelope.kind in {"event", "event_update"}):
+                    raise ValueError("Message arrived in the wrong channel")
+                callback(envelope)
+            except ValueError:
+                self.rejected += 1
+                self.last_error = "InvalidMessage"
+                channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+            except Exception:
+                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+                raise
+            else:
+                channel.basic_ack(delivery_tag=method.delivery_tag)
+                self.received += 1
+                self.last_error = None
+            received += 1
+        self._connection.process_data_events(time_limit=0)
+        return received
+
+    def run(self, callback: Callable[[Envelope], None], stop: threading.Event) -> None:
+        backoff = 0.5
+        while not stop.is_set():
+            try:
+                received = self.poll(callback)
+                backoff = 0.5
+                if not received:
+                    stop.wait(0.1)
+            except Exception as exc:
+                self.last_error = type(exc).__name__
+                self.close()
+                stop.wait(backoff)
+                backoff = min(backoff * 2, 15.0)
+        self.close()
+
+    def close(self) -> None:
+        connection, self._connection = self._connection, None
+        self._channel = None
+        if connection is not None:
+            try:
+                if connection.is_open:
+                    connection.close()
+            except Exception:
+                pass
+
+    def status(self) -> dict[str, Any]:
+        return {"connected": bool(self._connection and self._connection.is_open),
+                "received": self.received, "rejected": self.rejected, "last_error": self.last_error}
+
+
+# Compatibility with the upstream transient transport. Production EdgeEngine
+# and GatewayEngine use RabbitPublisher/RabbitConsumer and protocol.Envelope.
 """Threaded RabbitMQ transport with bounded buffering and publisher confirms.
 
 Events and updates are never evicted. If only events occupy the bounded
@@ -14,7 +222,6 @@ redelivery. The exchange and queue are deliberately non-durable, as specified;
 this is not a disk-backed outbox or a broker-restart durability guarantee.
 """
 
-from __future__ import annotations
 
 import logging
 import math
@@ -28,7 +235,7 @@ from typing import Any
 
 import pika
 
-from .codec import decode, encode
+from .codec import decode as legacy_decode, encode as legacy_encode
 from .messages import (
     MessageCallback,
     MessageInput,
@@ -69,7 +276,7 @@ class _Packet:
     @classmethod
     def make(cls, message: MessageInput) -> _Packet:
         msg = parse_message(message)
-        body, headers = encode(msg)
+        body, headers = legacy_encode(msg)
         return cls(kind=msg.kind, body=body, headers=headers)
 
 
@@ -491,7 +698,7 @@ class RabbitSource:
                         delay = self._backoff_initial
                         continue
                     try:
-                        message = decode(body, properties.headers)
+                        message = legacy_decode(body, properties.headers)
                     except (ValueError, TypeError, AttributeError):
                         log.warning("Rejecting malformed transport message")
                         channel.basic_reject(

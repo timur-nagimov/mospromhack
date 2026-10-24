@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "status": "local_validation_passed",
+  "branch": "feature/upstream-tpu-integration",
+  "base": "56d4a0aae37fcd265924a5b1b2a918edf91dcbd9",
+  "upstream": "e23ff4f0757571cf38256a2b94d2d2b3aa769501",
+  "ticket_mode": "no_ticket",
+  "tested_working_tree_code_diff_sha256": "e03c6234902e484dc31ec5dabc0922291fcf080e1f3fe11339e3967fb69fae58",
+  "checks": {
+    "full_suite_excluding_new_lifecycle_file": {
+      "passed": 1654,
+      "warnings": 1,
+      "artifact": {
+        "path": "data/integration_validation_20261024/pytest.xml",
+        "bytes": 2655179,
+        "sha256": "eb085910ce20519a07e3d7af2de3770091d20b6d83deba17dba6867654f1b847"
+      }
+    },
+    "new_lifecycle_file": {
+      "passed": 11,
+      "artifact": {
+        "path": "data/integration_validation_20261024/lifecycle.xml",
+        "bytes": 2091,
+        "sha256": "ea46cc36fb92988139af6f5a9598bfb1c253576fc7756fadca3940487c999a1e"
+      }
+    },
+    "distinct_backend_tests_passed": 1665,
+    "frontend_analytics_tests_passed": 7,
+    "frontend_production_build": "passed",
+    "astra_review": "two lifecycle findings fixed; dotenv finding fixed; no remaining blockers in reviewed scope"
+  },
+  "integration_fixes": [
+    "TPU fail closed, explicit CPU fallback opt-in",
+    "CPU baseline registry frozen separately from production TPU",
+    "Durable EdgeEngine CLI, no queue purge, separate inference/event brokers",
+    "dotenv config/edge identity precedence and external VPN forward mode",
+    "SQL full-period analytics and atomic camera updates preserved",
+    "reopen lifecycle atomically persisted/replicated without duplicate alarm, operator and media metadata preserved",
+    "media streaming drains bounded post frames even while encoder starts",
+    "S1/S2/offline evaluator lifecycle parity",
+    "portable Jupyter/ML path defaults"
+  ],
+  "external_tpu": {
+    "verified_this_run": false,
+    "status": "deferred_by_user",
+    "reason": "fresh VPN profile connection reset, then explicit local development instruction",
+    "target": "server, external LinQ TPU, CPU tail only; full CPU fallback disabled by default"
+  },
+  "model_report": ".orchestra/metrics/heavy-model-research-20261024.json",
+  "limitations": [
+    "Remote TPU compile/runtime and edge-to-gateway live acceptance require server access",
+    "Local synthetic transport tests do not establish current external TPU quality",
+    "Historical upstream and local model benchmarks have different data/configuration and remain separate"
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

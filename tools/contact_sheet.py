@@ -4,7 +4,7 @@
 в нормированных координатах кадра — по ней удобно снимать вершины полигонов зон.
 
 usage: python tools/contact_sheet.py VIDEO --out DIR [--every 1.0] [--start 0] [--end END]
-                                     [--cols 4] [--rows 4] [--tile-w 480] [--grid]
+                                     [--cols 4] [--rows 4] [--tile-w 480] [--grid] [--quality 80]
 """
 
 from __future__ import annotations
@@ -61,6 +61,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--rows", type=int, default=4)
     ap.add_argument("--tile-w", type=int, default=480)
     ap.add_argument("--grid", action="store_true", help="сетка 0.1 в нормированных координатах")
+    ap.add_argument("--quality", type=int, default=80, help="качество JPEG; 70 и ширина плитки 256 — лёгкие листы")
     args = ap.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
@@ -77,7 +78,7 @@ def main(argv: list[str] | None = None) -> int:
             r, c = divmod(i, args.cols)
             sheet[r * th:(r + 1) * th, c * tw:(c + 1) * tw] = tile
         path = args.out / f"{args.video.stem}_sheet{len(written):03d}.jpg"
-        cv2.imwrite(str(path), sheet, [cv2.IMWRITE_JPEG_QUALITY, 85])
+        cv2.imwrite(str(path), sheet, [cv2.IMWRITE_JPEG_QUALITY, args.quality])
         written.append(path)
         tiles.clear()
 

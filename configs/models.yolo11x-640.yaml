@@ -1,0 +1,12 @@
+# Experimental CPU quality / LinQ preparation candidate; production is separate.
+# Official Ultralytics/YOLO11 revision 5e0da476eb5def45e8080bd4b92ea63f0b16974c.
+# Sidecar det.json preserves classes, source weights SHA256 and export metadata.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: yolo11x-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.25
+    iou_threshold: 0.5

@@ -287,8 +287,10 @@ def add_midnight_events(journal):
         ("zone", [(None, 1), ("north", 2), ("south", 1)]),
         ("severity", [("critical", 1), ("high", 2), ("medium", 1)]),
         ("status", [("confirmed", 2), ("false", 1), ("new", 1)]),
+        ("site", [("Склад", 4)]),
         ("hour", [(0, 2), (23, 2)]),
         ("day", [("2025-05-01", 1), ("2025-05-02", 3)]),
+        ("weekday_hour", [("3:23", 1), ("4:0", 2), ("4:23", 1)]),
     ],
 )
 def test_stats_local_midnight(journal, group_by, expected):
@@ -320,7 +322,7 @@ def test_stats_timezone_and_filters(journal):
     ) == [{"key": "camera-a", "count": 1}]
     assert journal.stats("type", camera_id="missing") == []
     with pytest.raises(ValueError):
-        journal.stats("site")
+        journal.stats("unknown")
     with pytest.raises(TypeError):
         journal.stats("type", unknown="value")
 

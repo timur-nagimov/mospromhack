@@ -14,7 +14,8 @@ import type {
 } from '../../domain/types';
 import { STAGE_KEYS } from '../../domain/labels';
 import { getViolationMeta } from '../../domain/violations';
-import { dayKey, nowSec } from '../../domain/format';
+import { nowSec } from '../../domain/format';
+import { moscowDayKey, moscowHour, moscowWeekdayHour } from '../../domain/moscow';
 import { ApiError, type GuardApi, type StatsQuery, type Subscription } from '../types';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
 import { createFlywheelMock } from './flywheel';
@@ -204,14 +205,16 @@ export function createMockApi(): GuardApi {
     timers.length = 0;
   }
 
-  function filterEvents(q: EventQuery): GuardEvent[] {
+  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }): GuardEvent[] {
+    const matches = (filter: string | undefined, value: string | null) =>
+      !filter || filter.split(',').map((v) => v.trim()).includes(value ?? '');
     return events.filter(
       (e) =>
-        (!q.type || e.type === q.type) &&
-        (!q.camera_id || e.camera_id === q.camera_id) &&
-        (!q.zone_id || e.zone_id === q.zone_id) &&
-        (!q.status || e.status === q.status) &&
-        (!q.severity || e.severity === q.severity) &&
+        matches(q.type, e.type) &&
+        matches(q.camera_id, e.camera_id) &&
+        matches(q.zone_id, e.zone_id) &&
+        matches(q.status, e.status) &&
+        matches(q.severity, e.severity) &&
         (q.from == null || e.confirmed_at >= q.from) &&
         (q.to == null || e.confirmed_at <= q.to),
     );
@@ -224,6 +227,46 @@ export function createMockApi(): GuardApi {
     if (!(camera.sample_fps > 0)) return 'sample_fps: должно быть больше 0';
     for (const z of camera.zones) if (z.polygon.length < 3) return `zones.${z.zone_id}: нужно минимум 3 точки`;
     return null;
+  }
+
+  function statsItems(q: StatsQuery): StatsItem[] {
+    const counts = new Map<string, number>();
+    for (const e of filterEvents(q)) {
+      let key: string | null;
+      switch (q.group_by) {
+        case 'type':
+          key = e.type;
+          break;
+        case 'camera':
+          key = e.camera_id;
+          break;
+        case 'zone':
+          key = e.zone_id;
+          break;
+        case 'site':
+          key = e.site;
+          break;
+        case 'severity':
+          key = e.severity;
+          break;
+        case 'status':
+          key = e.status;
+          break;
+        case 'hour':
+          key = String(moscowHour(e.confirmed_at));
+          break;
+        case 'day':
+          key = moscowDayKey(e.confirmed_at);
+          break;
+        case 'weekday_hour':
+          key = moscowWeekdayHour(e.confirmed_at);
+          break;
+      }
+      if (key == null) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const items: StatsItem[] = [...counts.entries()].map(([key, count]) => ({ key, count }));
+    return items;
   }
 
   return {
@@ -269,32 +312,20 @@ export function createMockApi(): GuardApi {
       window.setTimeout(() => emit({ kind: 'event_update', event: ev }), 140);
       return respond(ev, 100, 220);
     },
-    getStats: (q: StatsQuery) => {
-      const counts = new Map<string, number>();
-      for (const e of filterEvents({ from: q.from, to: q.to })) {
-        let key: string | null;
-        switch (q.group_by) {
-          case 'type':
-            key = e.type;
-            break;
-          case 'camera':
-            key = e.camera_id;
-            break;
-          case 'zone':
-            key = e.zone_id;
-            break;
-          case 'hour':
-            key = String(new Date(e.confirmed_at * 1000).getHours());
-            break;
-          case 'day':
-            key = dayKey(e.confirmed_at);
-            break;
-        }
-        if (key == null) continue;
-        counts.set(key, (counts.get(key) ?? 0) + 1);
-      }
-      const items: StatsItem[] = [...counts.entries()].map(([key, count]) => ({ key, count }));
-      return respond({ group_by: q.group_by, items });
+    getStats: (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) }),
+    getAnalytics: (q) => {
+      // Все поля вычисляются синхронно до respond: обновления не вклиниваются между ними.
+      const aggregate = (group_by: StatsQuery['group_by'], filters: { status?: string; severity?: string } = {}) =>
+        statsItems({ ...q, group_by, ...filters });
+      return respond({
+        types: aggregate('type'), cameras: aggregate('camera'), sites: aggregate('site'),
+        days: aggregate('day'), weekdayHours: aggregate('weekday_hour'),
+        criticalTypes: aggregate('type', { severity: 'critical' }),
+        statusTypes: {
+          new: aggregate('type', { status: 'new' }), confirmed: aggregate('type', { status: 'confirmed' }),
+          false: aggregate('type', { status: 'false' }), forwarded: aggregate('type', { status: 'forwarded' }),
+        },
+      });
     },
     getMetrics: () => respond(metricsSnapshot(), 60, 140),
     subscribe: (subscription) => {

@@ -1,11 +1,12 @@
 """Прогон ONNX-моделей на onnxruntime-CPU по картинкам или видео: рамки, скелет, время инференса.
 
     python ml/check_onnx.py --model det --image data/images/samples/09_cctv_warehouse_workers_ppe.jpg
-    python ml/check_onnx.py --model det pose ppe --image data/images/samples/      # каталог
+    python ml/check_onnx.py --model det pose --image data/images/samples/          # каталог
     python ml/check_onnx.py --model all --image data/images/samples/
-    python ml/check_onnx.py --model ppe --video data/videos/x.mp4 --fps 5 --max-frames 100
+    python ml/check_onnx.py --config configs/models.ppe-candidate.yaml --model ppe --video data/videos/x.mp4 --fps 5 --max-frames 100
 
---model — model_id из configs/models.yaml или путь к .onnx (тогда классы берутся из <stem>.json рядом).
+--model — model_id из CPU-реестра configs/models.cpu-baseline.yaml или путь к .onnx
+(тогда классы берутся из <stem>.json рядом). Другой реестр задаётся --config.
 Печатает число детекций по классам и время: infer p50/p95 за --runs прогонов (по умолчанию 20),
 плюс препроцессинг и декод. Визуализации — в data/media/ml_checks/<model_id>__<кадр>.jpg (или .mp4).
 """
@@ -15,6 +16,7 @@ from __future__ import annotations
 import argparse
 import collections
 import json
+import os
 import sys
 import time
 from pathlib import Path
@@ -27,15 +29,19 @@ import numpy as np  # noqa: E402
 import onnxruntime as ort  # noqa: E402
 
 from guard.contracts import ModelSpec  # noqa: E402
-from ml.registry import MAIN_ROOT, load_specs, onnx_file  # noqa: E402
+from guard.pipeline.config import load_models  # noqa: E402
+from ml.registry import models_dir, onnx_file  # noqa: E402
 from ml.yolo_decode import decode, draw, letterbox  # noqa: E402
 
-OUT_DIR = MAIN_ROOT / "data" / "media" / "ml_checks"
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
+def default_output_dir() -> Path:
+    return Path(os.environ.get("GUARD_DATA_DIR") or ROOT / "data").expanduser() / "media" / "ml_checks"
+
+
 def resolve_models(names: list[str], config: Path) -> list[ModelSpec]:
-    specs = load_specs(config) if config.exists() else {}
+    specs = load_models(config, models_dir()) if config.exists() else {}
     if names == ["all"]:
         return list(specs.values())
     out = []
@@ -167,22 +173,27 @@ def run_video(spec, sess, video: Path, args) -> dict:
     return res
 
 
-def main() -> int:
+def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", nargs="+", required=True, help="model_id из configs/models.yaml, путь к .onnx или all")
+    ap.add_argument("--model", nargs="+", required=True, help="model_id из CPU-реестра/--config, путь к .onnx или all")
     ap.add_argument("--image", nargs="*", default=[], help="файлы или каталоги с картинками")
     ap.add_argument("--video", nargs="*", default=[])
-    ap.add_argument("--config", default=str(ROOT / "configs" / "models.yaml"))
+    ap.add_argument("--config", default=str(ROOT / "configs" / "models.cpu-baseline.yaml"))
     ap.add_argument("--conf", type=float, default=None, help="порог уверенности (по умолчанию из ModelSpec)")
     ap.add_argument("--iou", type=float, default=None)
     ap.add_argument("--runs", type=int, default=20, help="прогонов для p50")
     ap.add_argument("--threads", type=int, default=0, help="intra_op потоков ORT (0 — по умолчанию)")
     ap.add_argument("--fps", type=float, default=5.0, help="частота выборки кадров видео")
     ap.add_argument("--max-frames", type=int, default=150)
-    ap.add_argument("--out", default=str(OUT_DIR))
+    ap.add_argument("--out", default=str(default_output_dir()))
     ap.add_argument("--json", help="сохранить сводку в JSON")
     ap.add_argument("-v", "--verbose", action="store_true", help="печатать каждую детекцию")
-    args = ap.parse_args()
+    return ap
+
+
+def main(argv=None) -> int:
+    ap = parser()
+    args = ap.parse_args(argv)
     if not args.image and not args.video:
         ap.error("нужен --image или --video")
     Path(args.out).mkdir(parents=True, exist_ok=True)

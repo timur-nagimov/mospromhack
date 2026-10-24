@@ -1,4 +1,4 @@
-"""Автоматическое переключение TPU → CPU с периодической проверкой TPU."""
+"""Явно разрешённое переключение TPU → CPU с периодической проверкой TPU."""
 
 from __future__ import annotations
 
@@ -273,6 +273,9 @@ class FallbackBackend(InferenceBackend):
             out.update({
                 "backend": self.name,
                 "active": active.name,
+                "requested_backend": self.name,
+                "active_backend": active.name,
+                "fallback_enabled": True,
                 "fallback": self._fallback,
                 "switches": self._switches,
                 "fallback_seconds": elapsed,

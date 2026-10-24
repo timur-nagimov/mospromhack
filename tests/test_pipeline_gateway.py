@@ -1,4 +1,4 @@
-"""Режимы D-005: edge публикует event/frame_meta/metrics, gateway принимает (MemoryTransport)."""
+"""Legacy MemoryTransport compatibility and the production durable edge CLI."""
 
 import time
 
@@ -70,7 +70,8 @@ def test_edge_to_gateway_event_meta_metrics(tmp_path):
         frame = np.zeros((240, 320, 3), np.uint8)
         t0 = time.time() - 15
         for i in range(45):
-            worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0, pos_s=i * 0.2))
+            worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0, pos_s=i * 0.2,
+                                       capture_id=worker.source.capture_id))
         edge.publish_metrics()
 
         assert _wait(lambda: gw.journal.query()[1] == 1)
@@ -124,8 +125,28 @@ def test_edge_cli_smoke(tmp_path, monkeypatch):
         "camera_id": "c", "name": "c", "site": "s", "source": {"type": "images", "uri": str(folder)}, "sample_fps": 5, "rules": [],
     }]}), encoding="utf-8")
     monkeypatch.setenv("GUARD_DATA_DIR", str(tmp_path / "data"))
+    monkeypatch.setattr(edge_cli.Settings, "from_env", lambda: make_settings(tmp_path / "edge"))
+    monkeypatch.setattr(edge_cli, "load_dotenv_guard", lambda: None)
+    monkeypatch.setattr(edge_cli, "disable_ort_spinning", lambda: False)
+    real_build = edge_cli.build
+    built = []
+
+    def build(args):
+        result = real_build(args, backend=FakeBackend())
+        built.append(result[1])
+        return result
+
+    monkeypatch.setattr(edge_cli, "build", build)
     args = edge_cli.parse_args(["--config", str(cams), "--transport", "log", "--duration", "1.0", "--metrics-period", "0.3"])
     settings, engine = edge_cli.build(args)
-    assert settings.mode == "edge" and not settings.clips_enabled and engine.sink is not None
+    from guard.edge.runner import EdgeEngine, EdgeRunner
+    from guard.events.journal import Journal
+    assert settings.mode == "edge" and not settings.clips_enabled and engine.sink is None
+    assert isinstance(engine, EdgeEngine) and isinstance(engine.replication, EdgeRunner)
+    assert isinstance(engine.journal, Journal)
     engine.stop()
     assert edge_cli.run(args) == 0
+    assert all(item._stopped for item in built)
+    from guard.transport.protocol import decode
+    messages = [decode(wire) for wire in built[-1].replication.telemetry_publisher.telemetry]
+    assert {message.kind for message in messages} >= {"cameras", "metrics"}

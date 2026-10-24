@@ -2,9 +2,10 @@
 
 Хакатон «Открой#Моспром», кейс LinQ. Команда «Зазеркалье».
 
-**Что это.** Веб-сервис, который смотрит видео с камер предприятия и в реальном времени сообщает о нарушениях техники безопасности: вход в опасную зону, отсутствие каски или жилета, падение и неподвижность, опасное сближение с техникой, бег, телефон, курение или огонь, перелезание через ограждение. Каждое нарушение даёт **одно** оповещение. В нём кадр с выделенным человеком, клип ±5 с, камера, участок, зона, время и тип. Нейросети работают на российском ускорителе **LinQ TPU** — скорость и точность подтверждены замерами на стенде.
+**Что это.** Веб-сервис, который смотрит видео с камер предприятия и в реальном времени сообщает о нарушениях техники безопасности: вход в опасную зону, отсутствие каски или жилета, падение и неподвижность, опасное сближение с техникой, бег, телефон, курение или огонь, перелезание через ограждение. EventManager подтверждает нарушения по временному окну и подавляет повторы. Карточка события содержит камеру, участок, зону, время, тип и доступные медиа; доставка клипов между edge и gateway пока не реализована. Production-путь запускает нейросети на внешнем **LinQ TPU** без автоматического перехода на CPU. Текущая доступность и качество подтверждаются отдельной активной приёмкой; запуск процесса и прежние замеры этого не доказывают.
 
 **Для кого** — семь ролей из кейса:
+
 - специалист по охране труда рисует зоны и включает правила без кода;
 - мастер получает одно оповещение и пресекает нарушение;
 - диспетчер разбирает ленту тревог, критичные идут первыми;
@@ -15,14 +16,18 @@
 
 Подробнее — `docs/ANALYTICS.md`.
 
-![Мониторинг: живой бэкенд, 3 камеры, лента тревог](deliverables/screens/real-01-monitoring.jpg)
+![Исторический скриншот локального CPU-бэкенда: мониторинг и лента тревог](deliverables/screens/real-01-monitoring.jpg)
 
 ## Содержание
 
 - [Архитектура](#архитектура)
 - [Ключевые цифры на LinQ](#ключевые-цифры-на-linq)
 - [Сценарии и статус](#сценарии-и-статус)
-- [Запуск локально (режим local, CPU)](#запуск-локально-режим-local-cpu)
+- [Production-запуск на LinQ](#production-запуск-на-linq)
+- [Локальная проверка перед запуском](#локальная-проверка-перед-запуском)
+- [CPU-диагностика](#cpu-диагностика)
+- [Режимы local, edge и gateway](#режимы-local-edge-и-gateway)
+- [Отчёты и оценка](#отчёты-и-оценка)
 - [Схема «edge на стенде LinQ + gateway на ноутбуке»](#схема-edge-на-стенде-linq--gateway-на-ноутбуке)
 - [Как добавить новый тип нарушения](#как-добавить-новый-тип-нарушения)
 - [Интерфейс](#интерфейс)
@@ -31,30 +36,30 @@
 
 ## Архитектура
 
-1. **Edge-узел LinQ** рядом с камерами: декод → препроцессинг → TPU (raw-режим, 4–8 задач в полёте) → хвост модели и NMS → трекинг ByteTrack → **правила-плагины** → **EventManager** (подтверждение по окну, одно событие на трек, дедуп).
-2. Наружу уходят только события, компактные метаданные кадров и метрики — через свой exchange RabbitMQ `zazerkalye`. Видео остаётся на площадке.
-3. **Gateway** у оператора: журнал SQLite, HTTP API (FastAPI) и WebSocket.
-4. **Веб-интерфейс** (React + TypeScript): мониторинг, карточка события, журнал, аналитика, редактор зон и правил, производительность.
-5. Бэкенд инференса меняется одной переменной: `onnx-cpu` или `linq-tpu`. Правила, модели и источники подключаются без правки конвейера.
+1. **Edge** рядом с камерами и TPU: декод → препроцессинг → внешний LinQ → ONNX-хвост/NMS → трекинг → правила → EventManager.
+2. Событие и outbox сохраняются вместе в SQLite. Отдельный event bus `guard.edge.v1` переносит durable события и ограниченную временную телеметрию с JPEG.
+3. **Gateway** фиксирует receipt и событие до ACK, ведёт операторский журнал, HTTP API и WebSocket. Он не загружает модели и не открывает источники видео.
+4. **UI** показывает мониторинг, карточки событий, SQL-аналитику, отчёты и состояние камер. Камеры меняются на local/edge; на gateway каталог только для чтения.
 
 ```mermaid
 flowchart LR
-    CAM["Камеры RTSP, видеофайлы, папки кадров"] --> EDGE
-    subgraph EDGE["Edge-узел LinQ"]
-        PRE["Декод и препроцессинг"] --> TPU["LinQ TPU: YOLOv8 det и pose"] --> POST["Хвост, NMS, трекинг"] --> RULES["Правила-плагины"] --> EM["EventManager"]
-    end
-    EM -->|события и метаданные| MQ["RabbitMQ exchange zazerkalye"]
-    MQ --> GW["Gateway: журнал SQLite, API, WebSocket"]
-    GW --> UI["Веб-интерфейс оператора"]
+    CAM["Камеры и файлы"] --> EDGE["Edge: правила и трекинг"]
+    EDGE <-->|LINQ_RABBIT_*: inference| TPU["Внешний LinQ TPU"]
+    EDGE --> DB["SQLite: событие + outbox"]
+    DB --> MQ["Event bus guard.edge.v1"]
+    MQ --> GW["Gateway: receipt + SQL journal → ACK"]
+    GW --> UI["API, WebSocket, UI, отчёты"]
 ```
 
 Почему конвейер стоит рядом с TPU: с ноутбука через VPN один кадр YOLO идёт **3.3 с**, а из контейнера рядом с брокером — **0.04 с**. Подробно — `docs/ARCHITECTURE.md` §3 (решение D-005).
 
 **Маховик данных.** Система сама собирает обучающую выборку. Сырой кадр каждого события, рамки с уверенностью у порога, смена ID трека и решение оператора («ложное» — hard negative) пишутся в `data/flywheel` в фоне и не задерживают оповещение. Учитель предлагает разметку, человек её принимает, `python -m ml.flywheel.export` собирает версию датасета в YOLO. Кадры роликов оценки в обучение не попадают. API — `/api/flywheel/*`, контракт и устройство — [docs/FLYWHEEL.md](docs/FLYWHEEL.md).
 
+`GUARD_RABBIT_URL` задаёт event bus; параметры `LINQ_RABBIT_HOST/PORT/USER/PASSWORD` — отдельный канал inference. Они не подменяют друг друга. `GUARD_MODE` выбирает размещение компонентов, `GUARD_BACKEND` — backend inference. Локальные developer defaults остаются `local`/`onnx-cpu`; production entrypoints ниже явно выбирают внешний TPU и отключают fallback.
+
 ## Ключевые цифры на LinQ
 
-Замеры 24.10.2026, 00:52–01:55 МСК, контейнер Jupyter на стенде хакатона: 1.5 CPU, 4 ГиБ. Таблицы и методика — **[docs/BENCHMARKS.md](docs/BENCHMARKS.md)**. Очередь TPU общая с другими командами, поэтому цифры зависят от их нагрузки.
+Исторические замеры из upstream-материалов 24.10.2026, 00:52–01:55 МСК, контейнер Jupyter на стенде хакатона: 1.5 CPU, 4 ГиБ. Источник — `data/historical_validation_20261024/tpu-baseline.json`, таблицы и методика — **[docs/BENCHMARKS.md](docs/BENCHMARKS.md)**. Очередь TPU общая с другими командами, поэтому цифры зависят от их нагрузки. Эти результаты относятся к указанным моделям и прежнему окружению; они не являются свежей приёмкой объединённого durable-конвейера.
 
 | Что | LinQ TPU | CPU (onnxruntime, тот же контейнер) |
 |---|---|---|
@@ -65,84 +70,179 @@ flowchart LR
 | Точность TPU относительно CPU, 30 отложенных кадров | det 480: recall 0.95, precision 0.97 при пороге TPU 0.25; pose 480: 0.98 / 1.00, средняя ошибка keypoint'ов 2.2 пикс. | эталон fp32 |
 | Камер на один TPU при анализе 5 к/с | **≈ 9** только det 480; **≈ 4** с det + pose 480 | — |
 
-Режим raw (клиент сам пакует int8) примерно вдвое быстрее штатного (×1.9–2.3) и даёт бит-в-бит те же выходы.
+В этих материалах raw-режим (клиент сам пакует int8) дал ×1.9–2.3 относительно штатной упаковки при совпадении выходов. Для текущего релиза это нужно повторно проверять с его моделями и программами TPU.
 
 ## Сценарии и статус
 
-Сценарии S1–S10 соответствуют паттернам кейса (`docs/CONTRACTS.md`). Каждый плагин покрыт юнит-тестами на синтетике; всего в `tests/` 672 теста (`pytest --collect-only`, 24.10 08:40). Демо-ролики с разметкой событий лежат в `data/labels/*.json` (13 роликов: S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2). Данные в git не входят, их скачивает `tools/fetch_data.py`.
+Плагины S1–S10 находятся в `guard/rules/plugins/`, их синтетические проверки — в `tests/`. Наличие плагина, ONNX или `.tpu` не подтверждает event-level precision/recall на текущем релизе. Видео и веса не входят в git; рецепты, источники и интервальная разметка заданы в `tools/data_manifest.json`.
 
-| # | Нарушение | Плагин | Модели | Статус на 24.10 03:00 |
-|---|---|---|---|---|
-| S1 | Вход в опасную зону, с расписанием активности | `zone_intrusion` | det | **работает в живом конвейере** (local, CPU): события, снапшоты, клипы, журнал. Ролики s1_01, s1_02 |
-| S2 | Нет каски или жилета там, где они обязательны | `ppe_missing` | det + ppe | плагин и тесты готовы. Модель СИЗ (YOLOv8s, 14 классов) экспортирована в ONNX, подключение к конвейеру и компиляция под TPU — в работе. Ролики s2_01, s2_02 |
-| S3 | Падение и неподвижность (критично) | `fall_immobile` | det + pose | плагин и тесты готовы, pose на TPU сверена с CPU. Прогон на роликах s3_01, s3_02 — в работе |
-| S4 | Опасное сближение с техникой | `vehicle_proximity` | det | плагин и тесты готовы. Ролики s4_01…s4_03, прогон — в работе |
-| S5 | Бег в зоне работы техники | `running` | det | плагин и тесты готовы, демо-ролика нет |
-| S6 | Телефон при работе или перемещении | `phone_usage` | det + pose | плагин и тесты готовы. Ролик s6_01 |
-| S7 | Курение или открытый огонь | `smoking_fire` | fire | плагин и тесты готовы. Модель огня и дыма (YOLOv8n) экспортирована в ONNX, на TPU ещё нет. Ролик s7_01 |
-| S8 | Перелезание через ограждение, пролезание под препятствием | `fence_climb` | det + pose | плагин и тесты готовы, демо-ролика нет |
-| S9 | Работа на высоте без привязи | `height_no_harness` | det | плагин и тесты готовы: осторожная эвристика, без модели привязи работает как контроль доступа в зону высоты (`mode="strict"`). Демо-ролика нет |
-| S10 | Переноска груза с нарушением | `unsafe_carry` | det + pose | плагин и тесты готовы: осторожные эвристики по позе (груз у запястий, закрытый обзор, наклон). Демо-ролика нет |
+| Сценарий | Плагин | Роли моделей | Проверки и ограничения |
+|---|---|---|---|
+| S1: вход в опасную зону | `zone_intrusion` | det | Измеренная CPU-оценка двух роликов и границы выводов — [S1_EVALUATION](docs/S1_EVALUATION.md) |
+| S2: каска и жилет | `ppe_missing` | det + ppe | [AP и покрытие классов](docs/PPE_EVALUATION.md), [подготовка S2/clean](docs/S2_DATA_PREPARATION.md); отсутствие PPE-детекции означает unknown |
+| S3: падение и неподвижность | `fall_immobile` | det + pose | Нужны оценка событий и проверка текущих программ на TPU |
+| S4: близость техники | `vehicle_proximity` | det | Интервальная разметка не содержит actor ID; нужна проверка привязки участников |
+| S5: бег | `running` | det | Синтетические тесты не заменяют размеченный benchmark |
+| S6: телефон | `phone_usage` | det + pose | Качество зависит от видимости мелкого объекта и позы |
+| S7: курение/огонь | `smoking_fire` | fire | Требуется отдельная модель и её проверка на целевом backend |
+| S8: ограждение | `fence_climb` | det + pose | Нужны размеченные сцены с геометрией ограждения |
+| S9: высота без привязи | `height_no_harness` | det | В strict-режиме без модели привязи это контроль доступа в зону высоты |
+| S10: переноска груза | `unsafe_carry` | det + pose | Эвристики по позе требуют отдельной проверки качества |
 
-Метрики качества на размеченных роликах (precision и recall по событиям, дубли, задержка) считает `ml/eval/events_eval.py`. Прогон с отчётом `metrics/eval-*.json` запланирован к чек-поинту 3.
+Актуальный объём тестов получают командой `.venv/bin/python -m pytest --collect-only -q`; историческое число тестов не используется как статус текущей интеграции.
 
-## Запуск локально (режим local, CPU)
+## Production-запуск на LinQ
 
-Нужны Python 3.11, [uv](https://docs.astral.sh/uv/) и Node.js 20 (для сборки UI). Всё работает на CPU, доступ к стенду не нужен.
+На стенде должны быть подготовлены Python 3.11, окружение `~/guard311`, данные и модели из `configs/cameras.stand.yaml` / `configs/models.stand.yaml`. TPU-программы, manifest и CPU-хвосты обязаны соответствовать реестру. Перед запуском проверьте пути `edge.data_dir`, `edge.models_dir` и доступность всех требуемых ролей моделей.
+
+С ноутбука через готовые локальные пробросы RabbitMQ/Jupyter (например, внешнюю Lima VM или VPN-контейнер проекта):
 
 ```bash
-# 1. Окружение Python 3.11
-uv venv --python 3.11 .venv
-uv pip install --python .venv/bin/python numpy "opencv-python-headless<4.13" onnxruntime onnx \
-  "fastapi>=0.110" "uvicorn[standard]" "pydantic>=2.6" pyyaml pika aio-pika scipy lap imageio-ffmpeg \
-  python-multipart requests websocket-client pillow protobuf pytest pytest-asyncio httpx
-export GUARD_DATA_DIR=$PWD/data GUARD_MODELS_DIR=$PWD/models
-
-# 2. Модели: YOLOv8n det и pose (COCO) → ONNX. ultralytics нужен только для экспорта
-uv pip install --python .venv/bin/python ultralytics
-.venv/bin/python ml/export_onnx.py --preset coco
-
-# 3. Демо-видео и разметка событий (по манифесту tools/data_manifest.json, ffmpeg из imageio-ffmpeg)
-.venv/bin/python tools/fetch_data.py
-
-# 4. Веб-интерфейс (Node 20, см. frontend/README.md)
-cd frontend && npm ci && npm run build && cd ..
-
-# 5. Сервис: API + UI на http://127.0.0.1:8000
-GUARD_BACKEND=onnx-cpu scripts/run_dev.sh
-
-# 5а. То же с распознаванием на LinQ TPU: edge на стенде, ноутбук — шлюз (нужен VPN-контейнер, схема ниже)
-scripts/run_tpu.sh            # SYNC=1 — сначала залить код на стенд и перезапустить edge
-
-# Тесты
-.venv/bin/python -m pytest -q
+python tools/stand.py --url http://127.0.0.1:8888/ status
+python tools/stand.py --url http://127.0.0.1:8888/ start --config configs/cameras.stand.yaml
+scripts/run_tpu.sh
+# Для внешнего туннеля, без попытки автоматически поднять другой VPN:
+GUARD_VPN_MODE=external scripts/run_tpu.sh
 ```
 
-- Камеры, зоны и правила описаны в `configs/cameras.yaml`, а меняются из UI (экран «Камеры и правила»), без перезапуска. Демо-конфиг ссылается на ролики Intel `sample-videos` (CC BY 4.0) в `data/videos/a3dev_*/`. Положите их туда или поменяйте `source.uri` на ролики из `tools/fetch_data.py` (`data/videos/s1_01.mp4` и т. д.).
-- Модели описаны в `configs/models.yaml`.
-- Резервное демо без бэкенда: `http://127.0.0.1:8000/?mock=1` или `cd frontend && npm run dev:mock`. В мок-режиме 6 камер, журнал за 30 дней и критическая тревога «Падение» через 2.5 с после открытия (`frontend/README.md`).
-- Основные переменные: `GUARD_BACKEND` (`onnx-cpu` или `linq-tpu`), `GUARD_DATA_DIR`, `GUARD_MODELS_DIR`, `GUARD_MAX_BATCH` (8), `GUARD_ORT_THREADS` (4), `HOST`, `PORT`. Полный список — `guard/pipeline/settings.py`.
+`tools/stand.py start` запускает `python -m guard.edge` с `linq-tpu`, transport `rabbit`, `GUARD_BACKEND_FALLBACK=none`, `LINQ_RAW=1` и `LINQ_TIMEOUT_S=5`. Конфигурация камер содержит секцию `edge:`; `--config`, `--models-config`, `--backend`, `--transport`, `--url`, `--duration` и `--node-id` поддерживаются CLI edge. `stand.py --url` относится к JupyterHub, а `guard.edge --url` — к event bus.
+
+`run_tpu.sh` в режиме `GUARD_VPN_MODE=auto` сначала проверяет готовые AMQP/HTTP-пробросы и использует их без запуска другого VPN. Если они недоступны, он пробует VPN-контейнер проекта. `external` только проверяет существующие пробросы и при отказе завершается без VPN up; `container` явно выбирает контейнер проекта. Адреса задаются `GUARD_RABBIT_URL` и `JUPYTER_LOCAL_URL`.
+
+После проверки доступа скрипт запускает edge, если процесс отсутствует, и открывает gateway/UI. `SYNC=1 scripts/run_tpu.sh` отдельно синхронизирует код и перезапускает процесс; используйте это осознанно. Ни один из этих запусков автоматически не очищает очередь или durable outbox. Доступность AMQP/HTTP и живой PID не подтверждают, что inference действительно идёт на TPU.
+
+Активная приёмка должна показать выбранный `linq-tpu`, отключённый CPU fallback, новые успешные вызовы каждой требуемой модели в наблюдаемом интервале, свежие обработанные кадры и итоговое событие/телеметрию на gateway. `stand.py health` показывает процесс и passive queue state с `inference_verified=false`; накопленные сообщения и старые счётчики не заменяют такую проверку.
+
+## CPU-диагностика
+
+Это явный отдельный режим для разработки и воспроизведения проверок. Он не служит доказательством работы внешнего TPU.
+
+```bash
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python --requirements pyproject.toml --extra dev
+export GUARD_DATA_DIR="$PWD/data" GUARD_MODELS_DIR="$PWD/models"
+
+# UI
+(cd frontend && npm ci && npm run build)
+
+# При подготовленных моделях и входах из docs/DATA.md:
+GUARD_MODE=local GUARD_BACKEND=onnx-cpu \
+  GUARD_CAMERAS_CONFIG="$PWD/configs/cameras.cpu-demo.yaml" scripts/run_dev.sh
+```
+
+Экспорт ONNX описан в [MODELS](docs/MODELS.md), включая `ml/export_onnx.py --preset coco` и экспорт пользовательской модели через `--weights/--out/--model-id`. Ultralytics нужен для экспорта; runtime ONNX не скачивает веса автоматически. Подготовка демо-видео выполняется `tools/fetch_data.py` по manifest; конкретные пути должны совпадать с выбранным camera YAML. Для S2 и чистого контроля есть отдельная [инструкция](docs/S2_DATA_PREPARATION.md).
+
+Мок-интерфейс доступен через `?mock=1` или `npm run dev:mock` в `frontend/`; он не проверяет ML/runtime. Параметры `GUARD_MAX_BATCH`, `GUARD_ORT_THREADS`, `HOST` и `PORT` относятся к выбранному режиму; полный перечень — `guard/pipeline/settings.py`.
 
 ## Схема «edge на стенде LinQ + gateway на ноутбуке»
 
-Так система работает с настоящим TPU (D-005). Конвейер распознавания запущен на Jupyter-сервере стенда рядом с брокером TPU. Ноутбук — шлюз с журналом и UI. Между ними свой exchange RabbitMQ `zazerkalye`, по нему ходят сообщения `event`, `frame_meta` и `metrics`.
+| Действие | Команда или источник |
+|---|---|
+| Доступ к стенду | Готовые пробросы Lima/VPN: `GUARD_VPN_MODE=external`; контейнер проекта при необходимости — `infra/vpn/vpnctl.sh up`. Параметры доступа остаются вне git |
+| JupyterHub и перенос кода | `python tools/stand.py sync`; корень удалённого checkout — `~/work/mosprom` |
+| Перенос выбранных роликов | `python tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02` |
+| Проверка/запуск процесса | `python tools/stand.py status`, `start`, `logs`, `health`; это не активная TPU-приёмка |
+| Повторный запуск после обновления | `python tools/stand.py restart --config configs/cameras.stand.yaml` |
+| Сборка программ TPU | `python tpu/compile.py --help`, [LINQ_NOTES](docs/LINQ_NOTES.md); программы и manifest хранятся вне git |
+| Изолированный smoke det/pose | На подготовленном стенде: `GUARD_BACKEND_FALLBACK=none LINQ_RAW=1 LINQ_TIMEOUT_S=5 ~/guard311/bin/python tpu/smoke_backend.py`; это не проверка всех камер/моделей |
+| Gateway на ноутбуке | `scripts/run_tpu.sh`; события и receipt хранятся локально, модели и источники на gateway не нужны |
 
-| Шаг | Как | Статус |
-|---|---|---|
-| Доступ к стенду без системного VPN | `infra/vpn/vpnctl.sh up` — OpenVPN в контейнере Podman. На 127.0.0.1: SOCKS `:1080`, RabbitMQ `:5672`, Jupyter `:8888`. Профиль и пароль задаются в `.env` (`VPN_PROFILE`, `VPN_LOGIN`, `VPN_PASSWORD`), в git их нет | готово |
-| Вход в JupyterHub, загрузка кода | `JUPYTER_URL=http://127.0.0.1:8888 python tools/jhub.py login`, затем `python tpu/sync_to_jupyter.py` (код → `~/work/guard_repo`) | готово |
-| Окружение конвейера на стенде | `python tools/jhub.py run-bg --name guard_env 'bash $HOME/work/guard_repo/tpu/server_guard_env.sh'` (venv `~/guard311`) | готово |
-| Программы TPU | `tpu/compile.py --cut-preset yolov8 --preset O5 ...` на сервере (команда — `docs/LINQ_NOTES.md` §13), затем копия в `/auto/cache/<логин>/` | готово: det и pose, 480 и 640 |
-| Проверка бэкенда TPU в окружении конвейера | `cd ~/work/guard_repo && GUARD_MODELS_DIR=$HOME/work/models OMP_NUM_THREADS=2 ~/guard311/bin/python tpu/smoke_backend.py` | готово |
-| Канал «стенд → ноутбук» | свой exchange и очереди в Rabbit проверены `tpu/chan_bench.py`: событие 2 КБ доходит за 0.47 с | готово |
-| Процесс `edge` на стенде и режим `gateway` на ноутбуке | `scripts/run_tpu.sh`: проверяет VPN, запускает edge на стенде (`tools/stand.py`), очищает очередь шлюза от старых сообщений и поднимает UI в режиме `gateway`. 4 камеры по 4.8–4.9 к/с, от подтверждения на стенде до ноутбука ~0.5 с (`docs/EDGE.md`) | готово |
-| Защита от остановки сервера стенда | `tools/jhub_keepalive.sh` раз в 5 минут пингует JupyterHub, чтобы idle-culler не погасил контейнер | готово |
+Файлы данных загружаются в `~/work/mosprom/data/videos`. Если `edge.data_dir` указывает на `data_360`, его подготовку выполняют отдельно: `sync-data` сам не создаёт уменьшенные видео. Производительность и задержки старого транспорта из [EDGE](docs/EDGE.md) и [BENCHMARKS](docs/BENCHMARKS.md) не переносятся автоматически на протокол `guard.edge.v1`.
 
-Пока режим edge не готов, весь конвейер можно запустить на ноутбуке с `GUARD_BACKEND=linq-tpu` через VPN. Работать будет, но медленно: около 0.3 к/с (`docs/BENCHMARKS.md` §4.2). Годится только для проверки связи, не для демо.
+## Локальная проверка перед запуском
+
+Из корня проекта, в окружении с установленными зависимостями:
+
+```bash
+python -m guard.doctor
+python -m guard.doctor --json
+GUARD_DATA_DIR=/path/to/data GUARD_MODELS_DIR=/path/to/models python -m guard.doctor --json
+```
+
+Проверка использует `Settings` и переменные `GUARD_*`, включая `GUARD_CAMERAS_CONFIG`, `GUARD_MODELS_CONFIG`, `GUARD_DB_PATH` и `GUARD_MEDIA_DIR`. Относительные пути источников разрешаются так же, как в конвейере: сначала от каталога данных, затем от его родителя и текущего каталога; относительные пути моделей — от каталога моделей. Абсолютные пути поддерживаются.
+
+Doctor читает YAML камер и реестра, проверяет структуру и семантику конфигурации, наличие файлов моделей для включённых правил включённых камер, локальные источники `file`/`images`, типы и разрешения выходных путей или их ближайших существующих родителей. Он не создаёт каталоги данных, БД, медиа или конфиги. Отсутствие ещё не созданных выходных каталогов допустимо, если родитель доступен для записи. Изображения перечисляются по расширениям без декодирования; пустой каталог — ошибка. Отключённые камеры и правила не требуют файлов источников и моделей.
+
+В отчёте `scope: offline` и статусы `ok`, `error`, `warning`, `skipped`; JSON выводится одним объектом в stdout. Код выхода: `0` — локальных ошибок нет (предупреждения и пропуски допустимы), `1` — найдены ошибки, `2` — неверные аргументы CLI. Значения URI и содержимое ошибок разбора скрываются, чтобы не выводить пароли.
+
+RTSP, webcam, сеть, загрузка моделей, ORT и TPU не запускаются. Для `linq-tpu` проверяется наличие локального `tpu_program`; `file://` обозначает путь на TPU-воркере и получает `skipped`. Зависимость от ONNX, manifest и CPU tail при загрузке TPU также остаётся непроверенной. Успешный doctor подтверждает только доступные локальные проверки: он не доказывает валидность содержимого моделей/видео, доступность TPU или камер, возможность фактической записи, скорость и качество детекции. В свежем checkout включённые камеры сообщат об отсутствующих данных и моделях до их подготовки.
+
+## Воспроизводимая CPU-проверка
+
+Подготовка det ONNX: [docs/MODELS.md](docs/MODELS.md); публичные видео, лицензии и отдельный demo-конфиг: [docs/DATA.md](docs/DATA.md). Веса и видео хранятся вне Git. После подготовки файлов и установки dev-зависимостей из корня проекта:
+
+```bash
+GUARD_MODE=local GUARD_BACKEND=onnx-cpu python -m tools.cpu_smoke --data-dir "$PWD/data" --models-dir "$PWD/models" --timeout 60 --json
+```
+
+Команда проверяет настоящие file source/ONNX/worker, событие S1 в HTTP и WebSocket, операторский PATCH, JPEG и H.264-клип. Отдельные БД, медиа и отчёт сохраняются в новом `data/cpu_async/` каталоге; существующие результаты не перезаписываются. Отсутствие события или медиа даёт ненулевой код выхода. Это однокамерная проверка работоспособности; качество детекции и TPU оцениваются отдельно.
+
+Следующие проверки запускаются независимо:
+
+```bash
+GUARD_BACKEND=onnx-cpu .venv/bin/python -m ml.eval.run_s1 --timeout 180 --json
+GUARD_BACKEND=onnx-cpu .venv/bin/python -m tools.cpu_multicamera --timeout 120 --json
+```
+
+[Оценка S1](docs/S1_EVALUATION.md) проходит 600 выбранных кадров двух размеченных роликов и сохраняет predictions/метрики. [Три камеры](docs/CPU_MULTICAMERA.md) проверяют полные исходные файлы в реальном времени, нагрузку, медиа и завершение. [Настоящий RabbitMQ](docs/RABBIT_ACCEPTANCE.md) проверяется отдельно, с собственным loopback-брокером и аварийными остановками edge/gateway.
+
+## Режимы local, edge и gateway
+
+По умолчанию `GUARD_MODE=local`: камеры, инференс, журнал и интерфейс работают в одном процессе:
+
+```bash
+GUARD_MODE=local GUARD_BACKEND=onnx-cpu python -m uvicorn guard.api.app:app --host 127.0.0.1 --port 8000
+```
+
+Для разделённого запуска задайте `GUARD_EDGE_ID` (одно безопасное имя для пары edge/gateway) и `GUARD_RABBIT_URL` в окружении каждого процесса. AMQP использует отдельный exchange `guard.edge.v1` и очереди `guard.gateway.<edge_id>.events` / `.telemetry.v2`; очереди инференса TPU не используются. Топология v2 совместима с RabbitMQ 4.4; правила миграции описаны в [EDGE_PROTOCOL.md](docs/EDGE_PROTOCOL.md). URL брокера содержит секреты: передавайте его через окружение, не коммитьте и не включайте в логи.
+
+На машине с источниками и моделями:
+
+```bash
+GUARD_DATA_DIR=/path/to/edge-data GUARD_MODELS_DIR=/path/to/models GUARD_BACKEND_FALLBACK=none \
+  python -m guard.edge --config configs/cameras.stand.yaml --models-config configs/models.stand.yaml \
+  --backend linq-tpu --transport rabbit --node-id stand-linq
+```
+
+На машине с интерфейсом и операторским журналом:
+
+```bash
+GUARD_MODE=gateway GUARD_EDGE_ID=stand-linq GUARD_DATA_DIR=/path/to/gateway-data python -m uvicorn guard.api.app:app --host 127.0.0.1 --port 8000
+```
+
+Каталоги и SQLite edge/gateway должны быть раздельными. Gateway не читает реестр моделей, не создаёт inference backend и не открывает источники. Камеры приходят из каталога edge; менять их на gateway нельзя (HTTP 409), операторские статусы и заметки меняются локально. Изображения событий переносятся как JPEG и сохраняются под собственным media-каталогом gateway; клипы между edge и gateway не переносятся; `clip_path` на gateway остаётся `null`. Headless edge CLI отключает запись клипов.
+
+Edge записывает событие и outbox в одной транзакции SQLite. Публикация подтверждается брокером до удаления outbox; неопределённый результат повторяется с тем же замороженным пакетом. Gateway фиксирует receipt и событие вместе, подавляет повторы и сохраняет решения оператора. При недоступности SQLite edge не переключается на журнал в памяти. Повреждённый/слишком большой JPEG передаётся как событие без изображения с transport-ошибкой.
+
+При временном отказе записи edge удерживает весь пакет новых/закрытых событий и повторяет тот же event ID до commit. WS, счётчик созданных событий и планирование клипа выполняются после успешной записи/readback. Постоянный отказ явно виден и прерывает успешный shutdown; SQLite/backend сохраняются для повторного stop после восстановления. Crash до первого успешного сохранения при недоступном диске не покрыт durable replay.
+
+Превью и метрики идут отдельным ограниченным каналом: `GUARD_PREVIEW_FPS` по умолчанию 1 (максимум 1), `GUARD_PREVIEW_MAX_WIDTH=480`, `GUARD_PREVIEW_STALE_AFTER_S=10`, `GUARD_TELEMETRY_INTERVAL_S=2`. Наложения рисуются на конкретном полученном JPEG. Каталог авторизует смену producer/run; старые последовательности, проходы источника и просроченные сообщения не возвращают старое превью. При устаревании JPEG API отвечает 503, а статус камеры показывает stale.
+
+Локальная проверка без RabbitMQ, камер и моделей:
+
+```bash
+python -m pytest tests/test_edge_gateway.py tests/test_rabbit_transport.py tests/test_gateway_frames.py -q
+```
+
+Эти проверки используют реальный SQLite/HTTP/WS и внедрённый fake broker. Они не доказывают доступность живого AMQP-брокера, камер или TPU.
+
+## Отчёты и оценка
+
+`GET /api/analytics` считает агрегаты по всему отфильтрованному SQL-журналу в одной read-транзакции, независимо от пагинации `/api/events`. Подробный формат и включительные границы этого API — в [CONTRACTS](docs/CONTRACTS.md).
+
+Сменный отчёт доступен по `GET /api/reports/shift?from=...&to=...&format=json|html|md`, готовые периоды — `GET /api/reports/presets`. Период отчёта полуоткрытый `[from,to)` по `confirmed_at`, даты без зоны трактуются по Москве. Без границ используется текущая смена 08–20/20–08; это отдельная семантика от включительных фильтров events/stats.
+
+```bash
+curl --fail 'http://127.0.0.1:8000/api/reports/presets'
+curl --fail 'http://127.0.0.1:8000/api/reports/shift?format=html' -o shift.html
+```
+
+Оценка детекций PPE, S1-событий, сравнение моделей и качество нарушений — разные проверки: [PPE_EVALUATION](docs/PPE_EVALUATION.md), [S1_EVALUATION](docs/S1_EVALUATION.md), [MODEL_COMPARISON](docs/MODEL_COMPARISON.md). Нужны явные знаменатели, сохранённые predictions и readback; синтетические unit-тесты или успешный smoke не доказывают качество на независимом наборе.
 
 ## Как добавить новый тип нарушения
 
 Новый тип нарушения — это новый модуль в `guard/rules/plugins/`. Конвейер, API и UI менять не нужно (требование R7):
+
 - плагины находятся автоматически;
 - подтверждение и дедупликацию делает `EventManager`;
 - UI строит форму параметров по `params_schema`.
@@ -197,7 +297,7 @@ class CrowdingRule(RulePlugin):
         return out
 ```
 
-2. Добавьте тест `tests/test_rules_crowding.py`. Образец — `tests/test_rules_running.py`. Этот пример плагина проверен на синтетическом кадре.
+2. Добавьте тест `tests/test_rules_crowding.py`. Образец — `tests/test_rules_running.py`. Новый плагин нужно проверить на синтетике и размеченных сценах.
 3. Перезапустите сервис. Тип появится в `GET /api/rules/types`, а на экране «Камеры и правила» его можно включить для камеры: выбрать зону, задать `max_people`, окно подтверждения `min_duration_s`, `cooldown_s` и важность.
 4. По желанию добавьте иконку и короткое имя в `frontend/src/domain/violations.ts`. Без этого UI покажет `title` плагина.
 
@@ -215,7 +315,7 @@ class CrowdingRule(RulePlugin):
 | Производительность: FPS по камерам, задержка по этапам p50/p95, модели на ускорителе | ИТ-служба | `deliverables/screens/real-07-performance.jpg` |
 | Данные (маховик): цикл из шести шагов, очередь проверки сэмплов с рамками (клавиши 1/2, ←/→), датасеты, модели с решением гейта | инженер данных | `data/media/checks/flywheel_ui_*.png` (мок) |
 
-Скриншоты с префиксом `real-` сняты 24.10 около 01:10 с живого бэкенда на ноутбуке (local, CPU). Остальные — из мок-режима.
+Исторические скриншоты с префиксом `real-` сняты 24.10 около 01:10 с живого бэкенда на ноутбуке (local, CPU). Остальные — из мок-режима.
 
 ## Структура репозитория
 
@@ -229,6 +329,9 @@ guard/                бэкенд (Python 3.11, FastAPI)
   pipeline/           движок камер, батчинг между камерами, воркер камеры, шина WS, настройки
   rules/              API правил (base.py), геометрия зон и расписаний, plugins/ — 10 типов нарушений
   events/             EventManager (подтверждение, дедуп), журнал SQLite, медиа (снапшот, клип)
+  edge/               durable headless CLI, outbox publisher и telemetry
+  gateway/            receipt/commit-before-ACK и JPEG preview
+  transport/          versioned wire v1, store и AMQP
   reports/            сводка по смене
   api/                HTTP API и WebSocket
 frontend/             веб-интерфейс (React 18, TypeScript, Vite), мок-режим для резервного демо
@@ -238,7 +341,7 @@ configs/              cameras.yaml (камеры, зоны, правила), mod
 tools/                jhub.py (JupyterHub API), fetch_data.py (демо-данные), heavy.sh и memguard.sh (защита от OOM)
 infra/vpn/            OpenVPN в контейнере Podman для доступа к стенду
 scripts/run_dev.sh    запуск сервиса
-tests/                672 теста pytest
+tests/                unit- и интеграционные проверки pytest
 docs/                 документация (см. ниже)
 deliverables/         материалы для экспертов: скриншоты, позже презентация
 ```
@@ -253,6 +356,10 @@ deliverables/         материалы для экспертов: скринш
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | замеры TPU и CPU, точность, канал, расчёт «камер на TPU» |
 | [docs/LINQ_NOTES.md](docs/LINQ_NOTES.md) | конспект SDK и облачного протокола LinQ, компиляция, raw, грабли |
 | [docs/CONTRACTS.md](docs/CONTRACTS.md) | контракты модулей, HTTP API, WebSocket |
+| [docs/EDGE_PROTOCOL.md](docs/EDGE_PROTOCOL.md) | durable wire v1, outbox/receipt и bounded telemetry.v2 |
+| [docs/S1_EVALUATION.md](docs/S1_EVALUATION.md), [docs/MODEL_COMPARISON.md](docs/MODEL_COMPARISON.md) | воспроизводимая оценка событий и сравнение моделей |
+| [docs/PPE_EVALUATION.md](docs/PPE_EVALUATION.md), [docs/S2_DATA_PREPARATION.md](docs/S2_DATA_PREPARATION.md) | AP, покрытие PPE-классов и pins входных данных |
+| [docs/CPU_MULTICAMERA.md](docs/CPU_MULTICAMERA.md), [docs/RABBIT_ACCEPTANCE.md](docs/RABBIT_ACCEPTANCE.md) | границы CPU и AMQP-приёмок |
 | [docs/ANALYTICS.md](docs/ANALYTICS.md) | целевая аудитория, проблемы UX, конкуренты и аналоги |
 | [docs/PITCH.md](docs/PITCH.md) | структура защиты и экономика внедрения |
 | [docs/CHECKPOINT_2.md](docs/CHECKPOINT_2.md) | материал к чек-поинту 2 (24.10 11:00) |
@@ -261,6 +368,6 @@ deliverables/         материалы для экспертов: скринш
 ## Модели и лицензии
 
 - YOLOv8n и YOLOv8n-pose (COCO), Ultralytics, AGPL-3.0 — основа det и pose на TPU.
-- Модель СИЗ: [constructelligence/construction-site-safety-hazards](https://huggingface.co/constructelligence/construction-site-safety-hazards) v0.3 (YOLOv8s); веса AGPL-3.0, данные CC BY 4.0. Подключение в работе.
-- Огонь и дым: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n) (D-Fire), AGPL-3.0. Подключение в работе.
+- PPE-кандидат: [constructelligence/construction-site-safety-hazards](https://huggingface.co/constructelligence/construction-site-safety-hazards); provenance, карты классов, экспериментальный статус и ограничения — в [MODELS](docs/MODELS.md) и [PPE_EVALUATION](docs/PPE_EVALUATION.md).
+- Источник модели огня/дыма: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n); наличие её записи в реестре не подтверждает активную работу текущей TPU-программы.
 - Источники и лицензии демо-видео — в `tools/data_manifest.json` и `data/labels/*.json` (поле `sources`).

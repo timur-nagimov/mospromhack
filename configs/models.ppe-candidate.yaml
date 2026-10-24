@@ -1,0 +1,30 @@
+# Experimental opt-in registry. Does not replace configs/models.yaml.
+# Prepare the candidate with tools/prepare_ppe_candidate.py first.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: yolov8n-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+  - model_id: ppe
+    task: detect
+    onnx_path: candidates/buildvision-hazards-v0.3/buildvision-hazards-v0.3.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    classes: [person, helmet, no_helmet, vest, no_vest, no-mask, gloves, safety shoes, excavator, wheel loader, dump truck, goggles, no-goggles, no-gloves]
+    conf_threshold: 0.35
+    iou_threshold: 0.7
+meta:
+  ppe:
+    status: experimental
+    source: https://huggingface.co/constructelligence/construction-site-safety-hazards
+    revision: 79673cff5a8bb249fc8ec9cca3daa19e2ef95191
+    license: AGPL-3.0
+    supported_attributes: [helmet, vest]
+    unsupported_attributes: [respirator]
+    training_overlap_with_evaluation: unverified
+    promotion: requires measured model quality and labelled S2 event evaluation

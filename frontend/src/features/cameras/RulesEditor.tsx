@@ -5,7 +5,42 @@ import { SEVERITY_COLOR } from '../../components/ui/badges';
 import { SEVERITY_LABELS, SEVERITY_ORDER, ZONE_KIND_COLORS } from '../../domain/labels';
 import type { CameraConfig, RuleConfig, RuleTypeInfo, Severity } from '../../domain/types';
 import { getViolationMeta } from '../../domain/violations';
-import { schemaDefaults, SchemaForm } from './SchemaForm';
+import { schemaDefaults, SchemaForm, validateSchema } from './SchemaForm';
+
+/** Used by cards and the camera Save gate; no effect/callback validity race. */
+export function validateRule(rule: RuleConfig, camera: CameraConfig, info?: RuleTypeInfo): string[] {
+  if (!info) return [`${rule.rule_id}: описание типа правила ещё не загружено`];
+  const errors = validateSchema(info.params_schema, rule.params);
+  const selected = rule.zones ?? [];
+  if (info.zone_schema) errors.push(...validateSchema(info.zone_schema, selected, 'Зоны'));
+  if (new Set(selected).size !== selected.length) errors.push('Зоны: повторяющиеся ID');
+  if (selected.some((id) => !camera.zones.some((zone) => zone.zone_id === id))) errors.push('Зоны: выбранная зона отсутствует');
+  for (const [name, value, min, max] of [
+    ['Длится не меньше', rule.min_duration_s, 0, undefined], ['Не повторять', rule.cooldown_s, 0, undefined],
+    ['Доля кадров в окне', rule.min_ratio, 0, 1], ['Закрыть через', rule.close_after_s, 0, undefined],
+  ] as const) {
+    errors.push(...validateSchema({ type: 'number', minimum: min, maximum: max }, value, name));
+  }
+  return errors;
+}
+
+export function validateRules(camera: CameraConfig, types: RuleTypeInfo[]): string | null {
+  for (const rule of camera.rules) {
+    const error = validateRule(rule, camera, types.find((info) => info.type === rule.type))[0];
+    if (error) return `Правило ${rule.rule_id}: ${error}`;
+  }
+  return null;
+}
+
+/** Strict dependent rules must be reassigned/removed before their zone is deleted. */
+export function zoneRemovalError(camera: CameraConfig, zoneId: string, types: RuleTypeInfo[]): string | null {
+  const blocked = camera.rules.filter((rule) => {
+    if (!rule.zones?.includes(zoneId)) return false;
+    const info = types.find((item) => item.type === rule.type);
+    return !info || (info.zone_schema && validateSchema(info.zone_schema, rule.zones.filter((id) => id !== zoneId)).length > 0);
+  });
+  return blocked.length ? `Сначала переназначьте зону или удалите связанные правила: ${blocked.map((r) => r.rule_id).join(', ')}.` : null;
+}
 
 interface Props {
   camera: CameraConfig;
@@ -26,7 +61,7 @@ function NumberInput({
   value: number;
   onChange: (v: number) => void;
   min: number;
-  max: number;
+  max?: number;
   step: number;
   unit: string;
   hint?: string;
@@ -42,8 +77,8 @@ function NumberInput({
           max={max}
           step={step}
           value={Number.isFinite(value) ? value : ''}
-          aria-invalid={value < min || value > max}
-          onChange={(e) => onChange(Number(e.target.value))}
+          aria-invalid={!Number.isFinite(value) || value < min || (max != null && value > max)}
+          onChange={(e) => onChange(e.target.value === '' ? NaN : Number(e.target.value))}
         />
         <span className="num-field__unit">{unit}</span>
       </div>
@@ -68,6 +103,8 @@ function RuleCard({
   const meta = getViolationMeta(rule.type);
   const Icon = meta.icon;
   const zonesSel = rule.zones ?? [];
+  const zoneSchema = info?.zone_schema;
+  const errors = validateRule(rule, camera, info);
   const set = (patch: Partial<RuleConfig>) => onChange({ ...rule, ...patch });
 
   return (
@@ -109,14 +146,14 @@ function RuleCard({
         <div className="field">
           <span className="field__label">Где действует</span>
           <div className="chips">
-            <button
+            {!(zoneSchema?.minItems && zoneSchema.minItems > 0) && <button
               type="button"
               className={`chip${zonesSel.length === 0 ? ' is-on' : ''}`}
               aria-pressed={zonesSel.length === 0}
               onClick={() => set({ zones: null })}
             >
               Весь кадр
-            </button>
+            </button>}
             {camera.zones.map((z) => {
               const on = zonesSel.includes(z.zone_id);
               return (
@@ -126,8 +163,9 @@ function RuleCard({
                   className={`chip${on ? ' is-on' : ''}`}
                   aria-pressed={on}
                   onClick={() => {
-                    const next = on ? zonesSel.filter((id) => id !== z.zone_id) : [...zonesSel, z.zone_id];
-                    set({ zones: next.length ? next : null });
+                    const next = on ? zonesSel.filter((id) => id !== z.zone_id)
+                      : zoneSchema?.maxItems === 1 ? [z.zone_id] : [...zonesSel, z.zone_id];
+                    set({ zones: zoneSchema ? next : next.length ? next : null });
                   }}
                 >
                   <i style={{ background: ZONE_KIND_COLORS[z.kind] }} />
@@ -136,6 +174,8 @@ function RuleCard({
               );
             })}
           </div>
+          {zoneSchema && <span className="field__hint">{zoneSchema.minItems === 1 && zoneSchema.maxItems === 1
+            ? 'Явно выберите одну зону.' : `Число зон: от ${zoneSchema.minItems ?? 0} до ${zoneSchema.maxItems ?? 'любого'}.`}</span>}
         </div>
 
         <div className="rule-card__timing">
@@ -144,7 +184,6 @@ function RuleCard({
             value={rule.min_duration_s}
             onChange={(v) => set({ min_duration_s: v })}
             min={0}
-            max={60}
             step={0.5}
             unit="с"
             hint="Случайный кадр тревогу не поднимает: нарушение должно длиться это время"
@@ -154,7 +193,6 @@ function RuleCard({
             value={rule.cooldown_s}
             onChange={(v) => set({ cooldown_s: v })}
             min={0}
-            max={3600}
             step={5}
             unit="с"
             hint="Окно дедупликации: повторное нарушение там же не создаёт новое событие"
@@ -165,7 +203,7 @@ function RuleCard({
                 label="Доля кадров в окне"
                 value={rule.min_ratio}
                 onChange={(v) => set({ min_ratio: v })}
-                min={0.1}
+                min={0}
                 max={1}
                 step={0.05}
                 unit="×"
@@ -174,8 +212,7 @@ function RuleCard({
                 label="Закрыть через"
                 value={rule.close_after_s}
                 onChange={(v) => set({ close_after_s: v })}
-                min={0.5}
-                max={120}
+                min={0}
                 step={0.5}
                 unit="с"
               />
@@ -195,6 +232,7 @@ function RuleCard({
         ) : (
           <p className="muted">Тип «{rule.type}» не найден в /api/rules/types — параметры недоступны для редактирования</p>
         )}
+        {errors.length > 0 && <div className="error-box" role="alert">{errors[0]}</div>}
       </div>
     </article>
   );
@@ -211,7 +249,7 @@ export function RulesEditor({ camera, onChange }: Props) {
       rule_id: `r-${camera.camera_id.replace(/^cam-/, '')}-${type.split('_')[0]}-${Math.random().toString(36).slice(2, 5)}`,
       type,
       enabled: true,
-      zones: null,
+      zones: info.zone_schema ? [] : null,
       params: schemaDefaults(info.params_schema),
       min_duration_s: 2,
       min_ratio: 0.7,

@@ -1,4 +1,4 @@
-"""Временные замены модулей Codex, пока их нет в ветке.
+"""Резервные реализации модулей конвейера для неполной сборки.
 
 Конвейер выбирает реализацию в guard/pipeline/compat.py через try/except ImportError:
 - guard.vision (CX-001)        → letterbox, decode_yolov8, decode_yolov8_pose, draw_overlay, draw_event_snapshot;
@@ -596,6 +596,12 @@ class SimpleEventManager:
             for ev_id in [e for e, t in self._events.items() if t.event.camera_id == camera_id]:
                 del self._events[ev_id]
 
+    def capture_closures(self, camera_id: str) -> list[Event]:
+        """Non-destructive snapshots; caller persists before resetting state."""
+        with self._lock:
+            return [tracked.event.model_copy(deep=True, update={"ended_at": tracked.last_violation_ts})
+                    for tracked in self._events.values() if tracked.open and tracked.event.camera_id == camera_id]
+
 
 # ======================================================================
 # CX-004: журнал событий (в памяти)
@@ -630,7 +636,9 @@ class MemoryJournal:
             ev = self._events.get(event_id)
             return ev.model_copy(deep=True) if ev else None
 
-    def update(self, event_id: str, **fields: Any) -> Event:
+    def update(self, event_id: str, *, details_patch: dict[str, Any] | None = None, **fields: Any) -> Event:
+        if details_patch is not None and details_patch.keys() - {"reopened_count", "active_duration_s", "clip_error"}:
+            raise ValueError("Unsupported machine detail patch")
         bad = set(fields) - _UPDATABLE
         if bad:
             raise ValueError(f"fields not updatable: {sorted(bad)}")
@@ -638,6 +646,8 @@ class MemoryJournal:
             ev = self._events.get(event_id)
             if ev is None:
                 raise KeyError(event_id)
+            if details_patch:
+                fields["details"] = {**ev.details, **details_patch}
             data = ev.model_dump()
             data.update(fields)
             new = Event.model_validate(data)

@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from uuid import uuid4
 from typing import TYPE_CHECKING, Any
 
 from guard.contracts import CameraConfig, Event, FrameContext
@@ -17,9 +18,10 @@ from guard.pipeline.bus import EventBus
 from guard.pipeline.config import load_cameras, load_models, save_cameras
 from guard.pipeline.detector import BatchScheduler, Detector
 from guard.pipeline.settings import Settings
+from guard.pipeline.errors import CameraError, CameraExists
 from guard.pipeline.transport import compact_jpeg, frame_meta_msg, metrics_msg
 from guard.pipeline.transport import event_msg as transport_event_msg
-from guard.rules.base import available_rules, load_plugins, with_default_severity
+from guard.rules.base import available_rules, get_rule, load_plugins, with_default_severity
 from guard.rules.geometry import validate_active_hours
 from guard.events.media import MediaStore
 
@@ -27,14 +29,6 @@ if TYPE_CHECKING:
     from guard.pipeline.worker import CameraWorker
 
 log = logging.getLogger(__name__)
-
-
-class CameraError(ValueError):
-    """Некорректная конфигурация камеры (→ HTTP 422)."""
-
-
-class CameraExists(KeyError):
-    """camera_id уже занят (→ HTTP 409)."""
 
 
 def event_message(kind: str, event: Event) -> dict[str, Any]:
@@ -51,6 +45,7 @@ class PipelineEngine:
         sink: Any | None = None,
     ) -> None:
         self.settings = settings
+        self.run_id = str(uuid4())
         self.sink = sink  # guard.transport.Sink: режим edge публикует event/frame_meta/metrics
         self.sink_errors = 0
         # base.available_rules()/get_rule() грузят плагины, только пока реестр пуст — грузим явно
@@ -77,12 +72,14 @@ class PipelineEngine:
         self.journal = journal if journal is not None else self._make_journal()
         self.cameras: dict[str, CameraConfig] = {}
         self.workers: dict[str, CameraWorker] = {}
+        self._worker_errors: dict[str, dict[str, str]] = {}
         self._detectors: dict[str, Detector] = {}
         self._schedulers: dict[str, BatchScheduler] = {}
         self._lock = threading.RLock()
         self._det_lock = threading.Lock()
         self.started_at = time.time()
         self.events_created = 0
+        self._stopped = False
         attach_flywheel(self)  # маховик данных: flywheel_store, flywheel_writer, flywheel (docs/FLYWHEEL.md)
 
     def _make_journal(self) -> Any:
@@ -112,19 +109,50 @@ class PipelineEngine:
         log.info("pipeline started: %d cameras, backend %s, fallbacks %s", len(cams), self.backend.name, compat.FALLBACKS)
 
     def stop(self) -> None:
+        if self._stopped:
+            return
+        failures = []
+
+        def cleanup(fn):
+            try:
+                fn()
+            except Exception as exc:
+                failures.append(exc)
+                log.error("Pipeline cleanup failed: %s", type(exc).__name__)
+
         with self._lock:
             for cid in list(self.workers):
-                self._stop_worker(cid)
+                cleanup(lambda cid=cid: self._stop_worker(cid))
         for sched in self._schedulers.values():
-            sched.stop()
-        self.media.stop()
-        stop_flywheel(self)
+            cleanup(sched.stop)
+        cleanup(self.media.stop)
+        try:
+            stop_flywheel(self)
+            self._before_journal_close()
+        except Exception as exc:
+            # Background writers/senders may still need SQLite and backend
+            # stats. Keep resources alive and permit a stop retry after exit.
+            failures.append(exc)
+            raise failures[0]
+        close_backend = getattr(self.backend, "close", None)
+        if callable(close_backend):
+            cleanup(close_backend)
         close = getattr(self.journal, "close", None)
         if callable(close):
-            close()
-        close = getattr(self.backend, 'close', None)
-        if callable(close):
-            close()
+            cleanup(close)
+        if failures:
+            raise failures[0]
+        self._stopped = True
+
+    def _before_journal_close(self) -> None:
+        """Edge stops replication after camera/media writes, before closing SQLite."""
+        if any(self._capture_cleanup_pending(worker) for worker in self.workers.values()):
+            raise RuntimeError("Camera cleanup incomplete; retry stop after recovery")
+
+    @staticmethod
+    def _capture_cleanup_pending(worker: CameraWorker) -> bool:
+        thread = getattr(worker, "_thread", None)
+        return bool(getattr(worker, "capture_boundary_pending", False) or (thread is not None and thread.is_alive()))
 
     # ---------- модели ----------
 
@@ -156,16 +184,38 @@ class PipelineEngine:
     def _start_worker(self, cam: CameraConfig) -> None:
         from guard.pipeline.worker import CameraWorker
 
-        worker = CameraWorker(cam, self)
+        worker = None
+        try:
+            worker = CameraWorker(cam, self)
+            worker.start()
+        except Exception as exc:
+            # Конфиг уже зафиксирован. Не регистрируем незапущенную камеру и
+            # оставляем причину в status до следующего успешного запуска.
+            message = f"worker failed to start ({type(exc).__name__}); check server logs"
+            self._worker_errors[cam.camera_id] = {"start": message}
+            log.exception("camera %s: worker failed to start", cam.camera_id)
+            if worker is not None:
+                try:
+                    worker.stop()
+                except Exception:  # noqa: BLE001 — сохраняем исходную ошибку запуска
+                    log.exception("camera %s: failed to clean up worker", cam.camera_id)
+            raise RuntimeError(f"camera {cam.camera_id!r} is configured but {message}") from exc
         self.workers[cam.camera_id] = worker
-        worker.start()
+        self._worker_errors.pop(cam.camera_id, None)
         if worker.errors:
             log.warning("camera %s started with errors: %s", cam.camera_id, worker.errors)
 
     def _stop_worker(self, camera_id: str) -> None:
-        worker = self.workers.pop(camera_id, None)
+        worker = self.workers.get(camera_id)
         if worker is not None:
-            worker.stop()
+            try:
+                worker.stop()
+            except Exception:
+                if not self._capture_cleanup_pending(worker):
+                    self.workers.pop(camera_id, None)  # Preserve unrelated legacy cleanup policy.
+                raise
+        self.workers.pop(camera_id, None)
+        self._worker_errors.pop(camera_id, None)
         self._close_open_events(camera_id)
 
     def _close_open_events(self, camera_id: str) -> None:
@@ -210,17 +260,24 @@ class PipelineEngine:
                 raise CameraError(f"rule {r.rule_id}: unknown zones {sorted(missing)}")
             if r.min_duration_s < 0 or not 0 <= r.min_ratio <= 1:
                 raise CameraError(f"rule {r.rule_id}: min_duration_s >= 0 and 0 <= min_ratio <= 1 required")
+            try:
+                # Constructors validate configuration only. Validate even a
+                # disabled rule/camera before writing a config that cannot run.
+                plugin = get_rule(r.type)(r, cam)
+            except (ValueError, TypeError, OverflowError) as exc:
+                raise CameraError(f"rule {r.rule_id} ({r.type}): invalid configuration: {exc}") from exc
             if r.enabled and self.models:
                 # A6 №1: правило без модели иначе молча отключится в воркере — сразу 422
-                required = {m for t in available_rules() if t["type"] == r.type for m in t["required_models"]}
+                required = set(plugin.required_models)
                 absent = sorted(required - set(self.models))
                 if absent:
                     raise CameraError(
                         f"rule {r.rule_id}: required models {absent} are not in registry {self.settings.models_config.name}"
                     )
 
-    def _persist(self) -> None:
-        save_cameras(self.settings.cameras_config, self.cameras.values())
+    def _persist(self, cameras: dict[str, CameraConfig]) -> None:
+        """Сначала фиксируем новый набор на диске, затем вызывающий меняет runtime."""
+        save_cameras(self.settings.cameras_config, cameras.values())
 
     def list_cameras(self) -> list[CameraConfig]:
         with self._lock:
@@ -236,8 +293,9 @@ class PipelineEngine:
         with self._lock:
             if cam.camera_id in self.cameras:
                 raise CameraExists(cam.camera_id)
-            self.cameras[cam.camera_id] = cam
-            self._persist()
+            cameras = {**self.cameras, cam.camera_id: cam}
+            self._persist(cameras)
+            self.cameras = cameras
             if cam.enabled:
                 self._start_worker(cam)
         return cam
@@ -250,9 +308,10 @@ class PipelineEngine:
         with self._lock:
             if camera_id not in self.cameras:
                 raise KeyError(camera_id)
+            cameras = {**self.cameras, camera_id: cam}
+            self._persist(cameras)
+            self.cameras = cameras
             self._stop_worker(camera_id)
-            self.cameras[camera_id] = cam
-            self._persist()
             if cam.enabled:
                 self._start_worker(cam)  # горячий перезапуск только этой камеры
         return cam
@@ -261,32 +320,49 @@ class PipelineEngine:
         with self._lock:
             if camera_id not in self.cameras:
                 raise KeyError(camera_id)
+            cameras = dict(self.cameras)
+            del cameras[camera_id]
+            self._persist(cameras)
+            self.cameras = cameras
             self._stop_worker(camera_id)
-            del self.cameras[camera_id]
-            self._persist()
-        self.media.remove_camera(camera_id)
-        self.metrics.remove(camera_id)
+            self.media.remove_camera(camera_id)
+            self.metrics.remove(camera_id)
 
     def camera_status(self, camera_id: str) -> dict[str, Any]:
-        worker = self.workers.get(camera_id)
-        if worker is None:
-            return {"running": False, "fps_in": 0.0, "fps_processed": 0.0, "lag_s": 0.0, "errors": {}}
-        return worker.status()
+        with self._lock:
+            worker = self.workers.get(camera_id)
+            if worker is None:
+                return {
+                    "running": False, "fps_in": 0.0, "fps_processed": 0.0, "lag_s": 0.0,
+                    "errors": dict(self._worker_errors.get(camera_id, {})),
+                }
+            return worker.status()
 
     # ---------- события ----------
 
     def handle_events(
-        self, worker: CameraWorker, ctx: FrameContext, new: list[Event], closed: list[Event], t_start: float
+        self, worker: CameraWorker, ctx: FrameContext, new: list[Event], closed: list[Event], t_start: float,
+        *, reopened: list[Event] | None = None,
     ) -> None:
         """Новое событие: снапшот → журнал → WS (+ транспорт edge) → клип в фоне.
         Закрытое: ended_at → журнал → WS (+ транспорт)."""
+        reopened = reopened or []
+        reopened_ids = {event.id for event in reopened}
+        # Manager can close and reopen the same identity in a sparse frame.
+        # Publish only its final lifecycle state, never an obsolete closure.
+        closed = [event for event in closed if event.id not in reopened_ids]
+        legacy_snapshots = {}
         for ev in new:
             t0 = time.perf_counter()
             snapshot_img = None
             try:
                 snapshot_img = self._render_snapshot(ctx, ev)
-                if self.settings.mode != "edge":
-                    ev.snapshot_path = self.media.save_snapshot(ev, snapshot_img)
+                ev.snapshot_path = self.media.save_snapshot(ev, snapshot_img)
+                if self.sink is not None:
+                    st = self.settings
+                    legacy_snapshots[ev.id] = compact_jpeg(
+                        snapshot_img, st.edge_snapshot_width, st.edge_snapshot_quality, st.edge_snapshot_max_kb
+                    )
             except Exception:  # noqa: BLE001 — без снапшота оповещение всё равно уходит
                 log.exception("snapshot for event %s failed", ev.id)
             latency = dict(ev.latency_ms or ctx.timings)
@@ -299,34 +375,24 @@ class PipelineEngine:
                 "confirm_window_s": round(ev.confirmed_at - ev.started_at, 3),
                 "camera_name": worker.cfg.name,
             }
-            try:
-                self.journal.add(ev)
-            except Exception:  # noqa: BLE001
-                log.exception("journal add failed for %s", ev.id)
-            self.events_created += 1
-            self.bus.publish(event_message("event", ev))
+        self._prepare_persistence_batch(worker, new, closed, reopened)
+        for ev in new:
+            ev = self._persist_new_event(worker, ev)
+            if ev is None:
+                continue
+            self._announce_new_event(ev)
             if self.sink is not None:
-                snap = None
-                if snapshot_img is not None:
-                    st = self.settings
-                    snap = compact_jpeg(snapshot_img, st.edge_snapshot_width, st.edge_snapshot_quality, st.edge_snapshot_max_kb)
-                self._sink_publish(transport_event_msg("event", ev, snap))
+                self._sink_publish(transport_event_msg("event", ev, legacy_snapshots.get(ev.id)))
             flywheel = getattr(self, "flywheel", None)
-            if flywheel is not None:  # оповещение уже ушло; здесь только очередь, запись — в фоне
+            if flywheel is not None:
                 flywheel.on_event(ctx, ev)
-            log.warning(
-                "EVENT %s %s camera=%s zone=%s track=%s window=%.2fs pipeline=%.0fms",
-                ev.type, ev.id, ev.camera_id, ev.zone_id, ev.track_id,
-                ev.confirmed_at - ev.started_at, ev.latency_ms.get("total", 0.0),
-            )
-            if self.settings.clips_enabled and not self.media.schedule_clip(ev, on_done=self._on_clip):
-                self._on_clip(ev, None)  # очередь клипов полна — помечаем clip_error, иначе в UI клип «грузится» вечно
-        for ev in closed:
-            updated = self._journal_update(ev.id, ended_at=ev.ended_at)
+        for ev in [*closed, *reopened]:
+            updated = (self._persist_reopened_event(worker, ev) if ev.id in reopened_ids
+                       else self._persist_closed_event(worker, ev))
             if updated is not None:
                 self.bus.publish(event_message("event_update", updated))
-            if self.sink is not None:
-                self._sink_publish(transport_event_msg("event_update", updated or ev))
+                if self.sink is not None:
+                    self._sink_publish(transport_event_msg("event_update", updated))
 
     # ---------- транспорт (режим edge) ----------
 
@@ -353,6 +419,76 @@ class PipelineEngine:
         if self.sink is not None:
             self._sink_publish(metrics_msg(self.metrics_snapshot()))
 
+    def _prepare_persistence_batch(
+        self, worker: CameraWorker, new: list[Event], closed: list[Event], reopened: list[Event] | None = None,
+    ) -> None:
+        """Edge retains the entire one-shot manager batch before its first write."""
+
+    def _persist_new_event(self, worker: CameraWorker, ev: Event) -> Event | None:
+        try:
+            self.journal.add(ev)
+            return ev
+        except Exception:  # noqa: BLE001
+            log.exception("journal add failed for %s", ev.id)
+            return None
+
+    def _persist_closed_event(self, worker: CameraWorker, ev: Event) -> Event | None:
+        return self._journal_update(ev.id, **self._lifecycle_fields(ev))
+
+    def _persist_reopened_event(self, worker: CameraWorker, ev: Event) -> Event | None:
+        return self._persist_closed_event(worker, ev)
+
+    def _persist_capture_closed_event(self, worker: CameraWorker, ev: Event) -> Event:
+        """An uncertain commit must be read back before creating another revision."""
+        fields = self._lifecycle_fields(ev)
+
+        def matches(current):
+            return current is not None and current.camera_id == ev.camera_id and current.ended_at == ev.ended_at and all(
+                current.details.get(key) == value for key, value in fields.get("details_patch", {}).items())
+
+        current = self.journal.get(ev.id)
+        if matches(current):
+            return current
+        self._persist_closed_event(worker, ev)
+        current = self.journal.get(ev.id)
+        if not matches(current):
+            raise RuntimeError(f"Capture closure not persisted: {ev.id}")
+        return current
+
+    def close_capture(self, worker: CameraWorker, closures: list[Event]) -> None:
+        """Acknowledge frozen closures before a worker may reset capture state.
+
+        The worker retains unacknowledged snapshots across retries; this path
+        never substitutes wall time or changes the operator's fields.
+        """
+        for ev in closures:
+            if ev.camera_id != worker.cfg.camera_id or ev.ended_at is None:
+                raise ValueError("Invalid capture closure")
+        self._prepare_persistence_batch(worker, [], closures)
+        for ev in closures:
+            stored = self._persist_capture_closed_event(worker, ev)
+            self.bus.publish(event_message("event_update", stored))
+            if self.sink is not None:
+                self._sink_publish(transport_event_msg("event_update", stored))
+
+    @staticmethod
+    def _lifecycle_fields(ev: Event) -> dict[str, Any]:
+        details = {key: ev.details[key] for key in ("reopened_count", "active_duration_s") if key in ev.details}
+        return {"ended_at": ev.ended_at, **({"details_patch": details} if details else {})}
+
+    def _announce_new_event(self, ev: Event, *, schedule_clip: bool = True) -> None:
+        """Success effects are reachable only after a durable write/readback."""
+        self.events_created += 1
+        self.bus.publish(event_message("event", ev))
+        log.warning(
+            "EVENT %s %s camera=%s zone=%s track=%s window=%.2fs pipeline=%.0fms",
+            ev.type, ev.id, ev.camera_id, ev.zone_id, ev.track_id,
+            ev.confirmed_at - ev.started_at, ev.latency_ms.get("total", 0.0),
+        )
+        if schedule_clip and self.settings.clips_enabled:
+            if self.media.schedule_clip(ev, on_done=self._on_clip) is False:
+                self._on_clip(ev, None)
+
     def _render_snapshot(self, ctx: FrameContext, ev: Event):
         img = ctx.frame.copy()
         zones = [z for z in ctx.camera.zones if ev.zone_id is None or z.zone_id == ev.zone_id]
@@ -374,9 +510,7 @@ class PipelineEngine:
         if rel:
             updated = self._journal_update(ev.id, clip_path=rel)
         else:
-            current = self.journal.get(ev.id)
-            details = {**(current.details if current else ev.details), "clip_error": True}
-            updated = self._journal_update(ev.id, details=details)
+            updated = self._journal_update(ev.id, details_patch={"clip_error": True})
         if updated is not None:
             self.bus.publish(event_message("event_update", updated))
 

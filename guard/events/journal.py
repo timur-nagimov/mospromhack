@@ -19,7 +19,11 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
-from guard.contracts import Event
+from guard.contracts import Event, EventStatus
+from guard.transport.protocol import Envelope, MessageKind, decode, encode
+from guard.transport.store import (
+    IDENTITY_FIELDS, RUN_ID, ApplyResult, ReplicationStore, local_snapshot_path,
+)
 
 _Filter = str | list[str] | None
 
@@ -64,6 +68,7 @@ _GROUP_COLUMNS = {
     "zone": "zone_id",
     "severity": "severity",
     "status": "status",
+    "site": "site",
 }
 _CSV_HEADERS = (
     "Идентификатор события",
@@ -187,7 +192,7 @@ def _order_sql(order: str) -> str:
 class Journal:
     """SQLite-хранилище с отдельным соединением и блокировкой на экземпляр."""
 
-    def __init__(self, db_path: str | Path) -> None:
+    def __init__(self, db_path: str | Path, *, replication_edge_id: str | None = None) -> None:
         path = str(db_path)
         if path != ":memory:":
             Path(path).parent.mkdir(parents=True, exist_ok=True)
@@ -216,6 +221,7 @@ class Journal:
                     self._conn.execute(
                         f"PRAGMA user_version = {_SCHEMA_VERSION}"
                     )
+                self._replication = ReplicationStore(self._conn, replication_edge_id)
         except BaseException:
             self._conn.close()
             raise
@@ -238,12 +244,16 @@ class Journal:
         validated = Event.model_validate(event.model_dump())
         data = _serialize(validated)
         with self._lock, self._conn:
+            self._conn.execute("BEGIN IMMEDIATE")
             self._conn.execute(
                 _INSERT_SQL, [data[column] for column in _COLUMNS]
             )
+            self._replication.enqueue("event", validated)
 
-    def update(self, event_id: str, **fields: Any) -> Event:
+    def update(self, event_id: str, *, details_patch: dict[str, Any] | None = None, **fields: Any) -> Event:
         """Атомарно обновить разрешённые поля; отсутствующий id — KeyError."""
+        if details_patch is not None and details_patch.keys() - {"reopened_count", "active_duration_s", "clip_error"}:
+            raise ValueError("Unsupported machine detail patch")
         unknown = fields.keys() - _UPDATE_COLUMNS
         if unknown:
             raise ValueError(
@@ -258,6 +268,8 @@ class Journal:
             if row is None:
                 raise KeyError(event_id)
             current = _deserialize(row)
+            if details_patch:
+                fields["details"] = {**current.details, **details_patch}
             if not fields:
                 return current
             data = current.model_dump()
@@ -272,7 +284,112 @@ class Journal:
             stored = self._conn.execute(
                 "SELECT * FROM events WHERE id = ?", (event_id,)
             ).fetchone()
-            return _deserialize(stored)
+            result = _deserialize(stored)
+            self._replication.enqueue("event_update", updated)
+            return result
+
+    @property
+    def producer_id(self) -> str | None:
+        """Persistent producer UUID, or None when outbox replication is off."""
+        return self._replication.producer_id
+
+    @property
+    def run_id(self) -> str:
+        """One UUID for this Python process, shared by its Journal instances."""
+        return RUN_ID
+
+    def pending_messages(self, limit: int = 100) -> list[Envelope]:
+        """Unconfirmed durable messages, ordered by producer sequence."""
+        with self._lock:
+            return self._replication.pending(limit)
+
+    def mark_published(self, message_id: str) -> None:
+        """Remove one outbox item after a successful publisher confirmation."""
+        with self._lock, self._conn:
+            self._replication.mark_published(message_id)
+
+    def prepare_message(self, message_id: str, *, snapshot_jpeg: bytes | None) -> Envelope:
+        """Freeze an outbox wire body once, including an unavailable snapshot.
+
+        Repeat calls return the durable original body even if a local media
+        file has since changed or disappeared. Unknown IDs raise KeyError.
+        """
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN IMMEDIATE")
+            return self._replication.prepare_message(message_id, snapshot_jpeg)
+
+    def make_message(self, kind: MessageKind, payload: dict[str, Any]) -> Envelope:
+        """Allocate a transient message sequence; frames/metrics are not queued."""
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN IMMEDIATE")
+            return self._replication.make_message(kind, payload)
+
+    def replication_stats(self) -> dict[str, Any]:
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN")
+            return self._replication.stats()
+
+    def apply_remote_event(
+        self,
+        envelope: Envelope,
+        *,
+        snapshot_path: str | None = None,
+        expected_edge_id: str | None = None,
+    ) -> ApplyResult:
+        """Atomically apply a remote revision and its durable receipt.
+
+        Gateway status/note always win over edge fields. A later revision can
+        arrive before creation; obsolete revisions cannot reopen a closed event.
+        A remote event cannot claim an existing local event or another origin.
+        """
+        message = decode(encode(envelope), expected_edge_id=expected_edge_id)
+        if message.kind not in {"event", "event_update"}:
+            raise ValueError("Only event messages can be applied to Journal")
+        incoming = Event.model_validate(message.payload["event"])
+        snapshot_path = local_snapshot_path(snapshot_path)
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN IMMEDIATE")
+            row = self._conn.execute(
+                "SELECT * FROM events WHERE id = ?", (incoming.id,)
+            ).fetchone()
+            current = None if row is None else _deserialize(row)
+            origin = self._replication.origin(incoming.id)
+            if current is not None:
+                if origin is None or (origin["edge_id"], origin["producer_id"]) != (
+                    message.edge_id, message.producer_id
+                ):
+                    raise ValueError("Event belongs to another origin")
+                if any(getattr(current, field) != getattr(incoming, field) for field in IDENTITY_FIELDS):
+                    raise ValueError("Remote event identity cannot change")
+            elif origin is not None:
+                raise ValueError("Replication origin has no event")
+            duplicate = self._replication.receipt(message, incoming.id)
+            if duplicate or (origin is not None and message.sequence <= origin["sequence"]):
+                if current is None:
+                    raise ValueError("Replication receipt has no event")
+                return ApplyResult(current, created=False, changed=False)
+
+            data = incoming.model_dump()
+            data.update(
+                status=EventStatus.new if current is None else current.status,
+                operator_note=None if current is None else current.operator_note,
+                snapshot_path=snapshot_path if snapshot_path is not None else (
+                    None if current is None else current.snapshot_path
+                ),
+                clip_path=None,
+            )
+            result = Event.model_validate(data)
+            serialized = _serialize(result)
+            if current is None:
+                self._conn.execute(_INSERT_SQL, [serialized[column] for column in _COLUMNS])
+            else:
+                assignments = ", ".join(f"{column} = ?" for column in _COLUMNS if column != "id")
+                self._conn.execute(
+                    f"UPDATE events SET {assignments} WHERE id = ?",
+                    [serialized[column] for column in _COLUMNS if column != "id"] + [result.id],
+                )
+            self._replication.set_origin(result.id, message)
+            return ApplyResult(result, created=current is None, changed=current != result)
 
     def get(self, event_id: str) -> Event | None:
         with self._lock:
@@ -337,36 +454,82 @@ class Journal:
         **filters: Any,
     ) -> list[dict[str, Any]]:
         """Вернуть непустые группы по возрастанию key; зона без id — None."""
-        if group_by not in _GROUP_COLUMNS and group_by not in {"hour", "day"}:
+        with self._lock:
+            return self._stats_unlocked(group_by, ts_from, ts_to, tz, **filters)
+
+    def _stats_unlocked(
+        self,
+        group_by: str,
+        ts_from: float | None,
+        ts_to: float | None,
+        tz: str,
+        **filters: Any,
+    ) -> list[dict[str, Any]]:
+        """SQL-агрегат на текущем соединении; вызывается под self._lock."""
+        if group_by not in _GROUP_COLUMNS and group_by not in {"hour", "day", "weekday_hour"}:
             raise ValueError(f"Unsupported group_by: {group_by!r}")
         where, parameters = _where(filters, ts_from, ts_to)
-        temporal = group_by in {"hour", "day"}
+        temporal = group_by in {"hour", "day", "weekday_hour"}
         if temporal:
             local_tz = ZoneInfo(tz)
 
             def local_bucket(timestamp: float) -> int | str:
                 local = datetime.fromtimestamp(timestamp, local_tz)
-                return local.hour if group_by == "hour" else local.date().isoformat()
+                if group_by == "hour":
+                    return local.hour
+                if group_by == "weekday_hour":
+                    return f"{local.weekday()}:{local.hour}"
+                return local.date().isoformat()
 
             expression = "_journal_local_bucket(confirmed_at)"
         else:
             expression = _GROUP_COLUMNS[group_by]
 
-        with self._lock:
-            if temporal:
-                self._conn.create_function(
-                    "_journal_local_bucket",
-                    1,
-                    local_bucket,
-                    deterministic=True,
-                )
-            rows = self._conn.execute(
-                f"SELECT {expression} AS key, COUNT(*) AS count FROM events"
-                + where
-                + " GROUP BY 1 ORDER BY 1",
-                parameters,
-            ).fetchall()
+        if temporal:
+            self._conn.create_function(
+                "_journal_local_bucket",
+                1,
+                local_bucket,
+                deterministic=True,
+            )
+        rows = self._conn.execute(
+            f"SELECT {expression} AS key, COUNT(*) AS count FROM events"
+            + where
+            + " GROUP BY 1 ORDER BY 1",
+            parameters,
+        ).fetchall()
         return [dict(row) for row in rows]
+
+    def analytics(
+        self,
+        ts_from: float | None = None,
+        ts_to: float | None = None,
+        tz: str = "Europe/Moscow",
+    ) -> dict[str, Any]:
+        """Все агрегаты страницы из одного снимка SQLite, без загрузки Event.
+
+        Блокировка защищает соединение от потоков этого Journal, а явная
+        транзакция сохраняет снимок также при записях через другие соединения.
+        В WAL писатели могут завершить транзакцию, пока читается аналитика.
+        """
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN")
+
+            def aggregate(group_by: str, **filters: Any) -> list[dict[str, Any]]:
+                return self._stats_unlocked(group_by, ts_from, ts_to, tz, **filters)
+
+            return {
+                "types": aggregate("type"),
+                "cameras": aggregate("camera"),
+                "sites": aggregate("site"),
+                "days": aggregate("day"),
+                "weekdayHours": aggregate("weekday_hour"),
+                "criticalTypes": aggregate("type", severity="critical"),
+                "statusTypes": {
+                    status.value: aggregate("type", status=status.value)
+                    for status in EventStatus
+                },
+            }
 
     def export_csv(self, path: str | Path, **filters: Any) -> None:
         """Выгрузить все совпадения в CSV UTF-8 с BOM.

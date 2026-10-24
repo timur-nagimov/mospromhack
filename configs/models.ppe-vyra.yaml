@@ -1,0 +1,35 @@
+# Experimental opt-in Vyra registry. Does not replace configs/models.yaml.
+# Prepare with tools.prepare_ppe_candidate --candidate-profile vyra.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: yolov8n-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+  - model_id: ppe
+    task: detect
+    onnx_path: candidates/vyra-yolo-ppe-detection/best.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    classes: [Fall-Detected, Gloves, Goggles, helmet, Ladder, Mask, NO-Gloves, NO-Goggles, no_helmet, NO-Mask, no_vest, person, Safety Cone, vest]
+    conf_threshold: 0.35
+    iou_threshold: 0.7
+meta:
+  ppe:
+    status: experimental
+    candidate_profile: vyra
+    source: https://huggingface.co/Hexmon/vyra-yolo-ppe-detection
+    revision: 08895b33d95d2587423ebe4f7c1b9c41beebd642
+    license_provenance:
+      hub: cc-by-4.0
+      onnx_metadata: AGPL-3.0
+      status: conflicting_metadata
+      review_required: true
+    supported_attributes: [helmet, vest]
+    unsupported_attributes: [respirator]
+    training_overlap_with_evaluation: unverified
+    promotion: requires measured model quality and labelled S2 event evaluation

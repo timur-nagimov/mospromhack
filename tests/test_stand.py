@@ -367,7 +367,8 @@ def test_start_quotes_config_and_custom_command(stand_module):
     request = ast.literal_eval(tree.body[-1].value.args[0])
     command = shlex.split(request["command"])
     assert command == [
-        "exec", "~/guard311/bin/python", "-m", "guard.edge", "--config", config
+        "exec", "~/guard311/bin/python", "-m", "guard.edge", "--config", config,
+        "--backend", "linq-tpu", "--transport", "rabbit",
     ]
     assert client.background[0][1:] == ("stand-edge", "~")
 
@@ -387,6 +388,34 @@ def test_start_is_idempotent_and_restart_stops_first(stand_module):
     assert [request["op"] for request in client.calls] == [
         "status", "stop", "status", "wait"
     ]
+
+
+def test_remote_launch_forces_external_tpu_without_cpu_fallback(stand_module, tmp_path):
+    import contextlib
+
+    namespace = {}
+    exec(compile(stand_module.REMOTE_SOURCE, "<remote-library>", "exec"), namespace)
+    executed = []
+    fake_os = types.SimpleNamespace(
+        environ={"GUARD_BACKEND": "onnx-cpu", "GUARD_BACKEND_FALLBACK": "onnx-cpu"},
+        getpid=lambda: 111, getpgrp=lambda: 111, chdir=lambda path: None,
+        set_inheritable=lambda *args: None, dup2=lambda *args: None,
+        execvpe=lambda *args: executed.append(args),
+    )
+    namespace.update(
+        os=fake_os, target=lambda name: tmp_path / name,
+        locked=lambda name: contextlib.nullcontext(),
+        fcntl=types.SimpleNamespace(flock=lambda *args: None, LOCK_EX=1, LOCK_NB=2),
+        process=lambda: {"alive": False}, boot_id=lambda: "boot", identity=lambda pid: {"start": "start"},
+        atomic_text=lambda *args: None,
+    )
+    namespace["launch"]({"launch_id": "new", "command": "exec python -m guard.edge"})
+    assert len(executed) == 1
+    environment = executed[0][2]
+    assert environment["GUARD_MODE"] == "edge"
+    assert environment["GUARD_BACKEND"] == "linq-tpu"
+    assert environment["GUARD_BACKEND_FALLBACK"] == "none"
+    assert environment["LINQ_RAW"] == "1" and environment["LINQ_TIMEOUT_S"] == "5"
 
 
 def test_stale_pid_does_not_receive_signal(
@@ -442,7 +471,7 @@ def test_queue_check_only_passively_declares_and_closes(stand_module, monkeypatc
     assert parameters["host"] == "127.0.0.1"
     assert parameters["port"] == 5672
     assert events == [
-        ("declare", {"queue": "zazerkalye.gateway", "passive": True}),
+        ("declare", {"queue": "guard.gateway.stand-linq.events", "passive": True}),
         ("close",),
     ]
 
