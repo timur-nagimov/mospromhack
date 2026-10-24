@@ -8,6 +8,7 @@ import time
 from typing import TYPE_CHECKING, Any
 
 from guard.contracts import CameraConfig, Event, FrameContext
+from guard.flywheel.wiring import attach_flywheel, operator_decision, start_flywheel, stop_flywheel
 from guard.inference import get_backend
 from guard.inference.base import InferenceBackend
 from guard.metrics import MetricsRegistry
@@ -82,6 +83,7 @@ class PipelineEngine:
         self._det_lock = threading.Lock()
         self.started_at = time.time()
         self.events_created = 0
+        attach_flywheel(self)  # маховик данных: flywheel_store, flywheel_writer, flywheel (docs/FLYWHEEL.md)
 
     def _make_journal(self) -> Any:
         try:
@@ -96,6 +98,7 @@ class PipelineEngine:
 
     def start(self) -> None:
         self.media.start()
+        start_flywheel(self)
         try:
             cams = load_cameras(self.settings.cameras_config)
         except Exception:  # noqa: BLE001
@@ -115,6 +118,7 @@ class PipelineEngine:
         for sched in self._schedulers.values():
             sched.stop()
         self.media.stop()
+        stop_flywheel(self)
         close = getattr(self.journal, "close", None)
         if callable(close):
             close()
@@ -307,6 +311,9 @@ class PipelineEngine:
                     st = self.settings
                     snap = compact_jpeg(snapshot_img, st.edge_snapshot_width, st.edge_snapshot_quality, st.edge_snapshot_max_kb)
                 self._sink_publish(transport_event_msg("event", ev, snap))
+            flywheel = getattr(self, "flywheel", None)
+            if flywheel is not None:  # оповещение уже ушло; здесь только очередь, запись — в фоне
+                flywheel.on_event(ctx, ev)
             log.warning(
                 "EVENT %s %s camera=%s zone=%s track=%s window=%.2fs pipeline=%.0fms",
                 ev.type, ev.id, ev.camera_id, ev.zone_id, ev.track_id,
@@ -379,6 +386,8 @@ class PipelineEngine:
         updated = self._journal_update(event_id, **fields)
         if updated is not None:
             self.bus.publish(event_message("event_update", updated))
+            if "status" in fields:  # решение оператора → operator_label сэмпла маховика
+                operator_decision(self, event_id, fields["status"])
         return updated
 
     # ---------- сводки ----------
