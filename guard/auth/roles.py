@@ -21,6 +21,9 @@ AUDIT_VIEW = "audit.view"
 CAMERAS_MANAGE = "cameras.manage"
 FLYWHEEL_TRAIN = "flywheel.train"
 USERS_MANAGE = "users.manage"
+EMPLOYEES_VIEW = "employees.view"
+EMPLOYEES_MANAGE = "employees.manage"
+EVENTS_ASSIGN = "events.assign"
 
 ADMIN = "admin"
 
@@ -64,13 +67,17 @@ _CATALOG = (
     Permission(CAMERAS_MANAGE, "Камеры: управление", "Добавить и удалить камеру, сменить источник и другие настройки"),
     Permission(FLYWHEEL_TRAIN, "Обучение моделей", "Выгрузить датасет, запустить обучение, проверку и выкатку модели"),
     Permission(USERS_MANAGE, "Пользователи", "Создать учётную запись, сменить роль или пароль, отключить"),
+    Permission(EMPLOYEES_VIEW, "Сотрудники", "Справочник сотрудников и персональная статистика (docs/EMPLOYEES.md)"),
+    Permission(EMPLOYEES_MANAGE, "Сотрудники: управление", "Добавить сотрудника предприятия"),
+    Permission(EVENTS_ASSIGN, "Виновники инцидента", "Сохранить список виновников инцидента"),
 )
 PERMISSIONS: dict[str, Permission] = {p.id: p for p in _CATALOG}
 _ORDER = {p.id: i for i, p in enumerate(_CATALOG)}
 
-_WORKER = frozenset({ANALYTICS_VIEW, EVENTS_VIEW})
-_OPERATOR = _WORKER | {VIDEO_VIEW, EVENTS_HANDLE, CAMERAS_VIEW, SYSTEM_VIEW}
-_SAFETY = _OPERATOR | {ZONES_EDIT, FLYWHEEL_REVIEW, AUDIT_VIEW}
+_WORKER = frozenset({ANALYTICS_VIEW, EVENTS_VIEW, EMPLOYEES_VIEW})
+_OPERATOR = _WORKER | {VIDEO_VIEW, EVENTS_HANDLE, CAMERAS_VIEW, SYSTEM_VIEW, EVENTS_ASSIGN}
+# Виновников инцидента записывают только диспетчер и администратор; инженер по ОТ читает список (docs/ROLES.md)
+_SAFETY = (_OPERATOR - {EVENTS_ASSIGN}) | {ZONES_EDIT, FLYWHEEL_REVIEW, AUDIT_VIEW}
 _ADMIN = frozenset(PERMISSIONS)
 
 ROLES: dict[str, Role] = {

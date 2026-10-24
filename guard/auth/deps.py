@@ -44,6 +44,12 @@ USER_SCOPE_KEY = "guard.user"
 # Маршруты из модулей, которые объявлены без зависимостей guard.auth: (метод, шаблон пути) → право.
 FALLBACK_PERMISSIONS: dict[tuple[str, str], str] = {
     ("POST", "/api/cameras/probe"): CAMERAS_MANAGE,  # проверка потока до добавления камеры (docs/ROLES.md)
+    # справочник сотрудников и разбор инцидентов (guard/api/employees.py, docs/EMPLOYEES.md)
+    ("GET", "/api/employees"): "employees.view",
+    ("POST", "/api/employees"): "employees.manage",
+    ("GET", "/api/employees/{employee_id}/report"): "employees.view",
+    ("GET", "/api/events/{event_id}/employees"): "employees.view",
+    ("PUT", "/api/events/{event_id}/employees"): "events.assign",
 }
 
 

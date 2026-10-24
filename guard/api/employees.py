@@ -20,6 +20,11 @@ ROLES = {"worker", "operator", "safety", "admin"}
 
 
 def selected_role(request: Request) -> str:
+    # При включённом входе роль — из сессии (guard/auth), заголовок не доверяем
+    auth = getattr(request.app.state, "auth", None)
+    user = request.scope.get("guard.user")
+    if auth is not None and getattr(auth, "enabled", False) and user is not None:
+        return user.role
     role = request.headers.get("X-Guard-Role", "")
     if role not in ROLES:
         raise HTTPException(403, "Для работы с сотрудниками выберите роль в интерфейсе")

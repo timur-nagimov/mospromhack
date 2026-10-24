@@ -55,6 +55,11 @@ ROUTES = [
     ("GET", "/api/users", None, "users.manage", {200}),
     ("POST", "/api/users", {}, "users.manage", {422}),
     ("PATCH", "/api/users/missing", {"display_name": "x"}, "users.manage", {404}),
+    ("GET", "/api/employees", None, "employees.view", {200}),
+    ("POST", "/api/employees", {}, "employees.manage", {422}),
+    ("GET", "/api/employees/missing/report", None, "employees.view", {200, 404}),
+    ("GET", "/api/events/missing/employees", None, "employees.view", {200, 404}),
+    ("PUT", "/api/events/missing/employees", {"employee_ids": []}, "events.assign", {200, 404}),
     ("GET", "/api/auth/me", None, None, {200}),
     ("GET", "/api/auth/roles", None, None, {200}),
 ]
@@ -192,7 +197,8 @@ def test_new_router_without_declarations_is_closed_by_default(tmp_path, monkeypa
         # проверка потока закрыта правом cameras.manage даже без объявления в модуле
         r = e.client.post("/api/cameras/probe", headers=safety)
         assert r.status_code == 403 and r.json()["permission"] == "cameras.manage"
-        assert e.client.post("/api/cameras/probe", headers=admin).status_code == 200
+        # настоящий маршрут F1 зарегистрирован раньше заглушки: без тела он отвечает 422, но право уже пройдено
+        assert e.client.post("/api/cameras/probe", headers=admin).status_code in (200, 422)
 
 
 class IdleConsumer:

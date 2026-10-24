@@ -7,13 +7,16 @@ from guard.auth import roles
 
 ROLES_MD = Path(__file__).resolve().parents[1] / "docs" / "ROLES.md"
 
-OPERATOR = {"analytics.view", "events.view", "video.view", "events.handle", "cameras.view", "system.view"}
+OPERATOR = {"analytics.view", "events.view", "employees.view", "video.view", "events.handle", "cameras.view",
+            "system.view", "events.assign"}
 EXPECTED = {
-    "worker": {"analytics.view", "events.view"},
+    "worker": {"analytics.view", "events.view", "employees.view"},
     "operator": OPERATOR,
-    "safety": OPERATOR | {"zones.edit", "flywheel.review", "audit.view"},
+    # виновников инцидента записывают диспетчер и администратор, инженер по ОТ только читает (docs/ROLES.md)
+    "safety": (OPERATOR - {"events.assign"}) | {"zones.edit", "flywheel.review", "audit.view"},
     "admin": OPERATOR
-    | {"zones.edit", "flywheel.review", "audit.view", "cameras.manage", "flywheel.train", "users.manage"},
+    | {"zones.edit", "flywheel.review", "audit.view", "cameras.manage", "flywheel.train", "users.manage",
+       "employees.manage"},
 }
 
 
@@ -23,8 +26,9 @@ def test_matrix_matches_contract():
 
 def test_roles_go_from_least_to_most_privileged():
     assert roles.ROLE_IDS == ("worker", "operator", "safety", "admin")
+    # единственное исключение из вложенности: events.assign есть у диспетчера, но не у инженера по ОТ
     for lower, higher in zip(roles.ROLE_IDS, roles.ROLE_IDS[1:]):
-        assert roles.permissions_for(lower) < roles.permissions_for(higher)
+        assert roles.permissions_for(lower) - {"events.assign"} < roles.permissions_for(higher)
 
 
 def test_admin_has_every_permission():
