@@ -99,7 +99,23 @@ def _collector_stats(engine: Any) -> dict[str, Any] | None:
     edge = getattr(engine, "edge_metrics", None)  # gateway: сбор идёт на edge, его сводка — в metrics
     if isinstance(edge, dict) and isinstance(edge.get("flywheel"), dict):
         return dict(edge["flywheel"])
+    if getattr(engine.settings, "mode", "") == "gateway" and callable(getattr(engine, "metrics_snapshot", None)):
+        try:
+            data = engine.metrics_snapshot()  # шлюз: свежие metrics edge, устаревшие — без сводки
+        except Exception:  # noqa: BLE001
+            return None
+        if isinstance(data, dict) and not data.get("stale") and isinstance(data.get("flywheel"), dict):
+            return dict(data["flywheel"])
     return None
+
+
+def _receiver_stats(engine: Any) -> dict[str, Any] | None:
+    """Шлюз: приём частей сэмплов edge (очередь маховика и сборщик)."""
+    assembler = getattr(engine, "flywheel_assembler", None)
+    if assembler is None:
+        return None
+    receiver = getattr(engine, "flywheel_receiver", None)
+    return {"assembler": assembler.stats(), "transport": receiver.status() if receiver is not None else None}
 
 
 # ---------------------------------------------------------------- сводка и сэмплы
@@ -129,6 +145,7 @@ def summary(request: Request) -> dict[str, Any]:
             "collecting": collecting,
             "collector": stats,
             "writer": writer.stats() if writer is not None else None,
+            "receiver": _receiver_stats(engine),
             "allow_train": bool(getattr(engine.settings, "flywheel_allow_train", False)),
             "mode": getattr(engine.settings, "mode", "local"),
         }
