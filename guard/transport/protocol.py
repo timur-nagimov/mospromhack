@@ -14,7 +14,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from guard.contracts import CameraConfig, Event, Zone
 
-MessageKind = Literal["event", "event_update", "frame_meta", "metrics", "cameras"]
+MessageKind = Literal["event", "event_update", "frame_meta", "metrics", "cameras",
+                      "camera_config", "camera_config_ack"]
+# camera_config / camera_config_ack — управляющий канал gateway → edge (docs/EDGE_PROTOCOL.md)
+CONTROL_KINDS = frozenset({"camera_config", "camera_config_ack"})
 MAX_MESSAGE_BYTES = 2 * 1024 * 1024
 MAX_SNAPSHOT_BYTES = 1024 * 1024
 MAX_FRAME_DIMENSION = 4096
@@ -233,6 +236,10 @@ class Envelope(BaseModel):
                     raise ValueError("Camera source must be an edge reference")
             for camera_id in self.payload["statuses"]:
                 identifier(camera_id, "camera status id")
+        elif self.kind == "camera_config":
+            _camera_config_payload(self.payload)
+        elif self.kind == "camera_config_ack":
+            _camera_config_ack_payload(self.payload)
         if len(_dump(self)) > MAX_MESSAGE_BYTES:
             raise ValueError("Message exceeds maximum size")
         return self
@@ -297,3 +304,57 @@ def snapshot_bytes(envelope: Envelope) -> bytes | None:
     """Return validated JPEG bytes, never a remote filesystem path."""
     value = envelope.payload.get("snapshot_jpeg")
     return None if value is None else _jpeg(value, "snapshot_jpeg")
+
+
+# ---------------------------------------------------------------- управляющий канал gateway → edge
+
+MAX_CONFIG_ERROR = 1000
+MAX_SOURCE_URI = 2048
+
+
+def _camera_config_payload(payload: dict[str, Any]) -> None:
+    """Желаемая конфигурация одной камеры: upsert с полным CameraConfig или delete без него.
+
+    source.uri равен edge://<edge_id>/<camera_id>, если источник не меняется: шлюз не знает
+    настоящий URI, edge подставляет свой. ID зон и правил — те же идентификаторы, что в событиях."""
+    if set(payload) != {"camera_id", "version", "op", "config"}:
+        raise ValueError("Invalid camera_config fields")
+    camera_id = identifier(payload["camera_id"], "camera_id")
+    _integer(payload["version"], "config version", 1, MAX_SEQUENCE)
+    if payload["op"] == "delete":
+        if payload["config"] is not None:
+            raise ValueError("camera_config delete carries no config")
+        return
+    if payload["op"] != "upsert" or not isinstance(payload["config"], dict):
+        raise ValueError("Invalid camera_config operation")
+    camera = CameraConfig.model_validate(payload["config"])
+    if camera.camera_id != camera_id:
+        raise ValueError("camera_config identity mismatch")
+    if not camera.source.uri or len(camera.source.uri) > MAX_SOURCE_URI:
+        raise ValueError("Invalid camera source uri")
+    if len(camera.zones) > 256 or len(camera.rules) > 256:
+        raise ValueError("Too many zones or rules")
+    for zone in camera.zones:
+        identifier(zone.zone_id, "zone_id")
+        if len(zone.polygon) > 4096:
+            raise ValueError("Zone polygon is too large")
+    for rule in camera.rules:
+        identifier(rule.rule_id, "rule_id")
+        identifier(rule.type, "rule type")
+
+
+def _camera_config_ack_payload(payload: dict[str, Any]) -> None:
+    """Ответ edge на camera_config: ok и текст ошибки; current_version — действующая версия камеры."""
+    if set(payload) != {"camera_id", "version", "ok", "error", "current_version"}:
+        raise ValueError("Invalid camera_config_ack fields")
+    identifier(payload["camera_id"], "camera_id")
+    _integer(payload["version"], "config version", 1, MAX_SEQUENCE)
+    _integer(payload["current_version"], "current config version", 0, MAX_SEQUENCE)
+    if type(payload["ok"]) is not bool:
+        raise ValueError("Invalid camera_config_ack ok flag")
+    error = payload["error"]
+    if payload["ok"]:
+        if error is not None:
+            raise ValueError("Successful camera_config_ack has no error")
+    elif not isinstance(error, str) or not 1 <= len(error) <= MAX_CONFIG_ERROR:
+        raise ValueError("Failed camera_config_ack requires an error text")

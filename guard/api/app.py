@@ -383,9 +383,15 @@ async def _metrics_loop(engine: Any) -> None:
 
 def _create_engine(settings: Settings) -> Any:
     if settings.mode == "gateway":
+        if settings.config_sync:  # камеры меняются в UI шлюза и применяются на edge (docs/EDGE.md §8)
+            from guard.gateway.config_sync import ConfigSyncGatewayEngine
+            return ConfigSyncGatewayEngine(settings)
         from guard.gateway.engine import GatewayEngine
         return GatewayEngine(settings)
     if settings.mode == "edge":
+        if settings.config_sync:
+            from guard.edge.config_sync import ConfigSyncEdgeEngine
+            return ConfigSyncEdgeEngine(settings)
         from guard.edge.runner import EdgeEngine
         return EdgeEngine(settings)
     from guard.pipeline.engine import PipelineEngine
