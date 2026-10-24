@@ -1,34 +1,63 @@
 {
   "_readme": "Цифры для слайдов. Вёрстку (index.html) не трогаем: правим значения здесь и пересобираем PDF (README.md). value: null — показываем плейсхолдер «будет обновлено к защите». Когда значение появится, впишите его, поставьте status: \"done\", measured_at и source.",
-
   "meta": {
     "deck_version": "чек-поинт 3 · 24.10.2026",
     "event": "Хакатон «Открой#Моспром» · кейс LinQ",
     "team": "Команда «Зазеркалье»",
     "defense": "Защита 25.10.2026"
   },
-
   "links": {
     "repo": "github.com/timur-nagimov/mospromhack",
     "readme": "README.md",
     "benchmarks": "docs/BENCHMARKS.md"
   },
-
   "pending_label": "будет обновлено к защите",
-
   "pending": {
+    "edge_mode": {
+      "status": "pending",
+      "pending_text": "Режим edge на стенде + шлюз — в работе. Вживую сейчас local на CPU; linq-tpu и канал событий проверены отдельно",
+      "done_text": "Работает вживую: конвейер на стенде рядом с LinQ TPU, шлюз и UI на ноутбуке",
+      "measured_at": null,
+      "source": "docs/ARCHITECTURE.md §2"
+    },
     "eval": {
       "status": "pending",
       "title": "Качество на размеченных роликах",
-      "dataset": "13 роликов с разметкой событий: S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2",
+      "dataset": "13 роликов, 535 с: 23 достоверных события и 10 спорных (S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2 — 68.9 с)",
       "source": "ml/eval/events_eval.py → metrics/eval-*.json",
       "measured_at": null,
       "metrics": [
-        { "key": "precision", "title": "Precision по событиям", "value": null, "unit": "" },
-        { "key": "recall", "title": "Recall по событиям", "value": null, "unit": "" },
-        { "key": "duplicates", "title": "Дубли", "hint": "цель — 0", "value": null, "unit": "" },
-        { "key": "false_per_hour", "title": "Ложных тревог в час", "value": null, "unit": "" },
-        { "key": "latency", "title": "Задержка тревоги, p50", "value": null, "unit": "с" }
+        {
+          "key": "precision",
+          "title": "Precision по событиям",
+          "value": null,
+          "unit": ""
+        },
+        {
+          "key": "recall",
+          "title": "Recall по событиям",
+          "value": null,
+          "unit": ""
+        },
+        {
+          "key": "duplicates",
+          "title": "Дубли",
+          "hint": "цель — 0",
+          "value": null,
+          "unit": ""
+        },
+        {
+          "key": "false_per_hour",
+          "title": "Ложных тревог в час",
+          "value": null,
+          "unit": ""
+        },
+        {
+          "key": "latency",
+          "title": "Задержка тревоги, p50",
+          "value": null,
+          "unit": "с"
+        }
       ]
     },
     "edge_latency": {
@@ -45,7 +74,6 @@
       "local_cpu_note": "local, CPU: окно 2.0 с + обработка 65 мс, 24.10 01:09"
     }
   },
-
   "tpu_vs_cpu": {
     "title": "Кадров в секунду в одном контейнере (1.5 CPU, 4 ГиБ)",
     "cpu_label": "CPU, onnxruntime fp32, 2 потока",
@@ -53,47 +81,201 @@
     "note": "CPU — эквивалент 1000 / p50, лучший из двух прогонов; TPU — замер к/с",
     "source": "docs/BENCHMARKS.md §2",
     "rows": [
-      { "model": "det 480", "full": "YOLOv8n det, вход 480", "cpu": 9.3, "tpu": 45.72 },
-      { "model": "pose 480", "full": "YOLOv8n-pose, вход 480", "cpu": 7.1, "tpu": 50.09 },
-      { "model": "det 640", "full": "YOLOv8n det, вход 640", "cpu": 5.5, "tpu": 26.72 },
-      { "model": "pose 640", "full": "YOLOv8n-pose, вход 640", "cpu": 5.7, "tpu": 27.94 }
+      {
+        "model": "det 480",
+        "full": "YOLOv8n det, вход 480",
+        "cpu": 9.3,
+        "tpu": 45.72
+      },
+      {
+        "model": "pose 480",
+        "full": "YOLOv8n-pose, вход 480",
+        "cpu": 7.1,
+        "tpu": 50.09
+      },
+      {
+        "model": "det 640",
+        "full": "YOLOv8n det, вход 640",
+        "cpu": 5.5,
+        "tpu": 26.72
+      },
+      {
+        "model": "pose 640",
+        "full": "YOLOv8n-pose, вход 640",
+        "cpu": 5.7,
+        "tpu": 27.94
+      }
     ]
   },
-
   "det480_windows": {
     "title": "YOLOv8n det 480 на TPU: к/с по окнам и режимам",
     "source": "docs/BENCHMARKS.md §1",
-    "windows": ["окно 1", "окно 4", "окно 8"],
+    "windows": [
+      "окно 1",
+      "окно 4",
+      "окно 8"
+    ],
     "series": [
-      { "label": "не-raw (float32 по сети)", "values": [11.84, 18.52, 22.65] },
-      { "label": "raw (клиент пакует uint8)", "values": [22.78, 37.97, 45.72] }
+      {
+        "label": "не-raw (float32 по сети)",
+        "values": [
+          11.84,
+          18.52,
+          22.65
+        ]
+      },
+      {
+        "label": "raw (клиент пакует uint8)",
+        "values": [
+          22.78,
+          37.97,
+          45.72
+        ]
+      }
     ]
   },
-
   "cameras_per_tpu": {
     "sample_fps": 5,
     "source": "docs/BENCHMARKS.md §5",
     "rows": [
-      { "set": "det 480", "use": "зона, СИЗ по атрибутам, техника, бег", "fps": 45.72, "cams": 9 },
-      { "set": "det 640", "use": "то же, дальние планы", "fps": 26.72, "cams": 5 },
-      { "set": "det + pose 480", "use": "падение, телефон, перелезание", "fps": 21.06, "cams": 4 },
-      { "set": "det + pose 640", "use": "то же, дальние планы", "fps": 12.08, "cams": 2 }
+      {
+        "set": "det 480",
+        "use": "зона, СИЗ по атрибутам, техника, бег",
+        "fps": 45.72,
+        "cams": 9
+      },
+      {
+        "set": "det 640",
+        "use": "то же, дальние планы",
+        "fps": 26.72,
+        "cams": 5
+      },
+      {
+        "set": "det + pose 480",
+        "use": "падение, телефон, перелезание",
+        "fps": 21.06,
+        "cams": 4
+      },
+      {
+        "set": "det + pose 640",
+        "use": "то же, дальние планы",
+        "fps": 12.08,
+        "cams": 2
+      }
     ]
   },
-
   "scenarios": {
-    "as_of": "24.10, 03:00",
+    "as_of": "24.10, 10:00",
     "rows": [
-      { "id": "S1", "title": "Вход в опасную зону, с расписанием", "plugin": "zone_intrusion", "models": "det", "state": "live", "status": "работает в живом конвейере (local, CPU): события, снапшоты, клипы, журнал" },
-      { "id": "S2", "title": "Нет каски или жилета", "plugin": "ppe_missing", "models": "det + ppe", "state": "wip", "status": "плагин и тесты готовы; модель СИЗ в ONNX, подключение и TPU — в работе" },
-      { "id": "S3", "title": "Падение и неподвижность", "plugin": "fall_immobile", "models": "det + pose", "state": "wip", "status": "плагин и тесты готовы, pose на TPU сверена с CPU; прогон на роликах — в работе" },
-      { "id": "S4", "title": "Опасное сближение с техникой", "plugin": "vehicle_proximity", "models": "det", "state": "wip", "status": "плагин и тесты готовы; прогон на 3 роликах — в работе" },
-      { "id": "S5", "title": "Бег в зоне работы техники", "plugin": "running", "models": "det", "state": "ready", "status": "плагин и тесты готовы, демо-ролика нет" },
-      { "id": "S6", "title": "Телефон при работе", "plugin": "phone_usage", "models": "det + pose", "state": "ready", "status": "плагин и тесты готовы, ролик s6_01" },
-      { "id": "S7", "title": "Курение или открытый огонь", "plugin": "smoking_fire", "models": "fire", "state": "wip", "status": "плагин и тесты готовы; модель огня в ONNX, на TPU ещё нет" },
-      { "id": "S8", "title": "Перелезание через ограждение", "plugin": "fence_climb", "models": "det + pose", "state": "ready", "status": "плагин и тесты готовы, демо-ролика нет" },
-      { "id": "S9", "title": "Высота без привязи", "plugin": "height_no_harness", "models": "det", "state": "ready", "status": "осторожная эвристика: без модели привязи — контроль доступа в зону высоты" },
-      { "id": "S10", "title": "Переноска груза с нарушением", "plugin": "unsafe_carry", "models": "det + pose", "state": "ready", "status": "осторожные эвристики по позе, демо-ролика нет" }
+      {
+        "id": "S1",
+        "title": "Вход в опасную зону, с расписанием",
+        "plugin": "zone_intrusion",
+        "models": "det",
+        "state": "live",
+        "status": "работает в живом конвейере (local, CPU): события, снапшоты, клипы, журнал"
+      },
+      {
+        "id": "S2",
+        "title": "Нет каски или жилета",
+        "plugin": "ppe_missing",
+        "models": "det + ppe",
+        "state": "wip",
+        "status": "плагин и тесты готовы; модель СИЗ скомпилирована под TPU (O5), сверка с CPU — в работе"
+      },
+      {
+        "id": "S3",
+        "title": "Падение и неподвижность",
+        "plugin": "fall_immobile",
+        "models": "det + pose",
+        "state": "wip",
+        "status": "плагин и тесты готовы, pose на TPU сверена с CPU; прогон на роликах — в работе"
+      },
+      {
+        "id": "S4",
+        "title": "Опасное сближение с техникой",
+        "plugin": "vehicle_proximity",
+        "models": "det",
+        "state": "wip",
+        "status": "плагин и тесты готовы; прогон на 3 роликах — в работе"
+      },
+      {
+        "id": "S5",
+        "title": "Бег в зоне работы техники",
+        "plugin": "running",
+        "models": "det",
+        "state": "ready",
+        "status": "плагин и тесты готовы, демо-ролика нет"
+      },
+      {
+        "id": "S6",
+        "title": "Телефон при работе",
+        "plugin": "phone_usage",
+        "models": "det + pose",
+        "state": "ready",
+        "status": "плагин и тесты готовы, ролик s6_01"
+      },
+      {
+        "id": "S7",
+        "title": "Открытый огонь (курение не заявляем)",
+        "plugin": "smoking_fire",
+        "models": "fire",
+        "state": "wip",
+        "status": "модель огня скомпилирована под TPU, сверка с CPU — в работе; курение моделью огня не решается"
+      },
+      {
+        "id": "S8",
+        "title": "Перелезание через ограждение",
+        "plugin": "fence_climb",
+        "models": "det + pose",
+        "state": "ready",
+        "status": "плагин и тесты готовы, демо-ролика нет"
+      },
+      {
+        "id": "S9",
+        "title": "Высота без привязи",
+        "plugin": "height_no_harness",
+        "models": "det",
+        "state": "ready",
+        "status": "осторожная эвристика: без модели привязи — контроль доступа в зону высоты"
+      },
+      {
+        "id": "S10",
+        "title": "Переноска груза с нарушением",
+        "plugin": "unsafe_carry",
+        "models": "det + pose",
+        "state": "ready",
+        "status": "осторожные эвристики по позе, демо-ролика нет"
+      }
+    ]
+  },
+  "questions": {
+    "source": "docs/CHECKPOINT_2.md §5 · .orchestra/QUESTIONS_FOR_ORGS.md",
+    "groups": [
+      {
+        "title": "Стенд во время защиты",
+        "items": [
+          "Живут ли фоновые процессы в Jupyter часами, в том числе 25.10? Будут ли перезапуски или очистка ~/work и /auto/cache?",
+          "Можно ли поднять лимиты контейнера (1.5 CPU, 4 ГиБ) на время защиты?",
+          "Допустим ли постоянный воркер рядом с TPU с HTTP-портом через jupyter-server-proxy?"
+        ]
+      },
+      {
+        "title": "Честность замеров",
+        "items": [
+          "Что входит в inference_time: только исполнение на устройстве или ещё упаковка и загрузка программы?",
+          "Сколько TPU и потоков воркера обслуживают очередь input? Она общая для всех команд?",
+          "Кешируется ли программа .tpu на воркере между задачами?"
+        ]
+      },
+      {
+        "title": "Инфраструктура",
+        "items": [
+          "Канал VPN асимметричный: к стенду 1–2 МБ/с, от стенда 0.1–0.4 МБ/с. Это ограничение сервера? Есть ли UDP-профиль?",
+          "Совпадает ли SDK tpu_framework 2026.9.45 с рантаймом? Куда слать баг-репорты компилятора?",
+          "Есть ли лимиты на размер и частоту сообщений в своих очередях RabbitMQ?"
+        ]
+      }
     ]
   }
 }

@@ -86,7 +86,7 @@
         </div>
       </div>
       <div class="arrow">
-        <svg width="70" height="70" viewBox="0 0 70 70"><g fill="#a8d42c"><rect x="0" y="29" width="12" height="12"/><rect x="14" y="29" width="12" height="12"/><rect x="28" y="29" width="12" height="12"/><rect x="42" y="29" width="12" height="12"/><rect x="56" y="29" width="12" height="12"/><rect x="42" y="15" width="12" height="12"/><rect x="42" y="43" width="12" height="12"/><rect x="28" y="1" width="12" height="12"/><rect x="28" y="57" width="12" height="12"/></g></svg>
+        <svg width="70" height="58" viewBox="0 0 70 58" aria-hidden="true"><g fill="#a8d42c"><rect x="36" y="0" width="10" height="10"/><rect x="36" y="12" width="10" height="10"/><rect x="48" y="12" width="10" height="10"/><rect x="0" y="24" width="10" height="10"/><rect x="12" y="24" width="10" height="10"/><rect x="24" y="24" width="10" height="10"/><rect x="36" y="24" width="10" height="10"/><rect x="48" y="24" width="10" height="10"/><rect x="60" y="24" width="10" height="10"/><rect x="36" y="36" width="10" height="10"/><rect x="48" y="36" width="10" height="10"/><rect x="36" y="48" width="10" height="10"/></g></svg>
       </div>
       <div class="panel hl">
         <div class="feed" role="img" aria-label="Лента тревог, живой бэкенд"></div>
@@ -211,9 +211,10 @@
     <div class="tl">
       <div class="cap">Сквозной пример кейса</div>
       <div class="pt"><div class="time">07:55</div><div class="what">Специалист ОТ включает зону у стеллажей: «активна до 12:00»</div></div>
-      <div class="pt crit"><div class="time">14:05</div><div class="what">Падение работника → критическая тревога с кадром и клипом, мастер получает карточку</div></div>
+      <div class="pt crit"><div class="time">14:05</div><div class="what">Падение работника → критическая тревога, мастер получает карточку с кадром</div></div>
       <div class="pt"><div class="time">Конец месяца</div><div class="what">Аналитика: где, когда и что нарушали, доля ложных по правилам</div></div>
     </div>
+    <div class="status pending-box" data-status="pending.edge_mode"><span class="ptag" data-ptag="pending.edge_mode">будет обновлено к защите</span><span data-status-text></span></div>
   </div>
 </section>
 
@@ -230,7 +231,7 @@
           <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">2 · Карточка события: кадр, клип ±5 с, камера, зона, время</span><span class="b"><i></i><i></i><i></i></span></div>
           <div class="pane"><img src="../screens/real-02-event-card.jpg" alt="Карточка события"></div>
         </div>
-        <div class="cap">Оператор решает клавишей: <b>1</b> подтверждено · <b>2</b> ложное · <b>3</b> передано мастеру. Пока человек в зоне — без повторов</div>
+        <div class="cap">Решение оператора — одной клавишей: <b>1</b> подтверждено · <b>2</b> ложное · <b>3</b> передано мастеру</div>
       </div>
       <div class="steps">
         <div class="step"><div class="th"><img src="../screens/real-01-monitoring.jpg" alt=""></div><div><div class="st"><span>1</span>Мониторинг</div><div class="sd">Камеры с зонами и рамками, лента тревог: критичные сверху, звук</div></div></div>
@@ -254,7 +255,7 @@
 </section>
 
 <!-- ============================ 6. Надёжность ============================ -->
-<section class="slide" id="s6" data-src="docs/ARCHITECTURE.md §5 · guard/events/manager.py · метрики: ml/eval/events_eval.py → metrics/eval-*.json">
+<section class="slide" id="s6" data-src="docs/ARCHITECTURE.md §5 · guard/events/manager.py · набор роликов: docs/DATA.md · метрики: ml/eval/events_eval.py → metrics/eval-*.json">
   <div class="head">
     <div class="kicker">Надёжность тревог <span class="crit">О · В</span></div>
     <h1>Ложные срабатывания и дубли отсекаем <em>до</em> оператора</h1>
@@ -362,7 +363,7 @@
       </div>
       <div>
         <div class="win code">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">guard/rules/plugins/crowding.py · сокращено</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">crowding.py · пример из README, сокращено</span><span class="b"><i></i><i></i><i></i></span></div>
           <div class="pane"><pre><span class="d">@register_rule</span>
 <span class="k">class</span> CrowdingRule(RulePlugin):
     type = <span class="s">"crowding"</span>
@@ -370,21 +371,24 @@
     required_models = frozenset({<span class="s">"det"</span>})
     params_schema = {...}  <span class="c"># по ней UI строит форму</span>
 
-    <span class="k">def</span> evaluate(self, ctx):
-        <span class="c"># только «есть ли нарушение на кадре»;</span>
-        <span class="c"># окно и дубли ведёт EventManager</span>
-        limit = self.cfg.params.get(<span class="s">"max_people"</span>, 3)
+    <span class="k">def</span> evaluate(self, ctx) -> list[Violation]:
+        <span class="c"># только кадр; окно и дубли — в EventManager</span>
+        limit = int(self.cfg.params.get(<span class="s">"max_people"</span>, 3))
+        out = []
         <span class="k">for</span> zone <span class="k">in</span> self.camera.zones:
-            <span class="k">if</span> is_zone_active(zone, ctx.ts) \
-               <span class="k">and</span> count_in(zone, ctx) > limit:
-                <span class="k">yield</span> self.violation(ctx, zone)</pre></div>
+            <span class="k">if not</span> is_zone_active(zone, ctx.ts):
+                <span class="k">continue</span>
+            n = sum(in_zone(t, zone) <span class="k">for</span> t <span class="k">in</span> ctx.people)
+            <span class="k">if</span> n > limit:
+                out.append(self.violation(
+                    ctx, zone_id=zone.zone_id))
+        <span class="k">return</span> out</pre></div>
         </div>
         <div class="plugs">
-          <span class="tag"><b>S1</b>опасная зона</span><span class="tag"><b>S2</b>каска, жилет</span><span class="tag"><b>S3</b>падение</span><span class="tag"><b>S4</b>сближение с техникой</span><span class="tag"><b>S5</b>бег</span><span class="tag"><b>S6</b>телефон</span><span class="tag"><b>S7</b>курение, огонь</span><span class="tag"><b>S8</b>перелезание</span><span class="tag"><b>S9</b>высота без привязи</span><span class="tag"><b>S10</b>переноска груза</span>
+          <span class="tag"><b>S1</b>опасная зона</span><span class="tag"><b>S2</b>каска, жилет</span><span class="tag"><b>S3</b>падение</span><span class="tag"><b>S4</b>сближение с техникой</span><span class="tag"><b>S5</b>бег</span><span class="tag"><b>S6</b>телефон</span><span class="tag"><b>S7</b>открытый огонь</span><span class="tag"><b>S8</b>перелезание</span><span class="tag"><b>S9</b>высота без привязи</span><span class="tag"><b>S10</b>переноска груза</span>
         </div>
         <ul class="px facts">
-          <li>Плагины находятся автоматически; подтверждение и дедуп — общий EventManager</li>
-          <li>Новая модель: ONNX → компиляция под TPU → строка в models.yaml</li>
+          <li>Плагин находится сам, форма в UI строится сама; подтверждение и дедуп — общий EventManager</li>
         </ul>
       </div>
     </div>
@@ -583,7 +587,7 @@
 </section>
 
 <!-- ============================ Б3. Сценарии ============================ -->
-<section class="slide" id="b3" data-backup="1" data-src="README.md «Сценарии и статус» · guard/rules/plugins/ · tests/ — 672 теста на 24.10 08:40">
+<section class="slide" id="b3" data-backup="1" data-src="README.md «Сценарии и статус» · docs/MODELS.md (S2, S4, S7, компиляция ppe и fire) · guard/rules/plugins/">
   <div class="head">
     <div class="kicker">Резерв · сценарии кейса</div>
     <h1>Сценарии S1–S10: 10 плагинов, статус на <span data-bind="scenarios.as_of">24.10</span></h1>
@@ -632,6 +636,17 @@
         </ul>
       </div>
     </div>
+  </div>
+</section>
+
+<!-- ============================ Б5. Вопросы экспертам ============================ -->
+<section class="slide" id="b5" data-backup="1" data-src="docs/CHECKPOINT_2.md §5 · .orchestra/QUESTIONS_FOR_ORGS.md · список правится в data.json → questions">
+  <div class="head">
+    <div class="kicker">Резерв · чек-поинт 3</div>
+    <h1>Вопросы экспертам и организаторам</h1>
+  </div>
+  <div class="body">
+    <div class="qs" id="questions"></div>
   </div>
 </section>
 

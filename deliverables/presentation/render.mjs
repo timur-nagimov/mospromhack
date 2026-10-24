@@ -5,6 +5,7 @@
 //   node render.mjs --png DIR       плюс PNG каждого слайда в DIR (для проверки вёрстки)
 //   node render.mjs --out FILE      другой путь PDF
 //   node render.mjs --serve         только локальный сервер для просмотра в браузере
+//   node render.mjs --data FILE     подставить другой data.json (проверить, как лягут новые цифры)
 //
 // Playwright берётся из frontend/node_modules (cd frontend && npm ci) или из PLAYWRIGHT_DIR.
 // На ноутбуке команды запускать через tools/heavy.sh: браузер — тяжёлый процесс.
@@ -21,6 +22,7 @@ const args = process.argv.slice(2);
 const opt = name => { const i = args.indexOf(name); return i >= 0 ? (args[i + 1] || true) : null; };
 const OUT = path.resolve(opt("--out") || path.join(HERE, "zazerkalye.pdf"));
 const PNG_DIR = opt("--png");
+const DATA_FILE = opt("--data") ? path.resolve(opt("--data")) : null;
 
 const MIME = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -31,8 +33,8 @@ const MIME = {
 function startServer() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent((req.url || "/").split("?")[0]);
-    const file = path.resolve(SERVE_ROOT, "." + url);
-    if (!file.startsWith(SERVE_ROOT + path.sep)) { res.writeHead(403); res.end(); return; }
+    const file = (DATA_FILE && url === "/presentation/data.json") ? DATA_FILE : path.resolve(SERVE_ROOT, "." + url);
+    if (file !== DATA_FILE && !file.startsWith(SERVE_ROOT + path.sep)) { res.writeHead(403); res.end(); return; }
     fs.readFile(file, (err, buf) => {
       if (err) { res.writeHead(404); res.end("not found"); return; }
       res.writeHead(200, { "content-type": MIME[path.extname(file).toLowerCase()] || "application/octet-stream", "cache-control": "no-store" });
@@ -64,17 +66,20 @@ function layoutCheck() {
     if (src && src.scrollHeight > src.clientHeight + 1) out.push(sid + ": источник в подвале не влез в 2 строки");
     const S = sl.getBoundingClientRect();
     const body = sl.querySelector(".body");
-    const limitBottom = body ? body.getBoundingClientRect().bottom : S.bottom - 110;
+    const B = body ? body.getBoundingClientRect() : null;
+    const limitBottom = B ? B.bottom : S.bottom - 110;
+    const limitRight = B ? B.right : S.right - 96;
     sl.querySelectorAll("*").forEach(n => {
       if (n.closest(".chrome") || n.closest(".foot") || n.closest("svg.pixels")) return;
       const r = n.getBoundingClientRect();
       if (!r.width || !r.height) return;
-      if (r.right > S.right - 40 + 1) out.push(sid + ": за правым краем на " + Math.round(r.right - (S.right - 40)) + "px — " + label(n));
+      if (r.right > limitRight + 1) out.push(sid + ": за правым краем контента на " + Math.round(r.right - limitRight) + "px — " + label(n));
       if (body && body.contains(n) && r.bottom > limitBottom + 1) out.push(sid + ": ниже области контента на " + Math.round(r.bottom - limitBottom) + "px — " + label(n));
       const cs = getComputedStyle(n);
       if ((cs.overflow === "hidden" || cs.overflowX === "hidden") && n.tagName !== "svg" && !n.classList.contains("slide") && !n.classList.contains("win") && !n.classList.contains("pane") && !n.classList.contains("th") && !n.classList.contains("feed")) {
         if (n.scrollWidth > n.clientWidth + 1) out.push(sid + ": обрезан текст по ширине — " + label(n));
       }
+      if (n.tagName === "PRE" && n.parentElement && n.scrollWidth > n.parentElement.clientWidth) out.push(sid + ": код шире окна — " + label(n));
     });
   });
   return [...new Set(out)];
