@@ -243,7 +243,15 @@ export function Counters({ summary, datasets }: { summary: FlywheelSummary | und
         </span>
       </div>
 
-      <div className={`stat${dropped > 0 ? ' fw-stat--warn' : ''}`}>
+      <div
+        className={`stat${dropped > 0 ? ' fw-stat--warn' : ''}`}
+        title={
+          Object.entries(summary?.dropped_detail ?? {})
+            .filter(([, n]) => n > 0)
+            .map(([why, n]) => `${why}: ${n}`)
+            .join('\n') || undefined
+        }
+      >
         <span className="stat__label">Отброшено</span>
         <span className="stat__value num">{formatNumber(dropped, 0)}</span>
         <span className="stat__note">очередь записи переполнена — оповещения не ждут диск</span>

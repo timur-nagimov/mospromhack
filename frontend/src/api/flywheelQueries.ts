@@ -28,6 +28,7 @@ export const flywheelKeys = {
   datasets: ['flywheel', 'datasets'] as const,
   models: ['flywheel', 'models'] as const,
   jobs: ['flywheel', 'jobs'] as const,
+  job: (id: string) => ['flywheel', 'job', id] as const,
 };
 
 /** 404 — на сервере нет API маховика (бэкенд старее контракта) или нет такого сэмпла */
@@ -168,6 +169,18 @@ export function useJobs() {
       const jobs = query.state.data as FlywheelJob[] | undefined;
       return jobs?.some((j) => jobPhase(j.status) === 'active') ? 2_000 : 30_000;
     },
+    retry: retryUnlessClientError,
+  });
+}
+
+/** Задача с хвостом лога (в списке задач хвоста нет); пока идёт — опрос раз в 2 с */
+export function useJob(id: string | null) {
+  return useQuery({
+    queryKey: flywheelKeys.job(id ?? ''),
+    queryFn: () => api().flywheel.getJob(id as string),
+    enabled: Boolean(id),
+    staleTime: 1_000,
+    refetchInterval: (query) => (jobPhase((query.state.data as FlywheelJob | undefined)?.status) === 'active' ? 2_000 : false),
     retry: retryUnlessClientError,
   });
 }
