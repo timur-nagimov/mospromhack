@@ -62,6 +62,8 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--scenarios-candidate", type=Path, help="посчитать события кандидата по этому scenarios")
     ap.add_argument("--scenarios-baseline", type=Path, help="посчитать события базы по этому scenarios")
     ap.add_argument("--only", help="ролики через запятую (для --scenarios-*)")
+    ap.add_argument("--models-config", type=Path, default=ROOT / "configs/models.yaml",
+                    help="реестр, в копии которого model_id кандидата смотрит на его ONNX (для --scenarios-candidate)")
     ap.add_argument("--events-out", type=Path, default=ROOT / "data/flywheel/runs",
                     help="куда сохранить посчитанные отчёты событий")
     ap.add_argument("--imgsz", type=int, help="вход ONNX (по умолчанию — из модели)")
@@ -197,11 +199,46 @@ def event_summary(report: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
-def run_events(scenarios: Path, only: str | None, out: Path) -> dict[str, Any]:
+def candidate_registry(base: Path, model_id: str, onnx: Path, classes: list[str], out: Path) -> Path:
+    """Копия реестра, где model_id смотрит на ONNX кандидата: конвейер меряет кандидата без правки configs."""
+    import onnx as onnx_lib
+    import yaml
+
+    raw = yaml.safe_load(base.read_text(encoding="utf-8"))
+    entry = next((m for m in raw["models"] if m.get("model_id") == model_id), None)
+    if entry is None:
+        entry = {"model_id": model_id, "task": "detect", "output_format": "yolov8",
+                 "conf_threshold": 0.3, "iou_threshold": 0.5}
+        raw["models"].append(entry)
+    dims = [d.dim_value for d in onnx_lib.load(str(onnx)).graph.input[0].type.tensor_type.shape.dim]
+    entry.update(onnx_path=str(onnx.resolve()), input_size=[int(dims[2]), int(dims[3])], classes=list(classes))
+    entry.pop("tpu_program", None)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(yaml.safe_dump(raw, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return out
+
+
+def code_version() -> str:
+    """Коммит кода конвейера: события базы и кандидата сравнимы, только если посчитаны одним кодом."""
+    import subprocess
+
+    def git(*cmd: str) -> str:
+        return subprocess.run(["git", *cmd], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+
+    head = git("rev-parse", "--short", "HEAD") or "unknown"
+    dirty = git("status", "--porcelain", "--untracked-files=no", "--", "guard", "ml/eval")
+    return head + ("+dirty" if dirty else "")
+
+
+def run_events(scenarios: Path, only: str | None, out: Path, models_config: Path | None = None,
+               cache_dir: Path | None = None) -> dict[str, Any]:
+    """Прогон run_offline. Кэш детекций (CX-022) общий: модели базы не считаются второй раз."""
     from ml.eval import run_offline
 
-    suite = run_offline.load_scenarios(scenarios)
-    report = run_offline.run_evaluation(suite, only=only.split(",") if only else None)
+    suite = run_offline.load_scenarios(scenarios, models_config=models_config)
+    report = run_offline.run_evaluation(suite, only=only.split(",") if only else None, cache_dir=cache_dir)
+    report["code"] = code_version()
+    report["scenarios"] = str(scenarios)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(report, ensure_ascii=False, indent=2, allow_nan=False) + "\n", encoding="utf-8")
     return report
@@ -293,8 +330,11 @@ def main(argv: list[str] | None = None) -> int:
     if args.events_candidate:
         cand_report = json.loads(args.events_candidate.read_text(encoding="utf-8"))
     elif args.scenarios_candidate:
+        out_dir = args.events_out / card["version"]
+        registry = candidate_registry(args.models_config, card["model_id"], onnx, card["classes"],
+                                      out_dir / "models_candidate.yaml")
         cand_report = run_events(args.scenarios_candidate, args.only,
-                                 args.events_out / f"events-{card['version']}-{stamp}.json")
+                                 out_dir / f"events-{card['version']}-{stamp}.json", registry)
     else:
         cand_report = None
     if args.events_baseline:
@@ -324,6 +364,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.write:
         # Остальные поля holdout (например, покадровая проверка) сохраняются.
         card["holdout"] = {**(card.get("holdout") or {}), **holdout}
+        card["onnx"] = card.get("onnx") or onnx.name
         card["baseline"] = {"version": args.baseline_name or "база", "holdout": baseline_holdout}
         if references:
             card["references"] = references
