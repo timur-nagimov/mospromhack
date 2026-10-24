@@ -148,14 +148,30 @@ class RabbitPublisher:
                 "published": self.published, "last_error": self.last_error}
 
 
+# Шлюз подписан на обе очереди (basic_consume), а не опрашивает их basic_get: через VPN-контейнер
+# (RTT 0.3-0.4 с) basic_get по двум очередям давал ~1 сообщение/с на всё при ~5 сообщениях/с телеметрии
+# edge. Превью всех камер, кроме первой в пачке, истекали в брокере по TTL, события отставали на часы
+# (замеры tpu-demo-baseline-queue-0130, tpu-demo-baseline-drain-0130). Окна prefetch ограничены:
+# сообщение в полёте брокер уже не отбросит по TTL, поэтому в TCP держим около секунды канала —
+# превью всех 4 камер (~18 КБ каждое) и пару событий со снимком (~60 КБ), чтобы события не душили превью.
+EVENT_PREFETCH = 2
+TELEMETRY_PREFETCH = 8
+
+
 class RabbitConsumer:
-    """Manual ACK only after callback has committed its durable journal update."""
+    """Manual ACK only after callback has committed its durable journal update.
+
+    The broker pushes deliveries (basic_consume) within a bounded prefetch window
+    per queue; callbacks run on the owning thread inside process_data_events.
+    """
 
     def __init__(self, config: RabbitConfig, connection_factory: Callable = _connection):
         self.config = config
         self._factory = connection_factory
         self._connection = None
         self._channel = None
+        self._callback: Callable[[Envelope], None] | None = None
+        self._handled = 0
         self.last_error: str | None = None
         self.received = 0
         self.rejected = 0
@@ -166,44 +182,57 @@ class RabbitConsumer:
             self._connection = self._factory(self.config)
             self._channel = self._connection.channel()
             _topology(self._channel, self.config)
-            self._channel.basic_qos(prefetch_count=1)
+            for queue, durable, prefetch in (
+                (self.config.event_queue, True, EVENT_PREFETCH),
+                (self.config.telemetry_queue, False, TELEMETRY_PREFETCH),
+            ):
+                # basic.qos without global applies to consumers created after it.
+                self._channel.basic_qos(prefetch_count=prefetch)
+                self._channel.basic_consume(
+                    queue=queue, auto_ack=False,
+                    on_message_callback=lambda channel, method, _properties, body, durable=durable:
+                        self._deliver(channel, method, body, durable),
+                )
         return self._channel
 
-    def poll(self, callback: Callable[[Envelope], None]) -> int:
-        channel = self._connect()
-        received = 0
-        for queue, durable in ((self.config.event_queue, True), (self.config.telemetry_queue, False)):
-            method, _, body = channel.basic_get(queue=queue, auto_ack=False)
-            if method is None:
-                continue
-            try:
-                envelope = decode(body, expected_edge_id=self.config.edge_id)
-                if durable != (envelope.kind in {"event", "event_update"}):
-                    raise ValueError("Message arrived in the wrong channel")
-                callback(envelope)
-            except ValueError:
-                self.rejected += 1
-                self.last_error = "InvalidMessage"
-                channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-            except Exception:
-                channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
-                raise
-            else:
-                channel.basic_ack(delivery_tag=method.delivery_tag)
-                self.received += 1
-                self.last_error = None
-            received += 1
-        self._connection.process_data_events(time_limit=0)
-        return received
+    def _deliver(self, channel, method, body: bytes, durable: bool) -> None:
+        try:
+            envelope = decode(body, expected_edge_id=self.config.edge_id)
+            if durable != (envelope.kind in {"event", "event_update"}):
+                raise ValueError("Message arrived in the wrong channel")
+            if self._callback is None:
+                raise RuntimeError("Delivery outside poll")
+            self._callback(envelope)
+        except ValueError:
+            self.rejected += 1
+            self.last_error = "InvalidMessage"
+            channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
+        except Exception:
+            channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
+            raise
+        else:
+            channel.basic_ack(delivery_tag=method.delivery_tag)
+            self.received += 1
+            self.last_error = None
+        self._handled += 1
+
+    def poll(self, callback: Callable[[Envelope], None], time_limit: float = 0) -> int:
+        """Handle deliveries for up to time_limit seconds; returns the number handled."""
+        self._callback = callback
+        try:
+            self._connect()
+            before = self._handled
+            self._connection.process_data_events(time_limit=time_limit)
+            return self._handled - before
+        finally:
+            self._callback = None
 
     def run(self, callback: Callable[[Envelope], None], stop: threading.Event) -> None:
         backoff = 0.5
         while not stop.is_set():
             try:
-                received = self.poll(callback)
+                self.poll(callback, time_limit=0.1)
                 backoff = 0.5
-                if not received:
-                    stop.wait(0.1)
             except Exception as exc:
                 self.last_error = type(exc).__name__
                 self.close()
