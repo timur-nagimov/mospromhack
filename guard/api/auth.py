@@ -54,6 +54,7 @@ def login(body: LoginIn, request: Request, response: Response) -> Any:
         audit.record(request, audit.AUTH_LOGIN_FAILED, name, details, username=name or "-")
         raise HTTPException(401, "invalid credentials") from None
     audit.record(request, audit.AUTH_LOGIN, user.username, user=user)
+    service.drop_token(request.cookies.get(SESSION_COOKIE))  # прежняя сессия браузера не живёт ещё 12 ч
     response.set_cookie(
         SESSION_COOKIE, token, httponly=True, samesite="lax", path="/", secure=request.url.scheme == "https",
     )
