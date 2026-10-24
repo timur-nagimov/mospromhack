@@ -24,7 +24,7 @@ cameras:
     min_ratio: 0.7
     close_after_s: 3.0
     cooldown_s: 30.0
-    severity: critical
+    severity: high
 - camera_id: cam_warehouse
   name: Склад, стеллажный проход
   site: Склад

@@ -64,20 +64,10 @@ except ImportError:
 from guard.pipeline._fallbacks import draw_overlay as _fallback_draw_overlay  # noqa: E402
 from guard.pipeline._fallbacks import draw_zones  # noqa: E402
 
-_draw_warned = False
-
-
-def safe_draw_overlay(frame: Any, people: Any, objects: Any, zones: Any, highlight: set[int]) -> Any:
-    """draw_overlay из guard.vision с откатом на свою реализацию при несовпадении сигнатуры."""
-    global _draw_warned
-    try:
-        out = draw_overlay(frame, people, objects, zones, events_highlight=highlight)
-        return frame if out is None else out
-    except Exception:  # noqa: BLE001 — оверлей не должен ронять поток
-        if not _draw_warned:
-            log.exception("guard.vision draw_overlay failed, using fallback renderer")
-            _draw_warned = True
-        return _fallback_draw_overlay(frame, people, objects, zones, events_highlight=highlight)
+def safe_draw_overlay(frame: Any, people: Any, objects: Any, zones: Any, highlight: Any) -> Any:
+    """Оверлей MJPEG. По уточнению API (24.10) он компактный: «#ID» и короткая метка нарушителя.
+    Подписи guard.vision.draw_overlay длиннее, поэтому для потока используем свой рендерер."""
+    return _fallback_draw_overlay(frame, people, objects, zones, events_highlight=highlight)
 
 
 for _name, _fb in FALLBACKS.items():
