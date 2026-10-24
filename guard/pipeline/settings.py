@@ -80,6 +80,11 @@ class Settings:
     mode: str = "local"
     edge_id: str | None = None
     rabbit_url: str | None = field(default=None, repr=False)
+    # суффикс exchange и всех очередей edge/gateway: изолированная проверка на общем брокере (например «-c6test»)
+    rabbit_suffix: str = ""
+    # канал конфигурации камер gateway → edge (docs/EDGE.md §8): правки зон и правил в UI шлюза применяются на edge
+    config_sync: bool = True
+    cameras_overlay: Path | None = None  # оверлей edge; None — .<имя файла камер>.overlay.yaml рядом с ним
     preview_fps: float = 1.0
     preview_max_width: int = 480
     preview_stale_after_s: float = 10.0
@@ -115,6 +120,8 @@ class Settings:
     tracker_match_iou: float = 0.25
     tracker_buffer_s: float = 3.0
     tracker_min_hits: int = 2
+    # люди для трекера: к det добавить людей pose, которых det не видит (лежачие, S3; docs/QUALITY.md)
+    person_pose_fill: bool = False
     ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
     # маховик данных (docs/FLYWHEEL.md): сбор кадров в обучающую выборку
@@ -186,6 +193,9 @@ class Settings:
             mode=(os.environ.get("GUARD_MODE") or "local").strip().lower(),
             transport=(os.environ.get("GUARD_TRANSPORT") or "rabbit").strip().lower(),
             rabbit_url=os.environ.get("GUARD_RABBIT_URL") or None,
+            rabbit_suffix=(os.environ.get("GUARD_RABBIT_SUFFIX") or "").strip(),
+            config_sync=_env_bool("GUARD_CONFIG_SYNC", True),
+            cameras_overlay=Path(os.environ["GUARD_CAMERAS_OVERLAY"]).expanduser() if os.environ.get("GUARD_CAMERAS_OVERLAY") else None,
             publish_frame_meta=_env_bool("GUARD_FRAME_META", True),
             clips_enabled=_env_bool("GUARD_CLIPS", (os.environ.get("GUARD_MODE") or "local").strip().lower() != "edge"),
             edge_snapshot_width=_env_int("GUARD_EDGE_SNAPSHOT_WIDTH", 640),
@@ -201,6 +211,7 @@ class Settings:
             clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
             clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 512),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
+            person_pose_fill=_env_bool("GUARD_PERSON_POSE_FILL", False),
             ort_threads=_env_int("GUARD_ORT_THREADS", 2),
             flywheel=_env_bool("GUARD_FLYWHEEL", True),
             flywheel_dir=Path(os.environ["GUARD_FLYWHEEL_DIR"]).expanduser() if os.environ.get("GUARD_FLYWHEEL_DIR") else None,

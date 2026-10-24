@@ -23,3 +23,7 @@ frontend/dist/
 /vendor
 .orchestra/memwatch.log
 .orchestra/keepalive.log
+
+# оверлей камер edge (docs/EDGE.md §8): состояние узла, не код
+.*.overlay.yaml
+.*.overlay.yaml.corrupt-*

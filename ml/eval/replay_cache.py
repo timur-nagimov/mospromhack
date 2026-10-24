@@ -26,14 +26,23 @@ def _file_metadata(path: Path) -> dict[str, int]:
     return {"size": stat.st_size, "mtime_ns": stat.st_mtime_ns}
 
 
-def _postprocess_hash() -> str:
+def _postprocess_paths() -> list[Path]:
+    """Код, от которого зависят детекции: постобработка и декодирование выходов бэкендов.
+
+    guard/inference входит в ключ: правка raw-кодека TPU (например, float16 у видимости
+    точек pose) меняет детекции при тех же весах, и старый кэш нельзя переиспользовать.
+    """
     root = Path(__file__).resolve().parents[2]
-    paths = [
+    return [
         root / "guard" / "pipeline" / "detector.py",
         *sorted((root / "guard" / "vision").glob("*.py")),
+        *sorted((root / "guard" / "inference").glob("*.py")),
     ]
+
+
+def _postprocess_hash() -> str:
     digest = hashlib.sha256()
-    for path in paths:
+    for path in _postprocess_paths():
         digest.update(path.read_bytes())
     return digest.hexdigest()
 

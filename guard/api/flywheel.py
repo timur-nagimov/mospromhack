@@ -103,7 +103,23 @@ def _collector_stats(engine: Any) -> dict[str, Any] | None:
     edge = getattr(engine, "edge_metrics", None)  # gateway: сбор идёт на edge, его сводка — в metrics
     if isinstance(edge, dict) and isinstance(edge.get("flywheel"), dict):
         return dict(edge["flywheel"])
+    if getattr(engine.settings, "mode", "") == "gateway" and callable(getattr(engine, "metrics_snapshot", None)):
+        try:
+            data = engine.metrics_snapshot()  # шлюз: свежие metrics edge, устаревшие — без сводки
+        except Exception:  # noqa: BLE001
+            return None
+        if isinstance(data, dict) and not data.get("stale") and isinstance(data.get("flywheel"), dict):
+            return dict(data["flywheel"])
     return None
+
+
+def _receiver_stats(engine: Any) -> dict[str, Any] | None:
+    """Шлюз: приём частей сэмплов edge (очередь маховика и сборщик)."""
+    assembler = getattr(engine, "flywheel_assembler", None)
+    if assembler is None:
+        return None
+    receiver = getattr(engine, "flywheel_receiver", None)
+    return {"assembler": assembler.stats(), "transport": receiver.status() if receiver is not None else None}
 
 
 # ---------------------------------------------------------------- сводка и сэмплы
@@ -133,6 +149,7 @@ def summary(request: Request) -> dict[str, Any]:
             "collecting": collecting,
             "collector": stats,
             "writer": writer.stats() if writer is not None else None,
+            "receiver": _receiver_stats(engine),
             "allow_train": bool(getattr(engine.settings, "flywheel_allow_train", False)),
             "mode": getattr(engine.settings, "mode", "local"),
         }
@@ -242,11 +259,12 @@ def _capture_playback(engine: Any, cam: Any, writer: Any) -> dict[str, Any] | No
         if meta is not None:
             h, w = pkt.frame.shape[:2]
             sx, sy = w / meta.w, h / meta.h
+            # треки edge из frame_meta: уверенности в них нет, как и в оверлее шлюза — conf 1.0
             for tid, x1, y1, x2, y2, _flags in meta.people:
-                det_dicts.append({"model_id": "edge", "cls": "person", "conf": None,
+                det_dicts.append({"model_id": "edge_track", "cls": "person", "conf": 1.0,
                                   "bbox": [x1 * sx, y1 * sy, x2 * sx, y2 * sy], "track_id": tid})
             for tid, cls, x1, y1, x2, y2 in meta.objects:
-                det_dicts.append({"model_id": "edge", "cls": cls, "conf": None,
+                det_dicts.append({"model_id": "edge_track", "cls": cls, "conf": 1.0,
                                   "bbox": [x1 * sx, y1 * sy, x2 * sx, y2 * sy], "track_id": tid})
     from guard.flywheel.holdout import is_holdout_uri
 

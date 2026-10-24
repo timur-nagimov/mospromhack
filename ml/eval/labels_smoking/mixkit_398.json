@@ -1,0 +1,41 @@
+{
+  "video": "mixkit_398.mp4",
+  "events": [
+    {
+      "type": "smoking_fire",
+      "t_start": 15.0,
+      "t_end": 19.7,
+      "uncertain": false,
+      "note": "Сидит у стены: рука с сигаретой у рта 15–17 с, затем опущена"
+    },
+    {
+      "type": "smoking_fire",
+      "t_start": 3.0,
+      "t_end": 10.0,
+      "uncertain": true,
+      "note": "Стоит у окна, держит в руках что-то мелкое — сигарету не разобрать"
+    }
+  ],
+  "scenario": "S7",
+  "description": "Склейка: мужчина бежит по лестнице (курения не видно) и курящий в заброшенном здании. Та же съёмка, что s7_01",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "2 человека по очереди, средний план",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/man-running-up-stairs-and-smoking-398/",
+      "url": "https://assets.mixkit.co/videos/398/398-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 19.73,
+  "size": [
+    1280,
+    720
+  ]
+}

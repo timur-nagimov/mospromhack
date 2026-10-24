@@ -19,6 +19,7 @@ import { moscowDayKey, moscowHour, moscowWeekdayHour } from '../../domain/moscow
 import { ApiError, type GuardApi, type StatsQuery, type Subscription } from '../types';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
 import { createFlywheelMock } from './flywheel';
+import { createEmployeesMock } from './employees';
 import { between, mulberry32 } from './random';
 import { renderToDataUrl } from './scene';
 
@@ -86,6 +87,7 @@ export function createMockApi(): GuardApi {
 
   // Маховик данных: сэмплы событий и живой сбор по фейковому WS
   const flywheel = createFlywheelMock({ cameras: () => cameras, events: () => events, emit, respond, fail });
+  const employees = createEmployeesMock(() => events);
 
   function findCamera(id: string): CameraConfig | undefined {
     return cameras.find((c) => c.camera_id === id);
@@ -205,10 +207,10 @@ export function createMockApi(): GuardApi {
     timers.length = 0;
   }
 
-  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }): GuardEvent[] {
+  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }, source = events): GuardEvent[] {
     const matches = (filter: string | undefined, value: string | null) =>
       !filter || filter.split(',').map((v) => v.trim()).includes(value ?? '');
-    return events.filter(
+    return source.filter(
       (e) =>
         matches(q.type, e.type) &&
         matches(q.camera_id, e.camera_id) &&
@@ -229,9 +231,9 @@ export function createMockApi(): GuardApi {
     return null;
   }
 
-  function statsItems(q: StatsQuery): StatsItem[] {
+  function statsItems(q: StatsQuery, source = events): StatsItem[] {
     const counts = new Map<string, number>();
-    for (const e of filterEvents(q)) {
+    for (const e of filterEvents(q, source)) {
       let key: string | null;
       switch (q.group_by) {
         case 'type':
@@ -292,6 +294,23 @@ export function createMockApi(): GuardApi {
       cameras = cameras.filter((c) => c.camera_id !== id);
       return respond(undefined as void, 150, 300);
     },
+    probeSource: (source) => {
+      // мок проверки потока: адрес со словами fail/404 — ошибка, иначе 1280×720, 25 к/с, H.264
+      const uri = source.uri.trim();
+      const base = { width: null, height: null, fps: null, codec: null, first_frame_ms: null, preview_jpeg_b64: null };
+      if (!uri) return respond({ ...base, ok: false, error: 'адрес источника пуст', error_code: 'bad_uri' }, 100, 200);
+      if (/fail|404/i.test(uri)) {
+        const error = 'поток не открылся: поток не найден (RTSP 404): проверьте путь после адреса камеры';
+        return respond({ ...base, ok: false, error, error_code: 'open_failed' }, 600, 900);
+      }
+      const hls = /\.m3u8/i.test(uri);
+      return respond(
+        { ...base, ok: true, error: null, width: 1280, height: 720, fps: 25, codec: 'h264', first_frame_ms: hls ? 2400 : 640,
+          stream: hls ? 'hls' : source.type, hints: hls ? ['HLS идёт с задержкой в 1–3 сегмента (обычно 5–30 с)'] : [] },
+        500,
+        900,
+      );
+    },
     listRuleTypes: () => respond(RULE_TYPES),
     listEvents: (q) => {
       const filtered = filterEvents(q);
@@ -315,8 +334,9 @@ export function createMockApi(): GuardApi {
     getStats: (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) }),
     getAnalytics: (q) => {
       // Все поля вычисляются синхронно до respond: обновления не вклиниваются между ними.
+      const source = q.employee_id ? employees.forAnalytics(q.employee_id) : events;
       const aggregate = (group_by: StatsQuery['group_by'], filters: { status?: string; severity?: string } = {}) =>
-        statsItems({ ...q, group_by, ...filters });
+        statsItems({ ...q, group_by, ...filters }, source);
       return respond({
         types: aggregate('type'), cameras: aggregate('camera'), sites: aggregate('site'),
         days: aggregate('day'), weekdayHours: aggregate('weekday_hour'),
@@ -367,5 +387,6 @@ export function createMockApi(): GuardApi {
       clipUrl: () => null,
     },
     flywheel: flywheel.api,
+    employees,
   };
 }

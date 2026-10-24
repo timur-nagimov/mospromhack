@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import io
 import logging
+import math
 import sqlite3
 import threading
 import time
@@ -35,10 +36,12 @@ def _safe_status(value):
             else:
                 result[key] = _safe_status(item)
         return result
-    if isinstance(value, list):
+    if isinstance(value, (list, tuple)):  # source.frame_size — кортеж; конверт принимает только JSON-списки
         return [_safe_status(item) for item in value]
     if isinstance(value, str) and "://" in value:
         return "Details hidden"
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
     return value
 
 
@@ -51,7 +54,7 @@ class EdgeRunner:
         if publisher is None or telemetry_publisher is None:
             if not self.settings.rabbit_url:
                 raise ValueError("GUARD_RABBIT_URL is required")
-            config = RabbitConfig(self.settings.rabbit_url, self.settings.edge_id)
+            config = RabbitConfig(self.settings.rabbit_url, self.settings.edge_id, suffix=self.settings.rabbit_suffix)
             publisher = publisher if publisher is not None else RabbitPublisher(config)
             telemetry_publisher = telemetry_publisher if telemetry_publisher is not None else RabbitPublisher(config)
         self.publisher = publisher

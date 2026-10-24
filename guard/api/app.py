@@ -372,11 +372,16 @@ def analytics(
     request: Request,
     from_: str | None = Query(None, alias="from"),
     to: str | None = None,
+    employee_id: str | None = Query(None, min_length=1),
 ) -> dict[str, Any]:
     """Агрегаты выбранного периода из одного согласованного снимка журнала."""
-    return _engine(request).journal.analytics(
-        ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"),
-    )
+    from guard.employees import UnknownEmployee
+    try:
+        return _engine(request).journal.analytics(
+            ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"), employee_id=employee_id,
+        )
+    except UnknownEmployee as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.websocket("/ws/events")
@@ -445,9 +450,15 @@ async def _metrics_loop(engine: Any) -> None:
 
 def _create_engine(settings: Settings) -> Any:
     if settings.mode == "gateway":
+        if settings.config_sync:  # камеры меняются в UI шлюза и применяются на edge (docs/EDGE.md §8)
+            from guard.gateway.config_sync import ConfigSyncGatewayEngine
+            return ConfigSyncGatewayEngine(settings)
         from guard.gateway.engine import GatewayEngine
         return GatewayEngine(settings)
     if settings.mode == "edge":
+        if settings.config_sync:
+            from guard.edge.config_sync import ConfigSyncEdgeEngine
+            return ConfigSyncEdgeEngine(settings)
         from guard.edge.runner import EdgeEngine
         return EdgeEngine(settings)
     from guard.pipeline.engine import PipelineEngine
@@ -514,6 +525,10 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
     app.include_router(auth_router)
     app.include_router(users_router)
     app.include_router(audit_router)
+    from guard.api.streams import router as streams_router  # проверка потока, docs/STREAMS.md
+    app.include_router(streams_router)
+    from guard.api.employees import router as employees_router
+    app.include_router(employees_router)
     if settings.frontend_dist.is_dir():
         app.mount("/", SPAStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     return app

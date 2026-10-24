@@ -473,7 +473,11 @@ def build(args: argparse.Namespace, *, backend=None, publisher=None, telemetry_p
     if settings.transport in {"memory", "log"}:
         publisher = publisher if publisher is not None else EnvelopeMemoryPublisher(log_messages=settings.transport == "log")
         telemetry_publisher = telemetry_publisher if telemetry_publisher is not None else EnvelopeMemoryPublisher(log_messages=settings.transport == "log")
-    engine = EdgeEngine(settings, backend=backend, publisher=publisher, telemetry_publisher=telemetry_publisher)
+    engine_cls = EdgeEngine
+    if settings.config_sync:  # команды конфигурации камер от шлюза, оверлей рядом с файлом камер (docs/EDGE.md §8)
+        from guard.edge.config_sync import ConfigSyncEdgeEngine
+        engine_cls = ConfigSyncEdgeEngine
+    engine = engine_cls(settings, backend=backend, publisher=publisher, telemetry_publisher=telemetry_publisher)
     engine.edge_node_id = node_id
     engine.edge_ntp_servers = list(section.ntp_servers)
     if applied:

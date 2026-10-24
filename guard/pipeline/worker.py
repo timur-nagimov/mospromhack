@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import math
 import threading
 import time
 from dataclasses import dataclass, field
@@ -53,6 +54,46 @@ def object_detections(dets: dict[str, list[Detection]]) -> list[Detection]:
     от порядка правил. На камере только с det результат прежний.
     """
     return [d for model_id in sorted(dets) for d in dets[model_id] if d.cls in OBJECT_CLASSES]
+
+
+# Один и тот же человек у det и pose: рамки пересекаются по IoU или меньшая почти целиком внутри большей.
+POSE_FILL_IOU = 0.2
+POSE_FILL_COVER = 0.5
+
+
+def _valid_box(box) -> bool:
+    return len(box) == 4 and all(math.isfinite(v) for v in box) and box[2] > box[0] and box[3] > box[1]
+
+
+def _same_person(a, b) -> bool:
+    inter = max(0.0, min(a[2], b[2]) - max(a[0], b[0])) * max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+    if inter <= 0.0:
+        return False
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    return inter / (area_a + area_b - inter) >= POSE_FILL_IOU or inter / min(area_a, area_b) >= POSE_FILL_COVER
+
+
+def person_detections(dets: dict[str, list[Detection]], *, pose_fill: bool = False) -> list[Detection]:
+    """Люди для трекера: из det, а на камере без det — из pose.
+
+    pose_fill (GUARD_PERSON_POSE_FILL): к людям det добавляются люди pose, которых det не видит.
+    Лежачего человека YOLOv8n теряет урывками, а pose-модель находит (docs/QUALITY.md, «Отложенная
+    выборка падений»). Человек pose совпадает с человеком det, если IoU рамок не меньше POSE_FILL_IOU
+    или меньшая рамка не меньше чем на POSE_FILL_COVER внутри большей. Такого не добавляем:
+    один человек не должен давать двух треков. Рождение и продление трека решает трекер по conf.
+    """
+    if "det" not in dets:
+        return list(dets.get("pose", []))
+    people = [d for d in dets["det"] if d.cls in PERSON_CLASSES]
+    if not pose_fill:
+        return people
+    seen = [d.bbox for d in people if _valid_box(d.bbox)]
+    extra = [
+        d for d in dets.get("pose", [])
+        if d.cls in PERSON_CLASSES and _valid_box(d.bbox) and not any(_same_person(d.bbox, box) for box in seen)
+    ]
+    return people + extra
 
 
 @dataclass(slots=True)
@@ -276,10 +317,8 @@ class CameraWorker:
                 self.errors[f"infer:{model_id}"] = f"{type(exc).__name__}: {exc}"[:300]
                 self.metrics.errors += 1
         t0 = time.perf_counter()
-        if "det" in dets:
-            person_dets = [d for d in dets["det"] if d.cls in PERSON_CLASSES]
-        else:
-            person_dets = list(dets.get("pose", []))
+        pose_fill = bool(getattr(self.engine.settings, "person_pose_fill", False))
+        person_dets = person_detections(dets, pose_fill=pose_fill)
         people = self.person_tracker.update(person_dets, ts)
         objects = self.object_tracker.update(object_detections(dets), ts)
         tracking_ms = (time.perf_counter() - t0) * 1000

@@ -793,6 +793,23 @@ def test_cache_key_changes_with_model_configuration_or_weights(
     assert cache_models.detectors[-1].calls == 0
 
 
+def test_cache_key_covers_backend_output_decoding():
+    # Детекции зависят и от декодирования выходов бэкенда (raw-кодек TPU):
+    # после его правки кэш с прежними детекциями должен промахиваться.
+    from ml.eval import replay_cache
+
+    names = {
+        path.relative_to(path.parents[2]).as_posix()
+        for path in replay_cache._postprocess_paths()
+    }
+    assert {
+        "guard/pipeline/detector.py",
+        "guard/vision/yolo.py",
+        "guard/inference/linq_tpu.py",
+        "guard/inference/onnx_cpu.py",
+    } <= names
+
+
 def test_cache_read_miss_is_an_error_without_inference_or_report(
     bundle, cache_models, tmp_path, capsys
 ):
