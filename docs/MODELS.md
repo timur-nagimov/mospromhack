@@ -68,7 +68,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 `badmuriss` с головой P2 тяжелее в 2 раза. Специалист по каскам keremberke лучше по `no_helmet` при IoU 0.3, но это YOLOv8m только с двумя классами. Его можно держать как второй этап для голов: веса лежат в `models/weights/hardhat_keremberke_v8m.pt`, в ONNX не экспортированы.
 
-План Б (дообучение) не понадобился: годные веса нашлись.
+Для СИЗ план Б (дообучение) не понадобился: годные веса нашлись. Дообучение на открытых наборах сделано для погрузчика (S4): `forklift-v1`, раздел «Дообучение на открытых наборах (24.10)» ниже.
 
 #### Нормализация классов `ppe` (порядок = каналы ONNX)
 
@@ -153,7 +153,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 - **Экскаватор** (s4_03): `ppe` находит `excavator` на всех 14 кадрах (0.4–0.6). COCO `det` на этих кадрах выдаёт cup/boat/chair. Отдельная модель `vehicle` не нужна: брать `excavator`, `wheel_loader`, `dump_truck` из `ppe`, а `truck/car/bus` — из `det`.
   - Ошибка: жёлтый компрессор в углу кадра тоже помечается `excavator` (0.41–0.49).
-- **Погрузчик** (вторая половина s4_02, тёмный проём): не находит ни одна модель.
+- **Погрузчик** (вторая половина s4_02, тёмный проём): не находит ни одна готовая модель. Дообученная `forklift-v1` — в разделе «Погрузчик (S4)» ниже.
   - Проверен `keremberke/yolov8s-forklift-detection` (классы forklift, person; экспортирован в `models/forklift-640.onnx`): он называет «forklift» грузовик и экскаватор, а настоящий погрузчик в темноте пропускает. **В реестр не включён.**
 
 ### TPU: компиляция ppe и fire (24.10, стенд, `tpu/compile.py`)
@@ -172,10 +172,10 @@ tpu/compile.py --onnx ppe-640.onnx --name ppe_640 --cut-preset yolov8 --calib-di
 | для сравнения: yolov8n_pose_640 | да | — | 3.0 МБ | 0.997 / 0.729 / 1.000 |
 
 - Артефакты: `models/tpu/{ppe_640,fire_640}/` (`.tpu`, `manifest.json`, `*_tail.onnx`, `thresholds.json`, `compile.log`) и на стенде в `~/work/models/tpu/`.
-- **Сверка TPU с CPU по детекциям не выполнена.** Воркер читает программы только из `/auto/cache/hackathon10864/`, а копирование туда в этой сессии не было разрешено.
-- После копирования:
-  - раскомментировать `tpu_program` у `ppe` и `fire` в `configs/models.yaml`;
-  - запустить `tpu/yolo_check.py --model ppe_640 --onnx ~/work/models/ppe-640.onnx --images ~/work/models/ppe_check --n-images 43 --nc 14 --conf 0.4`. В `ppe_check` лежат 13 кадров samples и 30 eval_frames сценариев.
+- **Сверка TPU с CPU по детекциям выполнена** 24.10 в 09:50–10:20, после копирования программ в `/auto/cache/hackathon10864/` (воркер читает программы только оттуда). Подробно — `docs/LINQ_NOTES.md` §17:
+  - `tpu/yolo_check.py --model ppe_640 --onnx ~/work/models/ppe-640.onnx --images ~/work/models/ppe_check --n-images 43 --nc 14 --conf 0.4`. В `ppe_check` лежат 13 кадров samples и 30 eval_frames сценариев. При пороге TPU 0.35: R 0.909, P 0.950, Δconf TPU−CPU −0.049;
+  - fire — 28 кадров `fire_check` (13 с огнём, 15 без огня). У `fire_640` калибровка срезала уверенность до 0.42–0.57, поэтому собрана `fire_640s1` с порогом Sigmoid 1.0: при пороге TPU 0.35 R 0.867, P 0.929, Δconf −0.047;
+  - `tpu_program` у `ppe` (`ppe_640`) и `fire` (`fire_640s1`) в `configs/models.yaml` включены (`1018c62`).
 - Косинус по скорам (Sigmoid) у ppe в том же диапазоне, что у контрольных моделей, которые прошли сверку по детекциям. По координатам (DFL) ppe чуть хуже: 0.959 против 0.99. Как у yolov8n, ожидается Δconf около −0.05, поэтому для TPU порог `ppe` ставить 0.3–0.35.
 
 ### Калибровочный набор для квантования
@@ -245,7 +245,7 @@ python ml/eval_ppe.py --data <construction-ppe> --model имя=путь.pt ...  
 экскаваторами и автобусами keremberke даёт ложный forklift: precision 0.25.
 
 **Покадрово на роликах оценки** (2 к/с, «видит» — рамка forklift с conf ≥ 0.45, порог рождения трека;
-`ml/eval/frames_check.py`, `.orchestra/metrics/frames-forklift-v1-20261024-1503.json`):
+`ml/eval/frames_check.py`, `frames-forklift-v1-20261024-1503.json`):
 
 | ролик, интервал | forklift-v1 | keremberke |
 |---|---|---|
