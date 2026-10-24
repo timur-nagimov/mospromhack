@@ -1,6 +1,6 @@
 # Презентация «Зазеркалье»: чек-поинт 3 и защита
 
-Итоговый файл — **`zazerkalye.pdf`**: 16:9, 1920×1080, один слайд на страницу. 12 основных слайдов по структуре `docs/PITCH.md` и 4 резервных (Б1–Б4) для вопросов.
+Итоговый файл — **`zazerkalye.pdf`**: 16:9, 1920×1080, один слайд на страницу. 12 основных слайдов по структуре `docs/PITCH.md` и 5 резервных (Б1–Б5) для вопросов; Б5 — вопросы экспертам для чек-поинта 3.
 
 | Файл | Что внутри |
 |---|---|
@@ -45,6 +45,7 @@ tools/heavy.sh node deliverables/presentation/render.mjs --png /tmp/zz-preview
 | `pending.edge_latency.p50_s`, `p95_s` | 5 «Демо», 7 «LinQ TPU» | сквозная задержка «начало нарушения → карточка в UI» в режиме edge + gateway на стенде |
 | `pending.edge_mode` | 4 «Как это работает» | когда режим edge заработает вживую — `status: "done"`; текст берётся из `done_text` |
 | `scenarios.rows[].state`, `status`, `scenarios.as_of` | Б3 «Сценарии» | `live` — работает в живом конвейере, `wip` — в работе, `ready` — плагин и тесты готовы |
+| `questions.groups[].items` | Б5 «Вопросы экспертам» | убрать вопросы, на которые уже ответили, добавить новые |
 
 Пример для задержки:
 
@@ -75,5 +76,6 @@ tools/heavy.sh node deliverables/presentation/render.mjs --png /tmp/zz-preview
 | Б1–Б2 | `docs/BENCHMARKS.md` §1, §4 |
 | Б3 | `README.md` «Сценарии и статус» |
 | Б4 | `docs/CHECKPOINT_2.md` §4, `README.md` «Модели и лицензии» |
+| Б5 | `docs/CHECKPOINT_2.md` §5, `.orchestra/QUESTIONS_FOR_ORGS.md` |
 
 Скриншоты без префикса `real-` сняты в мок-режиме UI. Их цифры замерами не подаём.

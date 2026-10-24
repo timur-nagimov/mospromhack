@@ -248,6 +248,18 @@
     });
   }
 
+  /* ---- вопросы экспертам (резерв) ---- */
+  function questions(data) {
+    const host = document.getElementById("questions"), Q = data.questions;
+    if (!host || !Q) return;
+    let n = 0;
+    Q.groups.forEach(g => {
+      const ol = h("ol", { start: String(n + 1) });
+      g.items.forEach(t => { n += 1; ol.append(h("li", { "data-n": String(n) }, t)); });
+      host.append(h("div", { class: "panel" }, h("div", { class: "lbl" }, g.title), ol));
+    });
+  }
+
   function fail(msg) {
     document.body.dataset.error = msg;
     document.body.prepend(h("div", { class: "data-error" },
@@ -269,7 +281,7 @@
     }
     try {
       bind(data); ptags(data); statusLines(data); evalTiles(data); latency(data);
-      tpuChart(data); winChart(data); cams(data); scen(data);
+      tpuChart(data); winChart(data); cams(data); scen(data); questions(data);
     } catch (e) {
       fail("ошибка сборки: " + e.message);
     }

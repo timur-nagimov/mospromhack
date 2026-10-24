@@ -380,3 +380,9 @@ svg .base { stroke: rgba(160, 200, 215, .45); stroke-width: 1.5; }
 #b4 table.t td { font-size: 20px; padding: 14px 10px; line-height: 1.25; }
 #b4 .lic { padding: 18px 22px; font-size: 19px; line-height: 1.32; }
 #b4 .lic li { margin-bottom: 10px; }
+#b5 .qs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; align-items: start; }
+#b5 .qs .panel { padding: 22px 26px; }
+#b5 .qs .lbl { margin-bottom: 16px; }
+#b5 .qs ol { margin: 0; padding: 0; list-style: none; counter-reset: q; }
+#b5 .qs ol li { position: relative; padding-left: 52px; font-size: 23px; line-height: 1.32; margin-bottom: 24px; }
+#b5 .qs ol li::before { content: attr(data-n); position: absolute; left: 0; top: 0; width: 34px; height: 34px; display: grid; place-items: center; background: var(--lime); color: var(--lime-ink); font-family: var(--disp); font-weight: 700; font-size: 19px; }
