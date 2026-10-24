@@ -88,6 +88,8 @@ def make_settings(tmp: Path, **overrides: Any) -> Settings:
         clip_post_s=0.5,
     )
     params.update(overrides)
+    if params.get("mode") in {"edge", "gateway"} and "edge_id" not in overrides:
+        params["edge_id"] = "test-edge"
     return Settings(**params)
 
 

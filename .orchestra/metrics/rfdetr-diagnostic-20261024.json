@@ -1,0 +1,342 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "ticket_mode": "no_ticket",
+  "scope": "RF-DETR2XL real native/export/ORT/TopK diagnosis and no-inference cached rescore",
+  "status": "diagnostic_complete_primary_parity_failed",
+  "integration_source": "d657173e4b25532781a65de98de5874b523cce23",
+  "diagnostic_wall_s": 32.35979070793837,
+  "rescore_no_inference_performed": true,
+  "original_diagnostic_code_sha256": "7481fddee960453dcc1a1d02a81ada7a9febf9d16d49aff9fd5416f16a57a524",
+  "rescore_code_sha256": "0eb9ef317381de17225e0d7a0692b231b27dacc27a35900a26cde6fdffba0d57",
+  "element_gate": "numpy.isclose(float32, atol=1e-4, rtol=1e-3)",
+  "atol": 0.0001,
+  "rtol": 0.001,
+  "primary_parity_status": "failed",
+  "primary_gate_passed": false,
+  "primary_failure_unchanged": true,
+  "quality_evidence": false,
+  "target_tpu_verified": false,
+  "production_default_changed": false,
+  "learned_slots": {
+    "query_feat": {
+      "all_rows_equal": false,
+      "dtype": "float32",
+      "max": 4.991854190826416,
+      "max_deviation_from_first_row": 5.829935789108276,
+      "min": -4.57540225982666,
+      "sha256": "6f257920a49144289e001dc4a7a67a05c15bff826d8a435a7ce6c611bc59f0f2",
+      "shape": [
+        300,
+        512
+      ]
+    },
+    "refpoint_embed": {
+      "all_rows_equal": false,
+      "dtype": "float32",
+      "max": 0.16536381840705872,
+      "max_deviation_from_first_row": 0.1430155299603939,
+      "min": -0.10962031781673431,
+      "sha256": "7feddcce6e01e764f82a071cdc3a4e1d7d95713dd04a38f60d3761c054ec310b",
+      "shape": [
+        300,
+        4
+      ]
+    }
+  },
+  "samples": [
+    {
+      "name": "zeros",
+      "A_B_bitwise_equal": true,
+      "C_D_bitwise_equal": true,
+      "primary_output_sha_reproduced": {
+        "A": {
+          "dets": true,
+          "labels": true
+        },
+        "C": {
+          "dets": true,
+          "labels": true
+        }
+      },
+      "same_selected_anchor_set": true,
+      "same_ordered_slot_ids": 300,
+      "A_C_slot_aligned": {
+        "bitwise_equal": false,
+        "matched": true,
+        "outputs": {
+          "dets": {
+            "bitwise_equal": false,
+            "elements": 1200,
+            "failed_elements": 0,
+            "failed_queries": 0,
+            "matched": true,
+            "max_abs": 0.00027510523796081543,
+            "max_error_to_allowed_ratio": 0.5054510918734347,
+            "mean_abs": 4.361142394676184e-06,
+            "queries": 300
+          },
+          "labels": {
+            "bitwise_equal": false,
+            "elements": 27300,
+            "failed_elements": 0,
+            "failed_queries": 0,
+            "matched": true,
+            "max_abs": 0.0005335807800292969,
+            "max_error_to_allowed_ratio": 0.11019476683772096,
+            "mean_abs": 1.4331113724481493e-05,
+            "queries": 300
+          }
+        }
+      }
+    },
+    {
+      "name": "white",
+      "A_B_bitwise_equal": true,
+      "C_D_bitwise_equal": true,
+      "primary_output_sha_reproduced": {
+        "A": {
+          "dets": true,
+          "labels": true
+        },
+        "C": {
+          "dets": true,
+          "labels": true
+        }
+      },
+      "same_selected_anchor_set": true,
+      "same_ordered_slot_ids": 298,
+      "A_C_slot_aligned": {
+        "bitwise_equal": false,
+        "matched": false,
+        "outputs": {
+          "dets": {
+            "bitwise_equal": false,
+            "elements": 1200,
+            "failed_elements": 462,
+            "failed_queries": 215,
+            "matched": false,
+            "max_abs": 0.8273801803588867,
+            "max_error_to_allowed_ratio": 3142.018050819839,
+            "mean_abs": 0.005510068464548871,
+            "queries": 300
+          },
+          "labels": {
+            "bitwise_equal": false,
+            "elements": 27300,
+            "failed_elements": 5568,
+            "failed_queries": 175,
+            "matched": false,
+            "max_abs": 1.285440444946289,
+            "max_error_to_allowed_ratio": 242.97061138838652,
+            "mean_abs": 0.008759417105943728,
+            "queries": 300
+          }
+        }
+      }
+    },
+    {
+      "name": "seeded_rgb",
+      "A_B_bitwise_equal": true,
+      "C_D_bitwise_equal": true,
+      "primary_output_sha_reproduced": {
+        "A": {
+          "dets": true,
+          "labels": true
+        },
+        "C": {
+          "dets": true,
+          "labels": true
+        }
+      },
+      "same_selected_anchor_set": true,
+      "same_ordered_slot_ids": 298,
+      "A_C_slot_aligned": {
+        "bitwise_equal": false,
+        "matched": false,
+        "outputs": {
+          "dets": {
+            "bitwise_equal": false,
+            "elements": 1200,
+            "failed_elements": 477,
+            "failed_queries": 193,
+            "matched": false,
+            "max_abs": 0.3527781516313553,
+            "max_error_to_allowed_ratio": 2084.8275033557347,
+            "mean_abs": 0.003136753102686877,
+            "queries": 300
+          },
+          "labels": {
+            "bitwise_equal": false,
+            "elements": 27300,
+            "failed_elements": 2290,
+            "failed_queries": 72,
+            "matched": false,
+            "max_abs": 0.581082820892334,
+            "max_error_to_allowed_ratio": 79.28848020237987,
+            "mean_abs": 0.004403910619435293,
+            "queries": 300
+          }
+        }
+      }
+    },
+    {
+      "name": "real-0",
+      "A_B_bitwise_equal": true,
+      "C_D_bitwise_equal": true,
+      "primary_output_sha_reproduced": {
+        "A": {
+          "dets": true,
+          "labels": true
+        },
+        "C": {
+          "dets": true,
+          "labels": true
+        }
+      },
+      "same_selected_anchor_set": true,
+      "same_ordered_slot_ids": 300,
+      "A_C_slot_aligned": {
+        "bitwise_equal": false,
+        "matched": false,
+        "outputs": {
+          "dets": {
+            "bitwise_equal": false,
+            "elements": 1200,
+            "failed_elements": 5,
+            "failed_queries": 4,
+            "matched": false,
+            "max_abs": 0.0007350146770477295,
+            "max_error_to_allowed_ratio": 2.120238901320288,
+            "mean_abs": 1.2435977502415578e-05,
+            "queries": 300
+          },
+          "labels": {
+            "bitwise_equal": false,
+            "elements": 27300,
+            "failed_elements": 0,
+            "failed_queries": 0,
+            "matched": true,
+            "max_abs": 0.005333900451660156,
+            "max_error_to_allowed_ratio": 0.943386564621911,
+            "mean_abs": 8.054455776354333e-05,
+            "queries": 300
+          }
+        }
+      }
+    }
+  ],
+  "interpretation": "A/B and C/D exact for all four inputs. Equal selected sets do not establish harmless permutation because ranked anchors pair with unequal learned query/refpoint slots. TopK order differs on white/seeded; real-image box discrepancy remains. Task quality is not measured.",
+  "validation": {
+    "tests": 1828,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "wall_s": 35.097,
+    "warning_count": 1,
+    "review": "Source review approved float32 np.isclose mask and rescore source/tensor pin/readback; 53 focused tests also passed"
+  },
+  "references": [
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/comparisons.json",
+      "bytes": 531852,
+      "sha256": "ba977755df522e214817c5602acf33cec9f4317d1dc8d26e9b41392e1fabf118"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/diagnostic-source.py",
+      "bytes": 18714,
+      "sha256": "7481fddee960453dcc1a1d02a81ada7a9febf9d16d49aff9fd5416f16a57a524"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/exporter-helper-source.py",
+      "bytes": 26791,
+      "sha256": "17e287a5395346d8d09ad096406be78a73fa28ac490794d1bbe94811ede5948a"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/manifest.json",
+      "bytes": 648686,
+      "sha256": "8d1fb3e2d7686a8b9361dbba17119323d2653a5aee4aab6aa8c8a43598a28bd7"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/sample-00.npz",
+      "bytes": 407705,
+      "sha256": "150799ee6b9c4281589912b39279d3271c82b6aa5b21b851c656d2fd78d08f9f"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/sample-01.npz",
+      "bytes": 407446,
+      "sha256": "e81383fa392c2b96d5edda7a749bbc414b1ca4cfb8792dc8181fd94a02e786a3"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/sample-02.npz",
+      "bytes": 408463,
+      "sha256": "8cb4e73512db25a97ec184cc6f0b8ac3837c821cc7acf56cda1f398a8726dc4e"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/sample-03.npz",
+      "bytes": 410871,
+      "sha256": "0fa0e4c446b06d48435e43e1186852abb59805b6e7b458dc5b78b26f91270a1d"
+    },
+    {
+      "path": "tools/diagnose_rfdetr_candidate.py",
+      "bytes": 24421,
+      "sha256": "0eb9ef317381de17225e0d7a0692b231b27dacc27a35900a26cde6fdffba0d57"
+    },
+    {
+      "path": "tools/prepare_rfdetr_candidate.py",
+      "bytes": 26791,
+      "sha256": "17e287a5395346d8d09ad096406be78a73fa28ac490794d1bbe94811ede5948a"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-rescore/manifest.json",
+      "bytes": 578171,
+      "sha256": "3a1a91bce4a1dcffbf195e102f8340a1d6c185f77fe6d1d32a531af57627454f"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-rescore/comparisons.json",
+      "bytes": 519231,
+      "sha256": "34358f6c03abcbcc9f36600b1d949bdd4f39134d43145b9c7bf5883c31a55d90"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/debug-topk.onnx",
+      "bytes": 460466696,
+      "sha256": "c5bb60f32495627983f1fd8cf2c6b8a9f6cc9b72ed960d1bc6d6af3935f1e0ba"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/learned-slots.npz",
+      "bytes": 569319,
+      "sha256": "21262daaaa4e5ba96b1409e1e1e39ece8905a1be22b0a588b07f48ac3f66f179"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-parity-diagnostic/runtime.log",
+      "bytes": 864,
+      "sha256": "9d180104c359c3ce06d7088e4e17002682cb8cc6467a6755afeec0c23d04c85d"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-native-ort-parity/manifest.json",
+      "bytes": 4158,
+      "sha256": "b717ad1f6a0eac6e0b4affb548b9144fd8f2467125a5cf4f64fab806c4a2053f"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-native-ort-parity/comparisons.json",
+      "bytes": 3794,
+      "sha256": "d7ca3232dc8da8a28c0cb6170ee650d8eb9bab1cdb2a2a8abfdc3a2c670508f1"
+    },
+    {
+      "path": "data/model_research/rfdetr-2xl-native-ort-parity/exporter-source.py",
+      "bytes": 26773,
+      "sha256": "90baca5df80b43027ff28c0b05678b246ed1bbd361bfd73c594032f5d926eeea"
+    },
+    {
+      "path": "data/integration_validation_20261024/rfdetr-diagnostic.xml",
+      "bytes": 2681413,
+      "sha256": "8db2912c1fab311560ac79f5fc3a872b7d79acfbb77986d31a4f6458c8e31a7e"
+    },
+    {
+      "path": "data/integration_validation_20261024/rfdetr-diagnostic.log",
+      "bytes": 2611,
+      "sha256": "67664b5e73507b2060223a03d9ce91547c2e2155993c4248b2b5e22b6a7758a3"
+    }
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

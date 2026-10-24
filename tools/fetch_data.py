@@ -2,7 +2,7 @@
 """Воспроизводимая загрузка демо- и тестовых данных по манифесту tools/data_manifest.json.
 
 Что делает (по шагам, каждый можно включить отдельно):
-  download — скачивает исходники в <data>/raw/ (кэш, повторно не качает, сверяет sha256);
+  download — скачивает исходники в <data>/raw/ (кэш, повторно не качает, проверяет заданные sha256 и bytes);
   encode   — режет и перекодирует в <data>/videos/<name>: H.264, ≤1280×720, 25 fps, CRF 28, без звука,
              +faststart. Ролики из нескольких отрезков склеиваются в один файл (кадр 1280×720 с полями);
   labels   — пишет разметку <data>/labels/<stem>.json (формат ml/eval/events_eval.py) и <data>/durations.json;
@@ -28,6 +28,7 @@ import os
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 import urllib.parse
 import urllib.request
@@ -91,36 +92,69 @@ def download_ytdlp(out: Path, src: dict) -> None:
         sys.exit(f"yt-dlp не создал {out}")
 
 
+class SourceIntegrityError(ValueError):
+    """A source does not match its manifest identity; do not encode or publish it."""
+
+
+def verify_source(path: Path, sid: str, src: dict) -> tuple[str, int]:
+    """Check every supplied pin; legacy unpinned sources still require nonempty data."""
+    size = path.stat().st_size
+    want_size = src.get("bytes")
+    if want_size is not None and size != want_size:
+        raise SourceIntegrityError(f"{sid}: размер не совпадает с манифестом ({size} != {want_size} байт)")
+    if not size:
+        raise SourceIntegrityError(f"{sid}: пустой исходный файл {path}")
+    digest = sha256(path)
+    want_sha = src.get("sha256")
+    if want_sha and digest != want_sha:
+        raise SourceIntegrityError(f"{sid}: sha256 не совпадает с манифестом ({digest} != {want_sha})")
+    return digest, size
+
+
 def download(data: Path, sid: str, src: dict, retries: int = 3) -> Path:
+    if retries < 1:
+        raise ValueError("retries must be at least 1")
     out = raw_path(data, sid, src)
     out.parent.mkdir(parents=True, exist_ok=True)
-    if out.exists() and out.stat().st_size > 0:
+    if out.exists() and (out.stat().st_size > 0 or src.get("sha256") or src.get("bytes") is not None):
+        digest, size = verify_source(out, sid, src)
         status = "кэш"
     elif is_ytdlp(src):
         t0 = time.time()
-        download_ytdlp(out, src)
+        with tempfile.TemporaryDirectory(dir=out.parent, prefix=out.name + ".") as folder:
+            pending = Path(folder) / out.name
+            download_ytdlp(pending, src)
+            digest, size = verify_source(pending, sid, src)
+            pending.replace(out)
         status = f"скачан yt-dlp за {time.time() - t0:.0f} с"
     else:
         for attempt in range(1, retries + 1):
+            tmp = None
             try:
                 t0 = time.time()
                 req = urllib.request.Request(src["url"], headers={"User-Agent": UA})
-                tmp = out.with_suffix(out.suffix + ".part")
-                with urllib.request.urlopen(req, timeout=120) as r, tmp.open("wb") as f:
-                    shutil.copyfileobj(r, f, 1 << 20)
+                # The temporary file lives on the same filesystem. Only a
+                # complete, verified source may replace the published cache.
+                with tempfile.NamedTemporaryFile(dir=out.parent, prefix=out.name + ".", suffix=".part", delete=False) as f:
+                    tmp = Path(f.name)
+                    with urllib.request.urlopen(req, timeout=120) as r:
+                        shutil.copyfileobj(r, f, 1 << 20)
+                digest, size = verify_source(tmp, sid, src)
                 tmp.replace(out)
                 status = f"скачан за {time.time() - t0:.0f} с"
                 break
+            except SourceIntegrityError:
+                # A changed source is not a transient transport failure.
+                raise
             except Exception as e:  # noqa: BLE001
                 log(f"  ! {sid}: попытка {attempt}: {e}")
                 if attempt == retries:
                     raise
                 time.sleep(3 * attempt)
-    digest = sha256(out)
-    want = src.get("sha256")
-    if want and want != digest:
-        log(f"  ! {sid}: sha256 не совпадает с манифестом ({digest[:12]} != {want[:12]}) — источник изменился?")
-    log(f"  {sid}: {out.name} {out.stat().st_size / 1e6:.1f} МБ, {status}, sha256 {digest[:12]}")
+            finally:
+                if tmp is not None:
+                    tmp.unlink(missing_ok=True)
+    log(f"  {sid}: {out.name} {size / 1e6:.1f} МБ, {status}, sha256 {digest[:12]}")
     return out
 
 
@@ -131,6 +165,10 @@ def encode(data: Path, video: dict, manifest: dict, heavy: str | None, force: bo
     if out.exists() and not force:
         log(f"  {video['name']}: уже есть (--force для перекодирования)")
         return out
+    # --steps encode may run without download. Reject changed raw inputs
+    # before invoking ffmpeg, including forced re-encoding of an existing video.
+    for sid in dict.fromkeys(seg["source"] for seg in video["segments"]):
+        verify_source(raw_path(data, sid, manifest["sources"][sid]), sid, manifest["sources"][sid])
     w, h, fps = enc["width"], enc["height"], enc["fps"]
     segs = video["segments"]
     cmd = [ffmpeg_exe(), "-hide_banner", "-loglevel", "error", "-y"]

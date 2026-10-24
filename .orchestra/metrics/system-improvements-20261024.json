@@ -1,0 +1,332 @@
+{
+  "date": "2026-10-24",
+  "scope": "local system integration; one real async CPU camera; fake AMQP integration",
+  "base_commit": "24740b4",
+  "integration_branch": "feature/implementation-batch",
+  "tested_code_commit": "0ba66feea5ff9cde0e8ef63925a8cd78e8f7c3c2",
+  "features": {
+    "feature/pipeline-e2e": "cfaf4cf2aab10d4bad212e03402e89c607a9d22e",
+    "feature/edge-event-replication": "5e414349fb274ee8e8bfe5117ce112f687fca6cb",
+    "feature/edge-gateway-runtime": "a8a1d175b56b05c9491d51c780949881626d5c2f",
+    "feature/portable-model-assets": "89b661aef1e5bae8e7f8de6ca561fa7986e991e6"
+  },
+  "backend": {
+    "command": ".venv/bin/python -m pytest -q --junitxml=/private/tmp/mospromhack-system-final.xml",
+    "tests": 804,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 804,
+    "duration_s": 5.476,
+    "warnings": [
+      "Existing Starlette/httpx TestClient deprecation"
+    ]
+  },
+  "frontend": {
+    "changed_in_this_batch": false,
+    "previous_acceptance_report": "implementation-results.json",
+    "rerun_in_this_batch": false
+  },
+  "astra_review": {
+    "original_p2_findings_closed": 2,
+    "targeted_tests_passed": 8,
+    "findings": [
+      "capture timestamp and remaining TTL must govern preview freshness",
+      "transient outbox SQLite read failure must not terminate sender"
+    ],
+    "minor_followup": "Full successful batch must reset sender backoff; fixed at a8a1d17 with 101-event deterministic regression; included in final suite"
+  },
+  "doctor": {
+    "report": "offline-doctor-20261024-current.json",
+    "ok": 14,
+    "error": 0,
+    "warning": 0,
+    "skipped": 1,
+    "scope": "offline",
+    "required_models": [
+      "det"
+    ]
+  },
+  "inputs": {
+    "video_files_available": 3,
+    "video_files_first_frame_decoded": 3,
+    "video_files_real_inference_checked": 1,
+    "videos": [
+      {
+        "path": "data/videos/a3dev_worker_zone_detection/worker-zone-detection.mp4",
+        "bytes": 12596893,
+        "sha256": "b8b58b8100a81600bc42ee7ee082ced777b12a32a3619139ef289d27cbdcd284",
+        "source": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/worker-zone-detection.mp4",
+        "license": "CC BY 4.0",
+        "author": "Intel Corporation",
+        "opened": true,
+        "first_frame_decoded": true,
+        "frame_shape": [
+          1080,
+          1920,
+          3
+        ],
+        "fps": 59.94005994005994,
+        "frames": 4548.0,
+        "s1_real_inference": true
+      },
+      {
+        "path": "data/videos/a3dev_store_aisle_detection/store-aisle-detection.mp4",
+        "bytes": 9214573,
+        "sha256": "3526fee39cac70d6366471e4324a6d63b337c8f8ab99c015521bee0d60ed6e04",
+        "source": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/store-aisle-detection.mp4",
+        "license": "CC BY 4.0",
+        "author": "Intel Corporation",
+        "opened": true,
+        "first_frame_decoded": true,
+        "frame_shape": [
+          404,
+          720,
+          3
+        ],
+        "fps": 59.94005994005994,
+        "frames": 3921.0,
+        "s1_real_inference": false
+      },
+      {
+        "path": "data/videos/a3dev_people_detection/people-detection.mp4",
+        "bytes": 5482579,
+        "sha256": "18ffe8672d741e3e29c9d891d22c59d453720b086c25b35c88b393d55f92f693",
+        "source": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/people-detection.mp4",
+        "license": "CC BY 4.0",
+        "author": "Intel Corporation",
+        "opened": true,
+        "first_frame_decoded": true,
+        "frame_shape": [
+          432,
+          768,
+          3
+        ],
+        "fps": 12.0,
+        "frames": 596.0,
+        "s1_real_inference": false
+      }
+    ],
+    "onnx": {
+      "path": "models/yolov8n-640.onnx",
+      "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99",
+      "bytes": 12851095
+    },
+    "artifacts_tracked_in_git": false
+  },
+  "real_cpu_component_smoke": {
+    "report": "data/cpu_demo/smoke-20261024-final.json",
+    "source_window_s": 60,
+    "frames_sampled": 300,
+    "detections_total": 298,
+    "people_tracks_total": 261,
+    "frames_with_violations": 84,
+    "events_created": 2,
+    "events_closed": 3,
+    "journal_events": 2,
+    "wall_s": 18.986655125045218,
+    "processed_fps": 15.800571402609576,
+    "infer_ms_p50": 57.37639602739364,
+    "infer_ms_p95": 60.45153395389207,
+    "notes": "Synchronous video-time components; 3 close notifications for 2 IDs due cooldown reopen. No precision/recall or exact incident-boundary claim."
+  },
+  "real_async_cpu_smoke": {
+    "command": ".venv/bin/python -m tools.cpu_smoke --data-dir \"$PWD/data\" --models-dir \"$PWD/models\" --timeout 60 --json",
+    "status": "passed",
+    "wall_s": 23.740423417068087,
+    "timeout_s": 60,
+    "runtime_returncode": 0,
+    "report": "data/cpu_async/20261024T005619Z-b18f9328/report.json",
+    "report_sha256": "31f81e52f71a285cdf6f19cd2c842f98d30ee6516e0d24baa20647cec7c94663",
+    "denominators": {
+      "cameras_enabled": 1,
+      "models_required": 1,
+      "source_frames": 1379,
+      "frames_processed": 115,
+      "http_events_total": 1,
+      "ws_event_messages": 1,
+      "events_compared": 1,
+      "operator_updates_checked": 1,
+      "jpeg_responses_decoded": 2,
+      "clip_frames_decoded": 120
+    },
+    "event_id": "6413b35f24af4498bd27c463e521bfae",
+    "versions": {
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "opencv-python-headless": "4.11.0.86",
+      "onnxruntime": "1.31.0",
+      "fastapi": "0.162.0",
+      "starlette": "1.9.0",
+      "httpx": "0.28.1",
+      "imageio-ffmpeg": "0.6.0"
+    },
+    "jpeg": [
+      {
+        "name": "camera_frame",
+        "bytes": 191693,
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "sha256": "7892cc86e62b9b35701287d49534e5a8bac1dc13ac85ebae5ede1158419bfabb"
+      },
+      {
+        "name": "event_snapshot",
+        "bytes": 253215,
+        "shape": [
+          1080,
+          1920,
+          3
+        ],
+        "sha256": "10476e4bff0f1bec5b9e943b7ce3fe83d6ca57e6ba0e9069cc167a23225a0bfd"
+      }
+    ],
+    "clip": {
+      "bytes": 187495,
+      "frames_decoded": 120,
+      "fps": 9.99,
+      "codec": "h264",
+      "sha256": "33f908f02e7dadacea2536f7b25884dc251a3d6dda4769102231ab8d94e848db"
+    },
+    "metrics": {
+      "backend": "onnx-cpu",
+      "cameras": {
+        "cpu_demo_s1": {
+          "fps_in": 59.79,
+          "fps_processed": 4.85,
+          "lag_s": 0.077,
+          "timings_ms": {
+            "decode": {
+              "p50": 2.64,
+              "p95": 2.97
+            },
+            "preprocess": {
+              "p50": 1.79,
+              "p95": 2.18
+            },
+            "transfer": {
+              "p50": 0.0,
+              "p95": 0.0
+            },
+            "queue": {
+              "p50": 0.0,
+              "p95": 0.0
+            },
+            "infer": {
+              "p50": 65.82,
+              "p95": 68.59
+            },
+            "postprocess": {
+              "p50": 0.91,
+              "p95": 1.26
+            },
+            "tracking": {
+              "p50": 0.18,
+              "p95": 0.24
+            },
+            "rules": {
+              "p50": 0.01,
+              "p95": 0.03
+            },
+            "alert": {
+              "p50": 0.02,
+              "p95": 0.04
+            },
+            "total": {
+              "p50": 71.62,
+              "p95": 75.46
+            }
+          },
+          "frames_processed": 115,
+          "errors": 0
+        }
+      },
+      "inference": {
+        "backend": "onnx-cpu",
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "intra_op_threads": 2,
+        "models": {
+          "det": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 115
+              },
+              "infer": {
+                "p50": 65.82,
+                "p95": 68.59,
+                "n": 115
+              }
+            },
+            "fps": 4.84,
+            "calls": 115,
+            "items": 115,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          }
+        }
+      },
+      "media": {
+        "rings": {
+          "cpu_demo_s1": {
+            "frames": 120,
+            "span_s": 11.91,
+            "mb": 79.1,
+            "max_width": 640
+          }
+        },
+        "clips_written": 1,
+        "clip_errors": 0,
+        "pending": 0
+      }
+    },
+    "post_shutdown_sqlite_readback": {
+      "passed": true,
+      "sqlite_rows": 1,
+      "event_id_matches": true,
+      "operator_status": "confirmed",
+      "operator_note_matches": true,
+      "snapshot_and_clip_present": true,
+      "db_opened_readonly_after_shutdown": true
+    },
+    "all_checks_passed": true,
+    "not_verified": [
+      "TPU",
+      "RTSP",
+      "multi-camera behavior",
+      "detection quality benchmark",
+      "browser UI",
+      "live AMQP",
+      "exact clip-window alignment"
+    ]
+  },
+  "transport": {
+    "fake_broker_and_channel_tests": true,
+    "live_amqp_verified": false,
+    "tpu_exchange_untouched": true,
+    "gateway_inference_imports_blocked_in_test": true,
+    "event_delivery": "at-least-once with idempotent receipts",
+    "clips_transferred": false,
+    "retention_gc_implemented": false
+  },
+  "live_tpu_verified": false,
+  "quality_benchmark_completed": false,
+  "user_chose_local_work": true,
+  "pushed_to_github": false,
+  "main_unchanged": true,
+  "next": [
+    "Live local RabbitMQ two-process integration",
+    "Multi-camera and long-running CPU checks",
+    "Fixed dataset quality evaluation with FP/hour",
+    "PPE/fire artifacts and checks",
+    "Readiness, retention, remote config, clip transfer",
+    "TPU integration after stand access is resumed"
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

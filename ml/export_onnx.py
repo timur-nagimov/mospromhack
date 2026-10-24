@@ -4,7 +4,8 @@
 simplify (onnxslim), без NMS внутри — декод и NMS делаем сами.
 
 Примеры:
-    python ml/export_onnx.py --preset coco                # det и pose COCO
+    python ml/export_onnx.py --preset coco --model-id det  # только det 640
+    python ml/export_onnx.py --preset coco --model-id pose # только pose 640
     python ml/export_onnx.py --weights /abs/best.pt --imgsz 640 --out ppe-640.onnx --model-id ppe
 
 Рядом с ONNX пишется <model_id>.json: классы, вход, выходы, операторы, источник.
@@ -15,17 +16,16 @@ from __future__ import annotations
 import argparse
 import collections
 import hashlib
+import importlib.metadata
 import json
 import os
 import shutil
 import sys
 import time
+from collections.abc import Sequence
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MAIN_ROOT = Path("/Users/nagimov-timur/Desktop/mosprom")
-MODELS_DIR = Path(os.environ.get("GUARD_MODELS_DIR", MAIN_ROOT / "models"))
-WEIGHTS_DIR = MODELS_DIR / "weights"
 
 OPSET = 12
 
@@ -39,6 +39,37 @@ COCO_PRESET = [
     ("pose_n480", "yolov8n-pose.pt", 480, "yolov8n-pose-480.onnx", "pose"),
 ]
 
+OFFICIAL_WEIGHTS_BASE = "https://github.com/ultralytics/assets/releases/download/v8.3.0"
+
+
+def models_dir_default() -> Path:
+    """Current checkout by default; worktrees can explicitly share GUARD_MODELS_DIR."""
+    return Path(os.environ.get("GUARD_MODELS_DIR") or ROOT / "models").expanduser()
+
+
+def resolve_weights(weights: str | Path, models_dir: Path) -> Path:
+    """Existing paths are local; recognized preset names use the official cache."""
+    path = Path(weights).expanduser()
+    if path.is_file():
+        return path.resolve()
+    if not path.is_absolute() and str(path) in {item[1] for item in COCO_PRESET}:
+        return models_dir / "weights" / path
+    raise FileNotFoundError(f"weights file not found: {path}")
+
+
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("значение должно быть положительным")
+    return number
+
+
+def image_size(value: str) -> int:
+    number = positive_int(value)
+    if number % 32:
+        raise argparse.ArgumentTypeError("imgsz должен быть кратен 32, чтобы Ultralytics не изменил размер молча")
+    return number
+
 
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -48,12 +79,13 @@ def sha256(path: Path) -> str:
     return h.hexdigest()
 
 
-def inspect_onnx(path: Path) -> dict:
+def inspect_onnx(path: Path, threads: int = 2) -> dict:
     """Проверка требований и сводка по графу для риска компиляции под TPU."""
     import numpy as np
     import onnx
     import onnxruntime as ort
 
+    ort.disable_telemetry_events()
     m = onnx.load(str(path))
     onnx.checker.check_model(m)
     opset = {o.domain or "ai.onnx": o.version for o in m.opset_import}
@@ -76,7 +108,10 @@ def inspect_onnx(path: Path) -> dict:
     if "NonMaxSuppression" in ops:
         problems.append("NonMaxSuppression inside graph")
 
-    sess = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = threads
+    options.inter_op_num_threads = 1
+    sess = ort.InferenceSession(str(path), sess_options=options, providers=["CPUExecutionProvider"])
     inp = sess.get_inputs()[0]
     x = np.zeros(inp.shape, dtype=np.float32)
     outs = sess.run(None, {inp.name: x})
@@ -100,14 +135,37 @@ def export_one(
     source: str = "",
     license_: str = "",
     class_map: dict[str, str] | None = None,
+    *,
+    models_dir: str | Path | None = None,
+    threads: int = 2,
 ) -> dict:
-    from ultralytics import YOLO
+    directory = Path(models_dir).expanduser() if models_dir is not None else models_dir_default()
+    if not model_id or Path(model_id).name != model_id or model_id in {".", ".."}:
+        raise ValueError("model_id must be a nonempty filename component")
+    if Path(out_name).name != out_name or Path(out_name).suffix.lower() != ".onnx":
+        raise ValueError("out must be an ONNX filename inside models_dir")
+    if imgsz <= 0 or imgsz % 32 or threads <= 0:
+        raise ValueError("imgsz must be positive and divisible by 32; threads must be positive")
+    w = resolve_weights(weights, directory)
 
-    MODELS_DIR.mkdir(parents=True, exist_ok=True)
-    WEIGHTS_DIR.mkdir(parents=True, exist_ok=True)
-    w = Path(weights)
-    if not w.is_absolute():
-        w = WEIGHTS_DIR / w  # официальные веса Ultralytics скачиваются сюда автоматически
+    # Keep export sequential and CPU-only; importing this module or --help does
+    # not import torch/Ultralytics and does not create any directories.
+    os.environ["OMP_NUM_THREADS"] = str(threads)
+    os.environ["MKL_NUM_THREADS"] = str(threads)
+    import torch
+    import onnx
+    import onnxslim
+    from ultralytics import YOLO
+    from ultralytics.utils import torch_utils
+
+    # select_device("cpu") in the pinned Ultralytics exporter resets the torch
+    # thread count to its own constant; keep that reset within our CPU budget.
+    torch_utils.NUM_THREADS = threads
+    torch.set_num_threads(threads)
+    if torch.get_num_interop_threads() != threads:
+        torch.set_num_interop_threads(threads)
+    directory.mkdir(parents=True, exist_ok=True)
+    w.parent.mkdir(parents=True, exist_ok=True)
     model = YOLO(str(w))
     names = [model.names[i] for i in range(len(model.names))]
     t0 = time.time()
@@ -115,16 +173,20 @@ def export_one(
         format="onnx",
         imgsz=imgsz,
         opset=OPSET,
-        simplify=True,
+        # Ultralytics catches simplifier failures and still reports success.
+        # Run it explicitly below so incompatible deps fail visibly.
+        simplify=False,
         dynamic=False,
         batch=1,
         half=False,
         nms=False,
         device="cpu",
     )
-    dst = MODELS_DIR / out_name
-    shutil.move(str(exported), dst)
-    info = inspect_onnx(dst)
+    onnx.save(onnxslim.slim(str(exported)), str(exported))
+    dst = directory / out_name
+    if Path(exported).resolve() != dst.resolve():
+        shutil.move(str(exported), dst)
+    info = inspect_onnx(dst, threads=threads)
     classes = [class_map.get(n, n) for n in names] if class_map else names
     meta = {
         "model_id": model_id,
@@ -141,41 +203,66 @@ def export_one(
         "onnx_bytes": dst.stat().st_size,
         "source": source,
         "license": license_,
+        "export_device": "cpu",
+        "export_threads": threads,
+        "torch_threads": torch.get_num_threads(),
+        "torch_interop_threads": torch.get_num_interop_threads(),
+        "simplified_by": "onnxslim",
+        "versions": {package: importlib.metadata.version(package) for package in
+                     ("ultralytics", "torch", "torchvision", "onnx", "onnxslim", "onnxruntime", "numpy",
+                      "opencv-python", "opencv-python-headless")},
         "export_s": round(time.time() - t0, 1),
         **info,
     }
-    (MODELS_DIR / f"{model_id}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2))
+    (directory / f"{model_id}.json").write_text(json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     status = "OK" if not info["problems"] else f"PROBLEMS {info['problems']}"
     print(f"[{model_id}] {dst} {meta['onnx_bytes'] / 1e6:.1f} MB in={info['inputs']} out={info['outputs']} {status}")
     return meta
 
 
-def main() -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--preset", choices=["coco"], help="экспорт стандартного набора COCO det и pose")
+    ap.add_argument("--preset", choices=["coco"], help="набор COCO; --model-id выбирает одну модель, иначе все варианты последовательно")
     ap.add_argument("--weights", help="путь к .pt")
-    ap.add_argument("--imgsz", type=int, default=640)
+    ap.add_argument("--imgsz", type=image_size, help="размер для --weights (по умолчанию 640, кратный 32); у preset размер задан его model-id")
     ap.add_argument("--out", help="имя ONNX-файла в каталоге моделей")
-    ap.add_argument("--model-id")
-    ap.add_argument("--task", default="detect", choices=["detect", "pose"])
+    ap.add_argument("--model-id", help="ID модели; с --preset выбирает запись det, pose или другой ID пресета")
+    ap.add_argument("--models-dir", type=Path, default=models_dir_default(), help="каталог ONNX/metadata/weights; выше приоритетом, чем GUARD_MODELS_DIR")
+    ap.add_argument("--threads", type=positive_int, default=2, help="потоки torch и CPU-проверки ORT (по умолчанию 2)")
+    ap.add_argument("--task", choices=["detect", "pose"], help="задача для --weights (по умолчанию detect)")
     ap.add_argument("--source", default="")
     ap.add_argument("--license", default="")
     ap.add_argument("--class-map", help="JSON {исходный класс: нормализованный}")
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
 
     if args.preset == "coco":
-        for model_id, weights, imgsz, out, task in COCO_PRESET:
-            export_one(
+        if args.weights or args.out or args.class_map or args.source or args.license or args.imgsz is not None or args.task:
+            ap.error("--preset нельзя смешивать с --weights/--out/--class-map/--source/--license/--imgsz/--task")
+        selected = [item for item in COCO_PRESET if not args.model_id or item[0] == args.model_id]
+        if not selected:
+            ap.error("неизвестный --model-id для COCO: " + ", ".join(item[0] for item in COCO_PRESET))
+        failed = False
+        for model_id, weights, imgsz, out, task in selected:
+            meta = export_one(
                 model_id, weights, imgsz, out, task,
-                source="https://github.com/ultralytics/assets/releases (COCO)",
-                license_="AGPL-3.0 (Ultralytics)",
+                source=f"{OFFICIAL_WEIGHTS_BASE}/{weights}",
+                license_="AGPL-3.0 (Ultralytics); https://github.com/ultralytics/ultralytics/blob/main/LICENSE",
+                models_dir=args.models_dir, threads=args.threads,
             )
-        return 0
+            failed |= bool(meta["problems"])
+        return int(failed)
     if not (args.weights and args.out and args.model_id):
         ap.error("нужны --preset или --weights/--out/--model-id")
-    class_map = json.loads(args.class_map) if args.class_map else None
-    export_one(args.model_id, args.weights, args.imgsz, args.out, args.task, args.source, args.license, class_map)
-    return 0
+    try:
+        class_map = json.loads(args.class_map) if args.class_map else None
+    except json.JSONDecodeError:
+        ap.error("--class-map должен быть JSON объектом строка: строка")
+    if class_map is not None and (not isinstance(class_map, dict) or
+            any(not isinstance(key, str) or not isinstance(value, str) for key, value in class_map.items())):
+        ap.error("--class-map должен быть JSON объектом строка: строка")
+    meta = export_one(args.model_id, args.weights, args.imgsz or 640, args.out, args.task or "detect",
+                      args.source, args.license, class_map, models_dir=args.models_dir, threads=args.threads)
+    return int(bool(meta["problems"]))
 
 
 if __name__ == "__main__":

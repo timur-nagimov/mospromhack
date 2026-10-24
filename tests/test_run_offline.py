@@ -334,6 +334,51 @@ def test_sampling_uses_source_indices_without_duplicate_frames(
     assert result["durations"]["sample.avi"] == pytest.approx(3.0)
 
 
+def test_sparse_same_frame_reopen_remembers_only_final_open_state(bundle, monkeypatch):
+    """Synthetic observations exercise the real manager on decoded source time."""
+    from guard.contracts import Violation
+
+    rule = bundle.raw["scenarios"][0]["camera"]["rules"][0]
+    rule["min_duration_s"] = 0
+    rule["close_after_s"] = 1.5
+    bundle.raw["sample_fps"] = 1
+    _write_manifest(bundle)
+    scenario = offline.load_scenarios(bundle.path).scenarios[0]
+
+    class NoDetections:
+        def detect(self, frame, timings):
+            return []
+
+    class ObservedViolation:
+        required_models = frozenset({"det"})
+
+        def evaluate(self, context):
+            if context.frame_idx == 10:
+                return []
+            return [Violation(rule_id="intrusion", type="zone_intrusion", severity="high", zone_id="danger",
+                track_id=1 if context.frame_idx < 20 else 2, bbox=(40, 10, 80, 80))]
+
+    remembered = []
+    original = offline._remember
+
+    def remember(events, event):
+        remembered.append(event.model_copy(deep=True))
+        original(events, event)
+
+    monkeypatch.setattr(offline, "_remember", remember)
+    result = offline.run_video(scenario, {"det": NoDetections()}, rules=[ObservedViolation()], settings=offline.Settings.from_env())
+    assert len(result.events) == 1 and result.processing["frames_analyzed"] == 3
+    event = result.events[0]
+    assert event.track_id == 1 and event.ended_at is None
+    assert event.started_at == event.confirmed_at == scenario.t0
+    assert event.details["reopened_count"] == 1
+    assert event.details["active_duration_s"] == 0
+    assert len(remembered) == 3  # initial alarm, explicit reopen, EOF snapshot
+    assert all(snapshot.ended_at is None for snapshot in remembered)
+    assert remembered[1].details["reopened_count"] == 1
+    assert event.latency_ms == remembered[0].latency_ms
+
+
 def test_only_excludes_other_labels_and_does_not_open_other_video(
     bundle, fake_models, tmp_path
 ):

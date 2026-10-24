@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Проверка памяти перед запуском агента или тяжёлого процесса.
 # usage: tools/memguard.sh [min_free_percent=35]   exit 0 — можно запускать, 1 — нельзя.
-# 24.10: ноутбук (36 ГБ) падал по OOM от параллельных агентов, Codex, torch и сборок.
+# 24.10: ноутбук (36 ГБ) падал по OOM от одновременных ML-задач и сборок.
 min=${1:-35}
 free=$(memory_pressure 2>/dev/null | awk -F': ' '/System-wide memory free percentage/{gsub("%","",$2); print $2}')
 swap=$(sysctl -n vm.swapusage | awk '{gsub("M","",$6); print $6}')

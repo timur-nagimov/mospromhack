@@ -14,8 +14,6 @@ vendor/
 *.pt
 node_modules/
 frontend/dist/
-.orchestra/codex/logs/
-.orchestra/codex/running/
 .orchestra/ITERATION.lock
 .DS_Store
 .orchestra/heavy.lock/

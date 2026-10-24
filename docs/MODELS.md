@@ -1,4 +1,23 @@
-# Модели (A2 ml)
+# Модели: внешний TPU и воспроизводимые кандидаты
+
+Production-реестры `configs/models.yaml` и `configs/models.stand.yaml` содержат
+программы LinQ TPU. Запуск `scripts/run_tpu.sh` использует `linq-tpu`, RAW и
+запрещает неявный CPU fallback. CPU-голова декодирования после TPU допустима;
+полный ONNX CPU inference не подтверждает работу TPU.
+
+`configs/models.cpu-baseline.yaml` закрепляет прежний det/pose 640 для
+повторяемых CPU-экспериментов. Более тяжёлая модель выбирается по качеству, а
+её время на ноутбуке служит диагностикой. Перед включением кандидата нужны
+компиляция, сверка CPU/TPU по классам и оценка событий на frozen test.
+
+Ниже отдельно сохранены результаты upstream `e23ff4f` и локального CPU пакета.
+Это разные выборки и окружения; их цифры нельзя объединять в одну таблицу
+рейтинга. Упоминание доступных файлов относится к соответствующему запуску,
+а не ко всем checkout. Свежая проверка объединённого TPU runtime ещё не завершена.
+
+## Снимок upstream: модели и данные стенда
+
+## Модели
 
 Реестр — `configs/models.yaml` (ключ `models` — записи `ModelSpec`, ключ `meta` — источник, лицензия, маппинг классов).
 Файлы лежат в `models/` (`$GUARD_MODELS_DIR`, вне git): `<файл>.onnx` и `<model_id>.json` (классы, вход/выход, операторы, sha256, источник).
@@ -9,7 +28,7 @@
 - выход detect `(1, 4 + nc, N)`: cx, cy, w, h в пикселях входа и sigmoid-скоры классов; выход pose `(1, 56, N)` — плюс 17 точек COCO (x, y, conf);
 - N = 8400 (640), 4725 (480), 3549 (416).
 
-## Таблица моделей
+### Таблица моделей
 
 CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолчанию, медиана p50 по 11 кадрам (каждый — 20 прогонов, только `session.run`; препроцесс около 2 мс, декод и NMS меньше 1 мс).
 
@@ -26,7 +45,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 Телефон (S6) — класс COCO `cell phone` в `det`. Техника (S4) — COCO `car/truck/bus` в `det`, плюс `excavator/wheel_loader/dump_truck` в `ppe`. Погрузчика в COCO нет: `det` называет его `truck` или `bus`.
 
-## СИЗ: выбор модели
+### СИЗ: выбор модели
 
 Кандидаты: все YOLOv8-детекторы СИЗ с HF, у которых скачиваются веса. Оценка — `ml/eval_ppe.py` на **Ultralytics Construction-PPE** (val + test, 284 кадра). На этих кадрах, судя по карточкам, не обучался ни один кандидат. Метрика — AP50 (COCO, 101 точка) по нормализованным классам. Для `no_helmet` AP считается и при IoU 0.3: в этом наборе рамка `no_helmet` нарисована по лицу, а модели рисуют голову. Прогон на CPU.
 
@@ -51,7 +70,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 План Б (дообучение) не понадобился: годные веса нашлись.
 
-### Нормализация классов `ppe` (порядок = каналы ONNX)
+#### Нормализация классов `ppe` (порядок = каналы ONNX)
 
 | id | исходный | нормализованный | использовать |
 |---|---|---|---|
@@ -72,7 +91,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 Респиратора нет: класса `respirator` у модели нет, `no-mask` не обучен.
 
-## Качество на тестовых кадрах (просмотрено глазами)
+### Качество на тестовых кадрах (просмотрено глазами)
 
 Кадры: `data/images/samples/` (13 шт., источники и лицензии — в `SOURCES.md` там же). Визуализации: `data/media/ml_checks/<model_id>__<кадр>.jpg`, сводка — `summary.json`.
 
@@ -102,7 +121,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 
 Сверка ONNX с эталоном: на кадре 02 `ml/check_onnx.py` (ONNX + `ml/yolo_decode.py`) и ultralytics на `.pt` дают одинаковые 17 детекций с теми же рамками и скорами. На кадре 07 1280×720 есть мелкие расхождения: ultralytics на `.pt` работает с прямоугольным входом 640×384, а ONNX — со статическим квадратом 640×640.
 
-## S2: СИЗ на кадрах сценария (24.10, кадры A5)
+### S2: СИЗ на кадрах сценария (24.10, кадры сценариев)
 
 Проверено на `data/images/s2` (s2_01, s2_02 — 48 кадров) и `data/images/s2_ppe` (43 кадра); визуализации — в `mosprom-heavy.noindex/a2_work/s2/`.
 - **s2_02** (склад, четверо, у троих нет ни каски, ни жилета): все 4 человека найдены почти на каждом кадре.
@@ -115,7 +134,7 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 - В `s2_ppe` изредка срабатывает `no_goggles` — правило S2 его не использует.
 - Для S2 этого достаточно при условии, что подтверждение идёт по треку (`min_duration_s`, `min_ratio`). Одиночные пропуски `no_helmet` правило переживёт.
 
-## S7: огонь и курение (24.10, кадры A5)
+### S7: огонь и курение (24.10, кадры сценариев)
 
 - **s7_01** (курение в помещении, огня нет), 35 кадров `data/images/s7`:
   - при пороге 0.4 ложных `fire` нет: максимум 0.31, это оранжевые окна;
@@ -130,14 +149,14 @@ CPU p50 — onnxruntime 1.31 CPU, Apple M3 Pro, потоки ORT по умолч
 - **На защите** показывать S7 только на ролике с хорошо видимым пламенем. Курение как сценарий не заявлять: нужен отдельный детектор сигареты, например `Beehzod/smoke_cigarette-detection*` — это YOLO11, не проверено.
 - Альтернатива `mfranzon/fire-smoke-yolov8` (ранний бытовой огонь, в обучении есть сигареты) не проверена: чекпойнт сохранён через `dill`, на это не хватило времени.
 
-## S4: техника вне COCO (24.10, кадры A5)
+### S4: техника вне COCO (24.10, кадры сценариев)
 
 - **Экскаватор** (s4_03): `ppe` находит `excavator` на всех 14 кадрах (0.4–0.6). COCO `det` на этих кадрах выдаёт cup/boat/chair. Отдельная модель `vehicle` не нужна: брать `excavator`, `wheel_loader`, `dump_truck` из `ppe`, а `truck/car/bus` — из `det`.
   - Ошибка: жёлтый компрессор в углу кадра тоже помечается `excavator` (0.41–0.49).
 - **Погрузчик** (вторая половина s4_02, тёмный проём): не находит ни одна модель.
   - Проверен `keremberke/yolov8s-forklift-detection` (классы forklift, person; экспортирован в `models/forklift-640.onnx`): он называет «forklift» грузовик и экскаватор, а настоящий погрузчик в темноте пропускает. **В реестр не включён.**
 
-## TPU: компиляция ppe и fire (24.10, стенд, `tpu/compile.py`)
+### TPU: компиляция ppe и fire (24.10, стенд, `tpu/compile.py`)
 
 Команда:
 ```
@@ -149,17 +168,17 @@ tpu/compile.py --onnx ppe-640.onnx --name ppe_640 --cut-preset yolov8 --calib-di
 |---|---|---|---|---|
 | ppe_640 | да | 149 с | 9.8 МБ | 0.959 / 0.816 / 0.998 |
 | fire_640 | да | 107 с | 2.8 МБ | 0.988 / 0.820 / 0.999 |
-| для сравнения: yolov8n_480_ft (A1) | да | — | 2.9 МБ | 0.990 / 0.845 / 0.999 |
-| для сравнения: yolov8n_pose_640 (A1) | да | — | 3.0 МБ | 0.997 / 0.729 / 1.000 |
+| для сравнения: yolov8n_480_ft | да | — | 2.9 МБ | 0.990 / 0.845 / 0.999 |
+| для сравнения: yolov8n_pose_640 | да | — | 3.0 МБ | 0.997 / 0.729 / 1.000 |
 
 - Артефакты: `models/tpu/{ppe_640,fire_640}/` (`.tpu`, `manifest.json`, `*_tail.onnx`, `thresholds.json`, `compile.log`) и на стенде в `~/work/models/tpu/`.
 - **Сверка TPU с CPU по детекциям не выполнена.** Воркер читает программы только из `/auto/cache/hackathon10864/`, а копирование туда в этой сессии не было разрешено.
 - После копирования:
   - раскомментировать `tpu_program` у `ppe` и `fire` в `configs/models.yaml`;
-  - запустить `tpu/yolo_check.py --model ppe_640 --onnx ~/work/models/ppe-640.onnx --images ~/work/models/ppe_check --n-images 43 --nc 14 --conf 0.4`. В `ppe_check` лежат 13 кадров samples и 30 eval_frames от A5.
-- Косинус по скорам (Sigmoid) у ppe в том же диапазоне, что у моделей A1, которые прошли сверку по детекциям. По координатам (DFL) ppe чуть хуже: 0.959 против 0.99. Как у yolov8n, ожидается Δconf около −0.05, поэтому для TPU порог `ppe` ставить 0.3–0.35.
+  - запустить `tpu/yolo_check.py --model ppe_640 --onnx ~/work/models/ppe-640.onnx --images ~/work/models/ppe_check --n-images 43 --nc 14 --conf 0.4`. В `ppe_check` лежат 13 кадров samples и 30 eval_frames сценариев.
+- Косинус по скорам (Sigmoid) у ppe в том же диапазоне, что у контрольных моделей, которые прошли сверку по детекциям. По координатам (DFL) ppe чуть хуже: 0.959 против 0.99. Как у yolov8n, ожидается Δconf около −0.05, поэтому для TPU порог `ppe` ставить 0.3–0.35.
 
-## Калибровочный набор для квантования
+### Калибровочный набор для квантования
 
 `data/calib/` — 200 JPEG, `manifest.csv` (файл, тематика, источник, исходное имя, лицензия). Сборка: `python ml/build_calib.py --work <каталог со скачанными наборами>`, отбор детерминирован (seed 12), тестовые кадры исключены.
 
@@ -174,17 +193,17 @@ tpu/compile.py --onnx ppe-640.onnx --name ppe_640 --cut-preset yolov8 --calib-di
 - В SH17 и forklift попадаются офисы, лаборатории и рисунки погрузчиков. Для диапазонов активаций это терпимо, но доменных кадров камер лучше добавить больше.
 - Для `fire` стоит отдельный калибровочный поднабор с огнём и дымом: на заводских кадрах ветка огня почти не активируется.
 
-## Риски компиляции под LinQ TPU
+### Риски компиляции под LinQ TPU
 
 Операторы во всех графах одинаковые (detect: 232–234 узла, pose: 268): Conv, Mul + Sigmoid (SiLU), Add, Concat, Split, Slice, MaxPool (SPPF), Resize (nearest, ×2), Reshape, Transpose, Softmax (DFL), Sub, Div.
 
-- **Голова декодирования** (Reshape → Transpose → Softmax по 16 бинам DFL → Conv 1×1 → Sub/Add/Div с якорями → Concat) плохо квантуется в int8: координаты в пикселях до 640 и скоры 0..1 оказываются в одном тензоре. Рекомендация — резать граф до головы (у A1 это `tpu/compile.py --cut-preset yolov8`), DFL и декод делать на CPU.
+- **Голова декодирования** (Reshape → Transpose → Softmax по 16 бинам DFL → Conv 1×1 → Sub/Add/Div с якорями → Concat) плохо квантуется в int8: координаты в пикселях до 640 и скоры 0..1 оказываются в одном тензоре. Рекомендация — резать граф до головы (`tpu/compile.py --cut-preset yolov8`), DFL и декод делать на CPU.
 - **Resize** (nearest, scale 2) и **Split** — проверить поддержку в SDK. Если не поддерживаются, Split заменяется на Slice, Resize — на ConvTranspose или ручной upsample.
 - **SiLU** в виде Sigmoid + Mul — 57–66 пар на граф. Если в SDK нет слияния, это узкое место по скорости.
 - **ppe и det_s640** (YOLOv8s, 28 GFLOPs) примерно в 3 раза тяжелее n-моделей. Если на TPU не уложимся по FPS — `ppe` на 480 или раз в N кадров только на кропах людей.
 - Скоры классов `no_*` редкие и низкие (0.4–0.6). Квантование может сдвинуть их сильнее, чем `person`, поэтому сверку CPU fp32 и TPU int8 нужно делать по каждому классу, а не только по рамкам людей.
 
-## Как проверить
+### Как проверить
 
 ```bash
 python ml/check_onnx.py --model det --image data/images/samples/09_cctv_warehouse_workers_ppe.jpg -v
@@ -196,11 +215,11 @@ python ml/eval_ppe.py --data <construction-ppe> --model имя=путь.pt ...  
 
 Безопасность весов: все скачанные `.pt` до загрузки в torch проверены тем же статическим сканером, что использует HF (0 опасных глобалов).
 
-## Дообучение на открытых наборах (24.10)
+### Дообучение на открытых наборах (24.10)
 
 Источники и состав наборов — `docs/DATASETS.md`, карточки версий с метриками — `ml/model_cards/`.
 
-### Погрузчик (S4)
+#### Погрузчик (S4)
 
 **forklift-v1** — первый оборот маховика на открытых данных (карточка `ml/model_cards/forklift-v1.json`).
 - YOLOv8n COCO (`models/weights/yolov8n.pt`) дообучен на `forklift-ds-v1` (`docs/DATASETS.md`), классы
@@ -254,7 +273,7 @@ python ml/eval_ppe.py --data <construction-ppe> --model имя=путь.pt ...  
 
 Гейт (`ml/flywheel/gate.py`, правило контракта «не хуже»): **promote** — recall, precision, ложные в час и дубли
 не хуже базы. mAP базы не применим: в det нет класса forklift. Выигрыша в событиях нет. Поэтому включение
-на стенде (+1 модель на камере S4) оставлено решению оркестратора. Сборка под TPU — следующий шаг
+на стенде (+1 модель на камере S4) требует отдельного решения о включении. Сборка под TPU — следующий шаг
 (`ml/flywheel/deploy.py`).
 
 Что поможет S4 дальше:
@@ -263,14 +282,90 @@ python ml/eval_ppe.py --data <construction-ppe> --model имя=путь.pt ...  
 - данные маховика с камер склада: сэмплы `uncertain` и `flicker` по классу forklift;
 - событие 32.0–34.3 с ограничено правилом (0.5 высоты человека в плоскости кадра), а не детектором.
 
-### Лежащий человек (S3)
+#### Лежащий человек (S3)
 
 _Раздел заполняет ds-falls._
 
-### Сигарета (S7)
+#### Сигарета (S7)
 
 _Раздел заполняет ds-smoking._
 
-### СИЗ (S2): SH17 и Construction-PPE
+#### СИЗ (S2): SH17 и Construction-PPE
 
 _Раздел заполняет ds-ppe._
+
+## Локальный CPU пакет: отдельный протокол
+
+## Подготовка моделей для локального CPU запуска
+
+`ml/export_onnx.py` и `ml/registry.py` используют каталог `models/` текущего checkout. Для общих артефактов между worktree задаётся `GUARD_MODELS_DIR`; `--models-dir` экспортера имеет приоритет. Чужих абсолютных путей и fallback в другой checkout больше нет. Импорт экспортера, `--help` и чтение реестра не загружают PyTorch/Ultralytics.
+
+### Экспорт одного официального детектора
+
+Из корня checkout с активированным Python 3.11 окружением:
+
+```bash
+uv pip install --python .venv/bin/python --requirements pyproject.toml --extra ml
+export GUARD_MODELS_DIR="${GUARD_MODELS_DIR:-$PWD/models}"
+export GUARD_DATA_DIR="${GUARD_DATA_DIR:-$PWD/data}"
+export MPLCONFIGDIR="$GUARD_DATA_DIR/cache/matplotlib"
+export YOLO_CONFIG_DIR="$GUARD_DATA_DIR/cache/ultralytics"
+mkdir -p "$GUARD_MODELS_DIR/weights" "$MPLCONFIGDIR" "$YOLO_CONFIG_DIR/Ultralytics"
+curl --fail --location --output "$GUARD_MODELS_DIR/weights/yolov8n.pt" \
+  https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt
+python ml/export_onnx.py --preset coco --model-id det --models-dir "$GUARD_MODELS_DIR" --threads 2
+```
+
+`--model-id pose` экспортирует только pose 640. Другие ID пресета: `det_n480`, `det_n416`, `det_s640`, `pose_n480`. Вызов `--preset coco` без ID сохраняет прежнее поведение: все шесть вариантов последовательно. `--imgsz` и `--task` относятся к пользовательским весам; размер и задача пресета определяются его ID.
+
+```bash
+python ml/export_onnx.py --weights /path/to/trusted/best.pt --model-id ppe \
+  --out ppe-640.onnx --imgsz 640 --models-dir "$GUARD_MODELS_DIR"
+```
+
+Существующий относительный путь к весам разрешается от текущего каталога. Узнаваемое имя отсутствующих официальных весов использует кеш `<models-dir>/weights/`; неизвестный отсутствующий файл вызывает ошибку до загрузки ML runtime. `--out` — имя `.onnx` внутри каталога моделей. Для COCO использованы [официальные pretrained YOLOv8n weights](https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8n.pt) и [YOLOv8s weights](https://github.com/ultralytics/assets/releases/download/v8.3.0/yolov8s.pt); сторонний PPE-кандидат загружен непосредственно в ONNX. Сторонние pickle не загружались.
+
+Экспорт CPU: opset 12, FP32, статический batch 1, без NMS внутри графа; letterbox, декод и NMS выполняет runtime. После экспорта обязательно вызывается `onnxslim`, затем ONNX checker и один реальный ORT inference на нулевом входе. Ошибка simplifier видна вызывающему коду. Сам Ultralytics способен проглотить такую ошибку и вывести `export success`, поэтому его встроенный simplify отключён. Найденная несовместимость `onnxslim 0.1.71` с `onnx 1.23.2` устранена фиксацией `onnxslim 0.1.98`.
+
+PyTorch intra/inter-op ограничены `--threads` (по умолчанию 2); внутренний сброс Ultralytics `select_device("cpu")` тоже учитывает этот лимит. Проверка ORT использует два intra-op потока и один inter-op. Экспорт идёт последовательно; TPU SDK, компиляция, GPU/MPS и обучение не запускаются.
+
+### Проверенный артефакт 24.10.2026
+
+Подготовлен `models/yolov8n-640.onnx` и `models/det.json`, исходные веса — `models/weights/yolov8n.pt`. Файлы находятся вне git. Для CPU S1 runtime достаточно `det` закреплённого `configs/models.cpu-baseline.yaml`; `pose` не требуется текущим трём правилам S1 и не экспортировалась.
+
+| Свойство | Результат |
+|---|---|
+| Платформа экспорта | macOS arm64, Python 3.11.16, CPU |
+| Ultralytics / torch / torchvision | 8.3.221 / 2.8.0 / 0.23.0 |
+| ONNX / onnxslim / ORT | 1.23.2 / 0.1.98 / 1.31.0 |
+| NumPy / OpenCV | 2.4.6 / 4.11.0.86 |
+| torch intra-op / inter-op | 2 / 2 |
+| ONNX размер / узлы | 12 851 095 байт / 234 |
+| Вход → выход | `[1, 3, 640, 640]` → `[1, 84, 8400]` |
+| Классы | 80 COCO, включая `person`; в `det.json` |
+| Проверка | ONNX checker и ORT успешны; `problems=[]` |
+| SHA256 исходных weights | `f59b3d833e2ff32e194b5bb8e08d211dc7c5bdf144b90d2c8412c47ccfc83b36` |
+| SHA256 данного ONNX | `aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99` |
+
+Основные зависимости экспортного окружения зафиксированы в optional-группе `ml`; версии, источник, лицензия, классы, граф и SHA256 записываются в `<model_id>.json`. Это фиксация проверенного основного стека, не полный lock транзитивных зависимостей. Повторный экспорт может менять ONNX SHA256 из-за метаданных Ultralytics; хеш выше относится к конкретному подготовленному файлу.
+
+Модель и Ultralytics: [AGPL-3.0, исходный LICENSE версии 8.3.221](https://github.com/ultralytics/ultralytics/blob/v8.3.221/LICENSE). Поддерживаемая модель и формат экспорта описаны в [YOLOv8](https://docs.ultralytics.com/models/yolov8/) и [Export](https://docs.ultralytics.com/modes/export/). Экспорт подтверждает формат и работоспособность CPU inference; совместимость с TPU и качество на промышленном потоке не измерялись.
+
+Реальное видео, отдельный demo-конфиг и результаты S1 с SQLite readback описаны в [DATA.md](DATA.md).
+
+### Модельный пакет 24.10.2026
+
+YOLOv8s-640 экспортирован отдельно в `models/candidates/yolov8s-640/` с
+canonical ролью `det`; ONNX SHA256
+`ddac89c188b95f774e40c0f76b40a48e3ea3752059d95f87acaccedc2009a0dd`,
+44 869 889 байт. Парный S1 дал одинаковые 3 TP/1 FN/1 duplicate при стоимости
+video-loop в 2.71 раза выше. На 141 размеченном Construction-PPE test image
+person AP50 n/s составила 0.757/0.727. По этим проверкам baseline n сохраняется.
+Команды и точный протокол — [MODEL_COMPARISON.md](MODEL_COMPARISON.md).
+
+Экспериментальная opt-in роль `ppe` подготовлена в
+`models/candidates/buildvision-hazards-v0.3/`. Она поддерживает helmet/vest и
+явные negative классы, но `no_helmet` recall всего 0.20 при IoU 0.5/conf 0.35;
+качество `no_vest` не измерено, respirator не поддерживается. Она не включена
+по умолчанию. Источник и mapping — [PPE_MODEL_CANDIDATE.md](PPE_MODEL_CANDIDATE.md),
+все результаты и следующие шаги — [MODEL_RESEARCH_20261024.md](MODEL_RESEARCH_20261024.md).

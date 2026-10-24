@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "manifest": "tools/data_manifest.json",
+  "model_registry": "configs/models.cpu-baseline.yaml",
+  "model_id": "det",
+  "duration_s": 60.0,
+  "sample_fps": 5.0,
+  "threads": 2,
+  "tol_s": 2.0,
+  "tracker": {
+    "high_thresh": 0.4,
+    "low_thresh": 0.1,
+    "new_track_thresh": 0.45,
+    "match_iou": 0.25,
+    "track_buffer_s": 3.0,
+    "min_hits": 2
+  },
+  "rule": {
+    "type": "zone_intrusion",
+    "params": {"min_conf": 0.35, "min_box_h_px": 40},
+    "min_duration_s": 2.0,
+    "min_ratio": 0.7,
+    "close_after_s": 3.0,
+    "cooldown_s": 30.0,
+    "severity": "high"
+  },
+  "source_files": {
+    "intel_worker_zone": {
+      "path": "videos/a3dev_worker_zone_detection/worker-zone-detection.mp4",
+      "sha256": "b8b58b8100a81600bc42ee7ee082ced777b12a32a3619139ef289d27cbdcd284"
+    },
+    "intel_store_aisle": {
+      "path": "videos/a3dev_store_aisle_detection/store-aisle-detection.mp4",
+      "sha256": "3526fee39cac70d6366471e4324a6d63b337c8f8ab99c015521bee0d60ed6e04"
+    }
+  }
+}

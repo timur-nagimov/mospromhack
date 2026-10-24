@@ -24,6 +24,7 @@ import numpy as np
 
 from guard.contracts import ModelSpec
 from guard.inference.base import BackendStats, InferenceBackend, resolve_model_path
+from guard.pipeline.settings import find_dotenv, project_root
 
 log = logging.getLogger(__name__)
 
@@ -33,18 +34,22 @@ URI_HEADER = "uri"
 ROUTING_KEYS_HEADER = "response_routing_keys"
 MESSAGE_ID_HEADER = "tpu_pycloud_message_id"
 
-ROOT = Path(os.environ.get("GUARD_ROOT", "/Users/nagimov-timur/Desktop/mosprom"))
+ROOT = project_root()
 
 
 def _dotenv() -> dict[str, str]:
     env: dict[str, str] = {}
-    p = ROOT / ".env"
+    p = find_dotenv()
+    if p is None:
+        return env
     try:
         for line in p.read_text(encoding="utf-8").splitlines():
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
                 k, v = line.split("=", 1)
-                env[k.strip()] = v.strip().strip('"').strip("'")
+                k = k.strip().removeprefix("export ").strip()
+                if k.startswith("LINQ_") or k == "JUPYTER_LOGIN":
+                    env[k] = v.strip().strip('"').strip("'")
     except OSError:
         pass
     return env
@@ -352,7 +357,7 @@ def _find_manifest(spec: ModelSpec, models_dir: Path | None, local_program: Path
     cands: list[Path] = []
     if local_program is not None:
         cands.append(local_program.parent / "manifest.json")
-    base = models_dir or Path(os.environ.get("GUARD_MODELS_DIR", ROOT / "models"))
+    base = models_dir or Path(os.environ.get("GUARD_MODELS_DIR") or project_root() / "models").expanduser()
     cands.append(base / "tpu" / spec.model_id / "manifest.json")
     if spec.tpu_program:
         stem = Path(spec.tpu_program.split("?")[0]).name
@@ -388,7 +393,7 @@ class LinqTpuBackend(InferenceBackend):
         window: int | None = None,
         connect_timeout_s: float = 2.0,
     ) -> None:
-        self.host = host or os.environ.get("LINQ_RABBIT_HOST") or _default_host()
+        self.host = host or _cfg("LINQ_RABBIT_HOST", default=_default_host())
         self.port = int(port or _cfg("LINQ_RABBIT_PORT", default="5672"))
         self.user = user or _cfg("LINQ_RABBIT_USER", default="guest")
         self.password = password or _cfg("LINQ_RABBIT_PASSWORD", default="guest")
@@ -705,6 +710,11 @@ class LinqTpuBackend(InferenceBackend):
             state = {
                 "backend": self.name,
                 "active": self.name,
+                "requested_backend": self.name,
+                "active_backend": self.name,
+                "fallback_enabled": False,
+                "fallback": False,
+                "cpu_tail_models": sorted(model_id for model_id, model in self._models.items() if model.tail is not None),
                 "broker": f"{self.host}:{self.port}",
                 "bytes": dict(self._bytes),
                 "consecutive_failures": self._consecutive_failures,

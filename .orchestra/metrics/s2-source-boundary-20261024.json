@@ -1,0 +1,1316 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "status": "independent_readback_passed",
+  "scope": "separate source-boundary diagnostic; original benchmark primary",
+  "source_replay_commit": "8d15ec2",
+  "inference_executed": false,
+  "boundary": {
+    "zero_based_frame": 301,
+    "seconds": 20.066666666666666,
+    "first_selected_frame": 303,
+    "first_selected_time_s": 20.2
+  },
+  "candidates": {
+    "buildvision": {
+      "report": {
+        "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/report.json",
+        "bytes": 121670,
+        "sha256": "d9c4ca37d2a0e7ec121b214a2b08cf0d958ee6e808f49fa9dc5fa0a7426540bd"
+      },
+      "source_report": {
+        "path": "data/model_followup_evaluation_20261024/s2-buildvision/report.json",
+        "bytes": 79098,
+        "sha256": "6ad3292e3da5432dbdcd08e26bea150b0570482b92d63572d937d03c038c8c15"
+      },
+      "control_parity": {
+        "status": "matched",
+        "samples": 831,
+        "uuid_comparison": "camera + creation ordinal; semantic equality",
+        "compared": [
+          "all track identities/attributes/violations/detections",
+          "confirmation snapshots including cached model timings",
+          "all lifecycle transitions and final journal/right-censoring",
+          "both metric scopes and classifications"
+        ]
+      },
+      "all_831_detections_coordinates_raw_output_hashes_preserved": true,
+      "unaffected_videos_exact_tracks_attributes_violations": [
+        "s2_01.mp4",
+        "clean_01.mp4",
+        "clean_02.mp4"
+      ],
+      "arms": {
+        "continuous-control": {
+          "sqlite_rows": 5,
+          "sqlite_full_rows_match_journal": true,
+          "both_scope_sqlite_cli_exact": true,
+          "metrics": {
+            "tp": 5,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 0,
+            "ignored_uncertain": 0,
+            "precision": 1.0,
+            "recall": 0.8333333333333334,
+            "f1": 0.9090909090909091,
+            "latency_median_s": 4.6,
+            "latency_p95_s": 15.839999999999998,
+            "false_alarms_per_hour": 0.0
+          },
+          "coverage": {
+            "s2_01.mp4": {
+              "coverage": {
+                "created_events": 2,
+                "close_notifications": 2,
+                "reopen_transitions": 0,
+                "frames_with_violations": 60,
+                "frames_processed": 300,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "s2_02.mp4": {
+              "coverage": {
+                "created_events": 3,
+                "close_notifications": 3,
+                "reopen_transitions": 1,
+                "frames_with_violations": 134,
+                "frames_processed": 185,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": [
+                {
+                  "id": "f78f0135e8f34e668bc006e5364152a8",
+                  "camera_id": "eval_s2_02",
+                  "site": "S2 evaluation",
+                  "zone_id": null,
+                  "rule_id": "s2",
+                  "type": "ppe_missing",
+                  "severity": "high",
+                  "track_id": 4,
+                  "started_at": 0.8,
+                  "confirmed_at": 2.8,
+                  "ended_at": null,
+                  "bbox": [
+                    706.2044677734375,
+                    255.1353759765625,
+                    882.9715576171875,
+                    713.840576171875
+                  ],
+                  "snapshot_path": null,
+                  "clip_path": null,
+                  "status": "new",
+                  "operator_note": null,
+                  "details": {
+                    "missing": [
+                      "helmet"
+                    ],
+                    "reopened_count": 1,
+                    "active_duration_s": 28.0
+                  },
+                  "latency_ms": {
+                    "infer": 216.6099580936134,
+                    "queue": 0.0,
+                    "transfer": 0.0,
+                    "preprocess": 1.993250916711986,
+                    "postprocess": 1.460790983401239
+                  }
+                }
+              ]
+            },
+            "clean_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 172,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "clean_02.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 174,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            }
+          },
+          "clean_exposure_s": 68.93333333333334
+        },
+        "source-boundary-diagnostic": {
+          "sqlite_rows": 6,
+          "sqlite_full_rows_match_journal": true,
+          "both_scope_sqlite_cli_exact": true,
+          "metrics": {
+            "tp": 6,
+            "fp": 0,
+            "fn": 0,
+            "duplicates": 0,
+            "ignored_uncertain": 0,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "latency_median_s": 4.150000000000001,
+            "latency_p95_s": 15.150000000000002,
+            "false_alarms_per_hour": 0.0
+          },
+          "coverage": {
+            "s2_01.mp4": {
+              "coverage": {
+                "created_events": 2,
+                "close_notifications": 2,
+                "reopen_transitions": 0,
+                "frames_with_violations": 60,
+                "frames_processed": 300,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "s2_02.mp4": {
+              "coverage": {
+                "created_events": 4,
+                "close_notifications": 1,
+                "reopen_transitions": 1,
+                "frames_with_violations": 131,
+                "frames_processed": 185,
+                "boundary_closures": 3
+              },
+              "boundary_resets": [
+                {
+                  "before_sample_index": 101,
+                  "before_source_frame_index": 303,
+                  "boundary": {
+                    "indexing": "zero-based",
+                    "cut_before_source_frame": 301,
+                    "encoded_fps_numerator": 15,
+                    "encoded_fps_denominator": 1,
+                    "cut_time_rational": "301/15",
+                    "cut_time_s": 20.066666666666666,
+                    "first_new_joined_filter_pts_microseconds": 20066667,
+                    "last_old_selected_sample": {
+                      "sample_index": 100,
+                      "source_frame_index": 300,
+                      "source_time_s": 20.0
+                    },
+                    "first_new_selected_sample": {
+                      "sample_index": 101,
+                      "source_frame_index": 303,
+                      "source_time_s": 20.2
+                    },
+                    "basis": "encoded_filter_frame_count",
+                    "evidence_sha256": "2c1af29450e76c6be74e35222c79ff218f547257086d79d43afb5fe1cedcadd0"
+                  },
+                  "closed": [
+                    {
+                      "id": "9f5df9b21c9c446787a3760d854b6336",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 4,
+                      "started_at": 0.8,
+                      "confirmed_at": 2.8,
+                      "ended_at": 20.0,
+                      "bbox": [
+                        673.3532104492188,
+                        177.4085693359375,
+                        973.5380249023438,
+                        713.05224609375
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 19.2
+                      },
+                      "latency_ms": {
+                        "infer": 216.6099580936134,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "preprocess": 1.993250916711986,
+                        "postprocess": 1.460790983401239
+                      }
+                    },
+                    {
+                      "id": "3247ffd9c98f4c9397310dd03dc20218",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 2,
+                      "started_at": 2.6,
+                      "confirmed_at": 4.6,
+                      "ended_at": 20.0,
+                      "bbox": [
+                        908.1055908203125,
+                        46.6287841796875,
+                        1278.6900634765625,
+                        712.0777587890625
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 17.4
+                      },
+                      "latency_ms": {
+                        "infer": 216.39724995475262,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "preprocess": 1.8613750580698252,
+                        "postprocess": 1.41241610981524
+                      }
+                    },
+                    {
+                      "id": "4b7c5a4a8c9b4b55b746a28bee3d26a5",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 3,
+                      "started_at": 16.6,
+                      "confirmed_at": 18.6,
+                      "ended_at": 20.0,
+                      "bbox": [
+                        362.0680236816406,
+                        86.89044189453125,
+                        683.9068603515625,
+                        711.9596557617188
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 3.3999999999999986
+                      },
+                      "latency_ms": {
+                        "infer": 216.28362510818988,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "preprocess": 2.0034988410770893,
+                        "postprocess": 1.4605430187657475
+                      }
+                    }
+                  ],
+                  "closure_policy": "production last violation; reset Tracker + EventManager + rules"
+                }
+              ],
+              "right_censored_open_events": [
+                {
+                  "id": "79ac7880f2bd49b29900a1f86df9d860",
+                  "camera_id": "eval_s2_02",
+                  "site": "S2 evaluation",
+                  "zone_id": null,
+                  "rule_id": "s2",
+                  "type": "ppe_missing",
+                  "severity": "high",
+                  "track_id": 3,
+                  "started_at": 20.8,
+                  "confirmed_at": 22.8,
+                  "ended_at": null,
+                  "bbox": [
+                    706.2044677734375,
+                    255.1353759765625,
+                    882.9715576171875,
+                    713.840576171875
+                  ],
+                  "snapshot_path": null,
+                  "clip_path": null,
+                  "status": "new",
+                  "operator_note": null,
+                  "details": {
+                    "missing": [
+                      "helmet"
+                    ],
+                    "reopened_count": 1,
+                    "active_duration_s": 8.0
+                  },
+                  "latency_ms": {
+                    "infer": 216.3613330340013,
+                    "queue": 0.0,
+                    "transfer": 0.0,
+                    "preprocess": 2.008834038861096,
+                    "postprocess": 1.306624966673553
+                  }
+                }
+              ]
+            },
+            "clean_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 172,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "clean_02.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 174,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            }
+          },
+          "clean_exposure_s": 68.93333333333334
+        }
+      },
+      "distinct_segment_capture_origins_persisted": true
+    },
+    "vyra": {
+      "report": {
+        "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/report.json",
+        "bytes": 111551,
+        "sha256": "2b0ff3bae8a20a3d3098052acf2d9da671746748675411d87b0458054be350ce"
+      },
+      "source_report": {
+        "path": "data/model_followup_evaluation_20261024/s2-vyra/report.json",
+        "bytes": 74907,
+        "sha256": "aca4b7b98d9676735f16f00128ee17934d4582ac5498ebf0504dca06f87d3c43"
+      },
+      "control_parity": {
+        "status": "matched",
+        "samples": 831,
+        "uuid_comparison": "camera + creation ordinal; semantic equality",
+        "compared": [
+          "all track identities/attributes/violations/detections",
+          "confirmation snapshots including cached model timings",
+          "all lifecycle transitions and final journal/right-censoring",
+          "both metric scopes and classifications"
+        ]
+      },
+      "all_831_detections_coordinates_raw_output_hashes_preserved": true,
+      "unaffected_videos_exact_tracks_attributes_violations": [
+        "s2_01.mp4",
+        "clean_01.mp4",
+        "clean_02.mp4"
+      ],
+      "arms": {
+        "continuous-control": {
+          "sqlite_rows": 3,
+          "sqlite_full_rows_match_journal": true,
+          "both_scope_sqlite_cli_exact": true,
+          "metrics": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 3,
+            "duplicates": 0,
+            "ignored_uncertain": 0,
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.6666666666666666,
+            "latency_median_s": 11.2,
+            "latency_p95_s": 15.52,
+            "false_alarms_per_hour": 0.0
+          },
+          "coverage": {
+            "s2_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 300,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "s2_02.mp4": {
+              "coverage": {
+                "created_events": 3,
+                "close_notifications": 3,
+                "reopen_transitions": 0,
+                "frames_with_violations": 72,
+                "frames_processed": 185,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "clean_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 172,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "clean_02.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 174,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            }
+          },
+          "clean_exposure_s": 68.93333333333334
+        },
+        "source-boundary-diagnostic": {
+          "sqlite_rows": 3,
+          "sqlite_full_rows_match_journal": true,
+          "both_scope_sqlite_cli_exact": true,
+          "metrics": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 3,
+            "duplicates": 0,
+            "ignored_uncertain": 0,
+            "precision": 1.0,
+            "recall": 0.5,
+            "f1": 0.6666666666666666,
+            "latency_median_s": 11.2,
+            "latency_p95_s": 15.52,
+            "false_alarms_per_hour": 0.0
+          },
+          "coverage": {
+            "s2_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 300,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "s2_02.mp4": {
+              "coverage": {
+                "created_events": 3,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 68,
+                "frames_processed": 185,
+                "boundary_closures": 3
+              },
+              "boundary_resets": [
+                {
+                  "before_sample_index": 101,
+                  "before_source_frame_index": 303,
+                  "boundary": {
+                    "indexing": "zero-based",
+                    "cut_before_source_frame": 301,
+                    "encoded_fps_numerator": 15,
+                    "encoded_fps_denominator": 1,
+                    "cut_time_rational": "301/15",
+                    "cut_time_s": 20.066666666666666,
+                    "first_new_joined_filter_pts_microseconds": 20066667,
+                    "last_old_selected_sample": {
+                      "sample_index": 100,
+                      "source_frame_index": 300,
+                      "source_time_s": 20.0
+                    },
+                    "first_new_selected_sample": {
+                      "sample_index": 101,
+                      "source_frame_index": 303,
+                      "source_time_s": 20.2
+                    },
+                    "basis": "encoded_filter_frame_count",
+                    "evidence_sha256": "2c1af29450e76c6be74e35222c79ff218f547257086d79d43afb5fe1cedcadd0"
+                  },
+                  "closed": [
+                    {
+                      "id": "031e3248428d4bdabc6770d5d0f44790",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 2,
+                      "started_at": 5.2,
+                      "confirmed_at": 8.6,
+                      "ended_at": 17.6,
+                      "bbox": [
+                        880.584228515625,
+                        76.3780517578125,
+                        1279.6845703125,
+                        712.1019287109375
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 12.4
+                      },
+                      "latency_ms": {
+                        "preprocess": 1.9121670629829168,
+                        "infer": 473.05791603866965,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "postprocess": 1.3192921178415418
+                      }
+                    },
+                    {
+                      "id": "67f9b9508df2410189520926b717b59b",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 4,
+                      "started_at": 9.2,
+                      "confirmed_at": 11.2,
+                      "ended_at": 20.0,
+                      "bbox": [
+                        673.3532104492188,
+                        177.4085693359375,
+                        973.5380249023438,
+                        713.05224609375
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 10.8
+                      },
+                      "latency_ms": {
+                        "preprocess": 1.8547079525887966,
+                        "infer": 473.169417004101,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "postprocess": 1.3060409110039473
+                      }
+                    },
+                    {
+                      "id": "dc6f65c2e64947c0a6d11d1a8a3c0677",
+                      "camera_id": "eval_s2_02",
+                      "site": "S2 evaluation",
+                      "zone_id": null,
+                      "rule_id": "s2",
+                      "type": "ppe_missing",
+                      "severity": "high",
+                      "track_id": 3,
+                      "started_at": 12.0,
+                      "confirmed_at": 16.0,
+                      "ended_at": 20.0,
+                      "bbox": [
+                        362.0680236816406,
+                        86.89044189453125,
+                        683.9068603515625,
+                        711.9596557617188
+                      ],
+                      "snapshot_path": null,
+                      "clip_path": null,
+                      "status": "new",
+                      "operator_note": null,
+                      "details": {
+                        "missing": [
+                          "helmet"
+                        ],
+                        "active_duration_s": 8.0
+                      },
+                      "latency_ms": {
+                        "preprocess": 1.9452499691396952,
+                        "infer": 473.7110829446465,
+                        "queue": 0.0,
+                        "transfer": 0.0,
+                        "postprocess": 1.3071660650894046
+                      }
+                    }
+                  ],
+                  "closure_policy": "production last violation; reset Tracker + EventManager + rules"
+                }
+              ],
+              "right_censored_open_events": []
+            },
+            "clean_01.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 172,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            },
+            "clean_02.mp4": {
+              "coverage": {
+                "created_events": 0,
+                "close_notifications": 0,
+                "reopen_transitions": 0,
+                "frames_with_violations": 0,
+                "frames_processed": 174,
+                "boundary_closures": 0
+              },
+              "boundary_resets": [],
+              "right_censored_open_events": []
+            }
+          },
+          "clean_exposure_s": 68.93333333333334
+        }
+      },
+      "distinct_segment_capture_origins_persisted": true
+    }
+  },
+  "artifacts": {
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/boundary-map.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/boundary-map.json",
+      "bytes": 8123,
+      "sha256": "4043bf7f430b04f131a0ef065a55408dfa43317cc82a9ed3193bbb6d844f684d"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db",
+      "bytes": 65536,
+      "sha256": "885c86fce99c1216399ee32777a90e511612edd972b17027044420bf2ce991f6"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db-shm": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db-wal": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/guard.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/journal_events.json",
+      "bytes": 4525,
+      "sha256": "11d25142ec39f313317c25f3e07575b72ee5b9d404020093739eb4c174fb3549"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_s2_01.jsonl",
+      "bytes": 464,
+      "sha256": "6865af04ca8279cd4ded4b117afbd1be425adc1f5536f0efcb5a145d41f3b45d"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/lifecycle_s2_02.jsonl",
+      "bytes": 797,
+      "sha256": "e81a71d1a1a0bc69a0721c5b1cb36df6c5dab8c795ae1f8d7cda40ae91f5d805"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/predictions.json",
+      "bytes": 4465,
+      "sha256": "a221a783eaa7186be174ff8dd7f2ae337bc3cfae5e8893ae0da3e2425be00108"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/report.json",
+      "bytes": 44006,
+      "sha256": "587e95306205191ddb0302b3f84312eafa100ccd8d84ea3aaf121d705385481b"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_clean_01.jsonl",
+      "bytes": 1409607,
+      "sha256": "af42cd51d9c8572d8d33129dc5079c2f51fa8a2e460d9116ebcf6b90830c07b9"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_clean_02.jsonl",
+      "bytes": 799435,
+      "sha256": "8fc033f55efdd714e02c8d448fd3057ac3421030c6e0e7d56b29ec07ad9b43d3"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_s2_01.jsonl",
+      "bytes": 845686,
+      "sha256": "d46f2b6bad839c5d5e2195527bdd9c1608787d933d5d5a90a7b569a73bf1d5c7"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/continuous-control/samples_s2_02.jsonl",
+      "bytes": 1399833,
+      "sha256": "c8efd2860060ea39c83046a541bc60ef0c8a7411d032e324ca513d7002c2a7b5"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/continuous-control-primary_helmet_only.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/continuous-control-primary_helmet_only.json",
+      "bytes": 790,
+      "sha256": "59169875d7a86405da4abf3813c22ac078672a3fe7d2029da0e7b48162284ddd"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/continuous-control-secondary_original_legacy.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/continuous-control-secondary_original_legacy.json",
+      "bytes": 790,
+      "sha256": "59169875d7a86405da4abf3813c22ac078672a3fe7d2029da0e7b48162284ddd"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/clean_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/clean_01.json",
+      "bytes": 39,
+      "sha256": "3457bf5c02fe2c119bc65eee1f3932c9452d8b1e310a639fa74fd746a006ff22"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/clean_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/clean_02.json",
+      "bytes": 39,
+      "sha256": "e5a0e986f93266c51c295ce3bc529bb8bca3ab9e8602279ab50d80a24440ae30"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/s2_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/s2_01.json",
+      "bytes": 473,
+      "sha256": "a4ea26338158767c74d47bb504b2ad6274705ae3a828afd353df75383abf3673"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/s2_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/primary-labels/s2_02.json",
+      "bytes": 800,
+      "sha256": "eb108a8c4b0b2b49edb732bd9765a90270a791de0b62db4f58b3b817f1a5e7e2"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/source-boundary-diagnostic-primary_helmet_only.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/source-boundary-diagnostic-primary_helmet_only.json",
+      "bytes": 758,
+      "sha256": "11eaf74e738f312329b538bbfd2851aa9c72716e388e5c00322d52a97627282c"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/source-boundary-diagnostic-secondary_original_legacy.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/independent-readback/source-boundary-diagnostic-secondary_original_legacy.json",
+      "bytes": 758,
+      "sha256": "11eaf74e738f312329b538bbfd2851aa9c72716e388e5c00322d52a97627282c"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/report.json",
+      "bytes": 121670,
+      "sha256": "d9c4ca37d2a0e7ec121b214a2b08cf0d958ee6e808f49fa9dc5fa0a7426540bd"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db",
+      "bytes": 65536,
+      "sha256": "2852226684c9b69de5ae150987179e1b1d4c7a111dd6303c9155415707be4483"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db-shm": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db-wal": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/guard.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/journal_events.json",
+      "bytes": 6357,
+      "sha256": "dc267a6198995136593657f7d01fa1974704253af90a3f8ff99587e2bc3531e4"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_01.jsonl",
+      "bytes": 464,
+      "sha256": "28156cdb5fc680bac028f2d654aa4b976a46b92077621e135d9e999d57b63cba"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_02.jsonl",
+      "bytes": 642,
+      "sha256": "437e3022d038d82fe5ece80dbada8a345b60e283f00333ae7eb03cfec2ee2053"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/predictions.json",
+      "bytes": 6170,
+      "sha256": "6c7743eefc9f658c556057dc31b01b1c1a17296978eb6b8b349af5e6945beac4"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/report.json",
+      "bytes": 53525,
+      "sha256": "4835922417069114b1d51fa5884ebb261f6525b1ac0ad6d1023bcbfb15252ba5"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_clean_01.jsonl",
+      "bytes": 1409574,
+      "sha256": "3851a1d44710c701ce929f579b5cd74930d9e0dc68a77507261029d28c1ca032"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_clean_02.jsonl",
+      "bytes": 799440,
+      "sha256": "bdc9351c933bb300676dfc3f7e36b2e0ccb7ea62354077e599a797dab2105a1b"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_s2_01.jsonl",
+      "bytes": 845699,
+      "sha256": "a6a98c5502182f02025dff9c852080e99557b55504c6799897ed29d6dc8fff9d"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source-boundary-diagnostic/samples_s2_02.jsonl",
+      "bytes": 1401365,
+      "sha256": "0bf2b5c84362debc1992c3b768355adf1f9d6998d05504ee696fb68706c99358"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_clean_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_clean_01.json",
+      "bytes": 753,
+      "sha256": "a61664820c3133db07320631729815921e78d901e3ee2983c0274cf59dd294dc"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_clean_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_clean_02.json",
+      "bytes": 763,
+      "sha256": "fe0cce897bae45412dc9cc14d170fffc44a485b85aaca2006a845f3012edca5d"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_s2_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_s2_01.json",
+      "bytes": 741,
+      "sha256": "24275c0107feb996c590f2d6e9f7386adf6392181c17bd47c3df01e348255e58"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_s2_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/camera_s2_02.json",
+      "bytes": 769,
+      "sha256": "026e3df5c0363668a75dcda7b8acd067f36583e7a1cc20dc14ec5da586c20742"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/durations.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/durations.json",
+      "bytes": 134,
+      "sha256": "8a07ee96ff925d5606ad047a487802b131a5aa9ddb506f0d838c0703e7dd3e63"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/effective_config.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/effective_config.json",
+      "bytes": 3615,
+      "sha256": "373ef2beb8cf5779152c2fd1f229c0ae6f44ec7675e2ec0955de528c44832bef"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/journal_events.json",
+      "bytes": 4525,
+      "sha256": "bc4e8b06b33ba82c5d164d7af485f4be2f7a2bb0318c355cdcd3763a1f879909"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_s2_01.jsonl",
+      "bytes": 464,
+      "sha256": "f756933a35500187a71a6608d236925f4c0956470d178f876b961b09fff1d0a0"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/lifecycle_s2_02.jsonl",
+      "bytes": 797,
+      "sha256": "d23c0dd6ad56e921c1db9364a6b3fd3a9d6269ed73aa327a7199bf888c49d3e4"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/manifest.snapshot.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/manifest.snapshot.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/mapping.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/mapping.json",
+      "bytes": 847,
+      "sha256": "d87579c582aecffc3bb677cf16d037e0108681abbb6b3a127da23ba01d0fc2d3"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/original_labels.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/original_labels.json",
+      "bytes": 2322,
+      "sha256": "0808a906ac67c405eae99f4f1c994e209817f893d44194d67f3e98860d97f0df"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/predictions.json",
+      "bytes": 4465,
+      "sha256": "230d637af66cc211be7385cd5a1446d9a0d4c537486c0c4bb3ae35ada66833b9"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/primary_labels.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/primary_labels.json",
+      "bytes": 1706,
+      "sha256": "78cf958e9ad98a40e34520a47c6c4f102491b3aa8fa15f1ea2d8cc3cf0071100"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/report.json",
+      "bytes": 79098,
+      "sha256": "6ad3292e3da5432dbdcd08e26bea150b0570482b92d63572d937d03c038c8c15"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_clean_01.jsonl",
+      "bytes": 1375502,
+      "sha256": "ed5f2faf718f41a228f6fa89410c60b2f61235ea672eb98065994b3c06f1766e"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_clean_02.jsonl",
+      "bytes": 764847,
+      "sha256": "e7fedb477f1960fabeaa8f483941e079f76f3c6b72a63bb5e65632239bd4099f"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_s2_01.jsonl",
+      "bytes": 785998,
+      "sha256": "7dfd15c52a40923f1da7a7123846540d47db743619590903777db293b6d365a0"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/samples_s2_02.jsonl",
+      "bytes": 1363217,
+      "sha256": "e654ee46c9fa4934b971b421ab53a6ac710fd48b0d64c4b2c9399d402838e5ee"
+    },
+    "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/scope_exclusions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-buildvision-boundary-diagnostic/source_cache/scope_exclusions.json",
+      "bytes": 1448,
+      "sha256": "a1cf6e20cedc8c7cae758bc73fc5e9b3812000f75f5328227144588dc9983f5c"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/boundary-map.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/boundary-map.json",
+      "bytes": 8123,
+      "sha256": "4043bf7f430b04f131a0ef065a55408dfa43317cc82a9ed3193bbb6d844f684d"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db",
+      "bytes": 65536,
+      "sha256": "6fd77448622075415e1a413caba3227b690141b474dd0f07f3aa861149524a02"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db-shm": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db-wal": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/guard.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/journal_events.json",
+      "bytes": 2678,
+      "sha256": "b48e7b4bb9609728a9e4082efbd9a22ca96a47e6897e5a208fa6b90b470435c0"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_s2_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/lifecycle_s2_02.jsonl",
+      "bytes": 695,
+      "sha256": "7693131f934b17bfd305ab80ad6a8d5e375651a459f11bf94c7f290a0783ceff"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/predictions.json",
+      "bytes": 2678,
+      "sha256": "e6a083db2bd957e2615392093e389d22c24ba1290eff7ee335d9d019ff9e1615"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/report.json",
+      "bytes": 36119,
+      "sha256": "c7746222d7751158c421cbf0c4c0e77b8352412628646c023e80708c61fbcf9d"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_clean_01.jsonl",
+      "bytes": 1220810,
+      "sha256": "ef7fdaff8567b7858939e2585171e72bd1e660b1072c1f134e3891ad401a7e55"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_clean_02.jsonl",
+      "bytes": 691889,
+      "sha256": "c296c2d5c58aa5c0f44ab934fa7115344adbe1b5781e3bdaebcc702b4727b2d5"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_s2_01.jsonl",
+      "bytes": 760501,
+      "sha256": "8d4086b20be29c2c2655e718b159ecbd1252ba256188a313691dbe42eb16c73a"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/continuous-control/samples_s2_02.jsonl",
+      "bytes": 1183003,
+      "sha256": "028abf3a63874abaf043b25fbef22609aa608a515e5b110cbc0cc1edb1eef2ba"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/continuous-control-primary_helmet_only.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/continuous-control-primary_helmet_only.json",
+      "bytes": 736,
+      "sha256": "7e094b551b31bb2526d33897e6b4e95a2cc4bfe7c3f383d66fe291e04b42d3b7"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/continuous-control-secondary_original_legacy.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/continuous-control-secondary_original_legacy.json",
+      "bytes": 736,
+      "sha256": "7e094b551b31bb2526d33897e6b4e95a2cc4bfe7c3f383d66fe291e04b42d3b7"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/clean_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/clean_01.json",
+      "bytes": 39,
+      "sha256": "3457bf5c02fe2c119bc65eee1f3932c9452d8b1e310a639fa74fd746a006ff22"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/clean_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/clean_02.json",
+      "bytes": 39,
+      "sha256": "e5a0e986f93266c51c295ce3bc529bb8bca3ab9e8602279ab50d80a24440ae30"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/s2_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/s2_01.json",
+      "bytes": 473,
+      "sha256": "a4ea26338158767c74d47bb504b2ad6274705ae3a828afd353df75383abf3673"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/s2_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/primary-labels/s2_02.json",
+      "bytes": 800,
+      "sha256": "eb108a8c4b0b2b49edb732bd9765a90270a791de0b62db4f58b3b817f1a5e7e2"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/source-boundary-diagnostic-primary_helmet_only.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/source-boundary-diagnostic-primary_helmet_only.json",
+      "bytes": 736,
+      "sha256": "7e094b551b31bb2526d33897e6b4e95a2cc4bfe7c3f383d66fe291e04b42d3b7"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/source-boundary-diagnostic-secondary_original_legacy.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/independent-readback/source-boundary-diagnostic-secondary_original_legacy.json",
+      "bytes": 736,
+      "sha256": "7e094b551b31bb2526d33897e6b4e95a2cc4bfe7c3f383d66fe291e04b42d3b7"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/report.json",
+      "bytes": 111551,
+      "sha256": "2b0ff3bae8a20a3d3098052acf2d9da671746748675411d87b0458054be350ce"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db",
+      "bytes": 65536,
+      "sha256": "2bf543dac13292fd3d1139185478394af79d80fce4bd7825424edb30c4ac9d5a"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db-shm": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db-wal": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/guard.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/journal_events.json",
+      "bytes": 3385,
+      "sha256": "8c3ed7403fbf1f3d9c1a4e2e3d70bc86e6faea85ebbc9f7648057e618372e112"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/lifecycle_s2_02.jsonl",
+      "bytes": 308,
+      "sha256": "a13259b5f4283c8af0fb82c9155523b4e0ba947da143f9a0fe221ca9b2ce9682"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/predictions.json",
+      "bytes": 3287,
+      "sha256": "12dba9a0bf696cc4cce4fcb2e7264a772de447a5dd4fdedc4ab4c0c83e146347"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/report.json",
+      "bytes": 42032,
+      "sha256": "56262d4cb40d8c6219b57692db7d3d51d72d3cfc1d511e728d7bdc371e9175ed"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_clean_01.jsonl",
+      "bytes": 1220797,
+      "sha256": "869910ef23a6c62295c50f811a39386cd30ede390d6816f296b09746d2cd460c"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_clean_02.jsonl",
+      "bytes": 691883,
+      "sha256": "c9eb5e47c8fc940fffcde0e7d3aefd89848f0fec1e01688538c3ba3181dcf883"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_s2_01.jsonl",
+      "bytes": 760528,
+      "sha256": "146a5e9d829343c81f73bdec831f14b0223c1561434f7d5c125f863838e43d70"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source-boundary-diagnostic/samples_s2_02.jsonl",
+      "bytes": 1184649,
+      "sha256": "14475ff2a3e580ccf61fac84102eb5c10f68efb0a386004ed80015877511aa51"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_clean_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_clean_01.json",
+      "bytes": 753,
+      "sha256": "a61664820c3133db07320631729815921e78d901e3ee2983c0274cf59dd294dc"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_clean_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_clean_02.json",
+      "bytes": 763,
+      "sha256": "fe0cce897bae45412dc9cc14d170fffc44a485b85aaca2006a845f3012edca5d"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_s2_01.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_s2_01.json",
+      "bytes": 741,
+      "sha256": "24275c0107feb996c590f2d6e9f7386adf6392181c17bd47c3df01e348255e58"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_s2_02.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/camera_s2_02.json",
+      "bytes": 769,
+      "sha256": "026e3df5c0363668a75dcda7b8acd067f36583e7a1cc20dc14ec5da586c20742"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/durations.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/durations.json",
+      "bytes": 134,
+      "sha256": "8a07ee96ff925d5606ad047a487802b131a5aa9ddb506f0d838c0703e7dd3e63"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/effective_config.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/effective_config.json",
+      "bytes": 3615,
+      "sha256": "373ef2beb8cf5779152c2fd1f229c0ae6f44ec7675e2ec0955de528c44832bef"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/journal_events.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/journal_events.json",
+      "bytes": 2678,
+      "sha256": "85d86d8d2d9f144bcaeec4d464fad9767a8237d8288cd2a366a608b187d1f14a"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_s2_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/lifecycle_s2_02.jsonl",
+      "bytes": 695,
+      "sha256": "94a50cac7f14f867378d8dc2a6ae7d88bcb5cea5ee0264615736d891b3061b59"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/manifest.snapshot.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/manifest.snapshot.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/mapping.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/mapping.json",
+      "bytes": 847,
+      "sha256": "d87579c582aecffc3bb677cf16d037e0108681abbb6b3a127da23ba01d0fc2d3"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/original_labels.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/original_labels.json",
+      "bytes": 2322,
+      "sha256": "0808a906ac67c405eae99f4f1c994e209817f893d44194d67f3e98860d97f0df"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/predictions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/predictions.json",
+      "bytes": 2678,
+      "sha256": "1cf03d7be464bd802dc6d739a74d9ff408341433c305b48f10666610fbc73ba0"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/primary_labels.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/primary_labels.json",
+      "bytes": 1706,
+      "sha256": "78cf958e9ad98a40e34520a47c6c4f102491b3aa8fa15f1ea2d8cc3cf0071100"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/report.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/report.json",
+      "bytes": 74907,
+      "sha256": "aca4b7b98d9676735f16f00128ee17934d4582ac5498ebf0504dca06f87d3c43"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_clean_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_clean_01.jsonl",
+      "bytes": 1186669,
+      "sha256": "2e1ac2e4c14c83552b231105fca6a994efaed6f7e7d7bd29add00c51fdcba51b"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_clean_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_clean_02.jsonl",
+      "bytes": 657251,
+      "sha256": "5285d52b65f09168b3ad7f9d2e417b5d10a579ef25a54a9591616cbbcd96ae0f"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_s2_01.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_s2_01.jsonl",
+      "bytes": 700582,
+      "sha256": "3020fba4058f5822876c765caaaaaf007c3b30c655e7e2008d2c5af853712c0c"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_s2_02.jsonl": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/samples_s2_02.jsonl",
+      "bytes": 1146308,
+      "sha256": "986295b339bb06560e7445bf899df27743817ce360dc4f65fcb095730588c409"
+    },
+    "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/scope_exclusions.json": {
+      "path": "data/model_followup_evaluation_20261024/s2-vyra-boundary-diagnostic/source_cache/scope_exclusions.json",
+      "bytes": 1448,
+      "sha256": "a1cf6e20cedc8c7cae758bc73fc5e9b3812000f75f5328227144588dc9983f5c"
+    }
+  },
+  "limitations": [
+    "6 certain interval labels without actor IDs; public training overlap unknown",
+    "Known administrative source cut; no automatic visual scene-cut detector claim",
+    "Only68.93333333333334s annotated clean exposure",
+    "Cached postprocessed detections, not video pixels/raw ONNX tensors",
+    "No external TPU execution or production live reconnect claim from offline replay"
+  ],
+  "interpretation": "BuildVision6/6 vs unchanged5/6 control is a continuity-policy diagnosis with fixed detections; Vyra remains3/6. No model/default promotion."
+}

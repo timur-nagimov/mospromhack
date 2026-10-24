@@ -459,14 +459,19 @@ def run_video(
             ]
             alert_started = time.perf_counter()
             timings["rules"] = (alert_started - rules_started) * 1000.0
-            new, closed = manager.process(camera, ts, violations, dict(timings))
+            new, closed, reopened = manager.process_with_updates(camera, ts, violations, dict(timings))
             finished = time.perf_counter()
             timings["alert"] = (finished - alert_started) * 1000.0
             timings["total"] = decode_ms + (finished - frame_started) * 1000.0
             for event in new:
                 event.latency_ms = dict(timings)
                 _remember(events, event)
+            reopened_ids = {event.id for event in reopened}
             for event in closed:
+                if event.id in reopened_ids:
+                    continue
+                _remember(events, event)
+            for event in reopened:
                 _remember(events, event)
             analyzed += 1
 

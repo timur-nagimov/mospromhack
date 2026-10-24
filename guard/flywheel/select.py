@@ -20,9 +20,6 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from guard.contracts import Detection
-from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES
-
-TRACKED_CLASSES = PERSON_CLASSES | OBJECT_CLASSES
 
 BAND_BELOW = 0.10
 BAND_ABOVE = 0.05
@@ -84,10 +81,12 @@ def camera_targets(rules: Iterable[Any]) -> frozenset[str]:
 
 def decision_threshold(rule: Any, cls: str, model_threshold: float, tracker_high: float) -> float:
     """Порог, который решает судьбу рамки класса cls для этого правила (см. docstring модуля)."""
+    from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES
+
     min_conf = getattr(rule, "min_conf", None)
     if isinstance(min_conf, (int, float)) and not isinstance(min_conf, bool):
         return max(float(model_threshold), float(min_conf))
-    if cls in TRACKED_CLASSES:
+    if cls in PERSON_CLASSES or cls in OBJECT_CLASSES:
         return max(float(model_threshold), float(tracker_high))
     return float(model_threshold)
 

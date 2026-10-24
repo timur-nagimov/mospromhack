@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "status": "accepted_locally_ready_for_user_merge",
+  "ticket_mode": "no_ticket",
+  "scope": "13 rule types, current observations, atomic configuration, validated editor and API/WS integration",
+  "integration_source_before_evidence_commit": "ad99ae7c7b315b33e6fee561bc9ad62b37df9ec1",
+  "backend_test_source": "9c0afe73c670299b9d8cea22d43cfa1ccc55dcb7",
+  "frontend_build_source": "cd0ad151b46c08a3685a038b2b7d964e9bd43e55",
+  "backend_unchanged_after_full_suite": true,
+  "production_frontend_unchanged_after_build": true,
+  "main_head_before_user_merge": "79a8920d49f0de35cc37d7deb4ed92e08c1af927",
+  "features": {
+    "observation_contract": "d0237808968db70e6c23a7910b6795eaa18d288f",
+    "observation_runtime": "b8d797c444ef6e762e8cb3f5ef8ddc8160295d84",
+    "wrong_way": "365e2526c545f7ab0e607cb4d661580e47049e81",
+    "zone_dwell": "a6816f24cc2df8f98ba3f48038d6058ddebb19e9",
+    "zone_overcapacity": "adeff3dc2b7b441960beb007021ddd80f99f6f45",
+    "constructor_validation": "8dabad86d6d62a2408b5d3ee491659eaebfc3c4e",
+    "zone_metadata": "5063b9d9068221f1b277e2f52b22926750e2f120",
+    "api_ws_integration": "647ca5970797960b9894c6a74d580adbdacc3a7e",
+    "rule_config_ui": "33a5f2bd014b139bed2712037a434b14241b8d35",
+    "frontend_test_portability": "4c732a847da3c71f0d834453e6af6ead5e8204de"
+  },
+  "backend": {
+    "tests": 2099,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 2099,
+    "wall_s_from_log": 41.58,
+    "junit_suite_time_s": 41.229,
+    "warnings": [
+      "existing Starlette/httpx deprecation"
+    ]
+  },
+  "frontend": {
+    "analytics_passed": 7,
+    "rendered_passed": 5,
+    "failures": 0,
+    "skipped": 0,
+    "production_typescript_vite_build": "passed",
+    "browser": "Yandex Chromium, explicit UI_BROWSER_PATH, isolated temporary profile",
+    "portable_default": "standard Playwright Chromium; no platform-specific executablePath"
+  },
+  "registry": {
+    "before": 10,
+    "after": 13,
+    "new_types": [
+      "wrong_way",
+      "zone_dwell",
+      "zone_overcapacity"
+    ],
+    "types": [
+      "fall_immobile",
+      "fence_climb",
+      "height_no_harness",
+      "phone_usage",
+      "ppe_missing",
+      "running",
+      "smoking_fire",
+      "unsafe_carry",
+      "vehicle_proximity",
+      "wrong_way",
+      "zone_dwell",
+      "zone_intrusion",
+      "zone_overcapacity"
+    ],
+    "new_rule_required_models": [
+      "det"
+    ],
+    "auto_enabled": false
+  },
+  "api_ws": {
+    "rule": "zone_dwell",
+    "synthetic_frames": 21,
+    "events": 2,
+    "worker_errors": 0,
+    "full_json_readback": [
+      "WebSocket",
+      "HTTP",
+      "independent SQLite"
+    ],
+    "operator_patch_capture_reset_no_duplicates": true,
+    "fake_components": [
+      "inference",
+      "media"
+    ]
+  },
+  "review": {
+    "result": "approved; two P2 compatibility issues fixed",
+    "fixes": [
+      "backend-valid long timing values accepted",
+      "omitted optional defaults shown; explicit invalid drafts preserved"
+    ]
+  },
+  "runtime_defaults_changed": false,
+  "target_tpu": "no new compilation/inference/INT8 acceptance",
+  "publication": {
+    "push": false,
+    "pull_request": false,
+    "merged_into_main": false
+  },
+  "deferred": [
+    "new major model research",
+    "specialist PPE capabilities/owner visibility and quality evaluation",
+    "field evaluation of new rules",
+    "external LinQ acceptance"
+  ],
+  "limitations": [
+    "Synthetic tests validate logic and integration, not real camera recognition quality",
+    "RF-DETR primary numeric parity failed; no model promotion",
+    "No missing-box-to-negative inference; no-mask is not respirator; no new harness model"
+  ],
+  "commands": [
+    ".venv/bin/python -m pytest -q --junitxml=data/integration_validation_20261024/violation-expansion-final.xml",
+    "node --test frontend/scripts/test-analytics.mjs",
+    "tools/heavy.sh npm --prefix frontend run build",
+    "UI_BROWSER_PATH=/Applications/Yandex.app/Contents/MacOS/Yandex tools/heavy.sh node --test --test-reporter=tap frontend/scripts/test-rule-config-ui.mjs",
+    "PYTHONPATH=. .venv/bin/python data/integration_validation_20261024/verify_violation_expansion.py"
+  ],
+  "references": [
+    {
+      "path": "data/integration_validation_20261024/violation-expansion-final.xml",
+      "bytes": 2719464,
+      "sha256": "453727f45787208c7a0d0d119442937194391021847f342c7ccdeaffbf4bf9e8"
+    },
+    {
+      "path": "data/integration_validation_20261024/violation-expansion-final.log",
+      "bytes": 2931,
+      "sha256": "3fbfde0908fce7499b5a26605cfc48fa024360924f307c9b4c87b5964221ba97"
+    },
+    {
+      "path": "data/integration_validation_20261024/violation-expansion-frontend-build.log",
+      "bytes": 2361,
+      "sha256": "8400d1a0fe7feaec9569fc58f9be35d9918ac4d2da67f79618d0d86c8e295fc5"
+    },
+    {
+      "path": "data/integration_validation_20261024/violation-expansion-analytics.log",
+      "bytes": 1013,
+      "sha256": "efc6b6771dfaccb2fa9cd7bc98262102bf1b9c534de1470105f9462bb8ce8b7f"
+    },
+    {
+      "path": "data/integration_validation_20261024/violation-expansion-ui-portable.tap",
+      "bytes": 1372,
+      "sha256": "970ec25abf4873a1ab649149ce76c3dfc488dd5302a1cf48e66b87d96985b8ee"
+    },
+    {
+      "path": "data/integration_validation_20261024/verify_violation_expansion.py",
+      "bytes": 7685,
+      "sha256": "12fd6712ea2c9f1992e785a3b36a73e8a09227bffba52a357d25f331d551acce"
+    },
+    {
+      "path": "guard/contracts.py",
+      "bytes": 6810,
+      "sha256": "8f82e0439603b7200905fef58304629dddd7a08f3bba5173c002231cf5123bfe"
+    },
+    {
+      "path": "guard/rules/base.py",
+      "bytes": 5097,
+      "sha256": "be6849da0923bda5918103ae11eece5e57fa5fbebae7133506314a0e70553e50"
+    },
+    {
+      "path": "data/validation_snapshots_20261024/0827fc0aa8632953ebc720273b71223e56bcdc9159cd4a9d0b8f5c7bb6c37c65/worker.py",
+      "bytes": 20086,
+      "sha256": "0827fc0aa8632953ebc720273b71223e56bcdc9159cd4a9d0b8f5c7bb6c37c65",
+      "source_path_at_capture": "guard/pipeline/worker.py",
+      "publication_note": "Captured bytes preserved separately from the current working source."
+    },
+    {
+      "path": "data/validation_snapshots_20261024/80f77af8749e495c25c843aa2b2e8f34e4f7ca1dd0f77c51ae5f480687471318/engine.py",
+      "bytes": 28873,
+      "sha256": "80f77af8749e495c25c843aa2b2e8f34e4f7ca1dd0f77c51ae5f480687471318",
+      "source_path_at_capture": "guard/pipeline/engine.py",
+      "publication_note": "Captured bytes preserved separately from the current working source."
+    },
+    {
+      "path": "guard/rules/plugins/wrong_way.py",
+      "bytes": 11359,
+      "sha256": "9b06488f9c09111db47e2b1d77dfb09cc8baa8b41d6f407e278c0187842f3431"
+    },
+    {
+      "path": "guard/rules/plugins/zone_dwell.py",
+      "bytes": 8302,
+      "sha256": "2ff2c81da34a92d292569876394530a5025eb1b227d54e6947fc7d03e00b7b34"
+    },
+    {
+      "path": "guard/rules/plugins/zone_overcapacity.py",
+      "bytes": 6024,
+      "sha256": "889099de8a5be108963942c677513cffdf2451ca605f1c3178cf5174974d607c"
+    },
+    {
+      "path": "tests/test_rules_wrong_way.py",
+      "bytes": 17804,
+      "sha256": "b1fea62a5f2def3d2c8295043a579895547d1eb2200ca2eafa60ecdb107928d3"
+    },
+    {
+      "path": "tests/test_rules_zone_dwell.py",
+      "bytes": 17719,
+      "sha256": "b48d85d43747caa7f3d84885080273875a32d5f00c89a42c1e037dcba2e87aab"
+    },
+    {
+      "path": "tests/test_rules_zone_overcapacity.py",
+      "bytes": 7550,
+      "sha256": "1bd3fe5721a22b31ab04854f2b8f751a09186343fc795c5cddf099865097ac74"
+    },
+    {
+      "path": "tests/test_violation_api_integration.py",
+      "bytes": 11377,
+      "sha256": "dadf22341d575aba26db15761112175cfa46ca7c1e6bd7972be13fdb5168a382"
+    },
+    {
+      "path": "tests/test_rule_zone_metadata.py",
+      "bytes": 3174,
+      "sha256": "5e5ceafa5e3fb85d45fe6cd76867436fb1c92230633748de2a73537f94198f91"
+    },
+    {
+      "path": "data/validation_snapshots_20261024/76182cc184f845e8a204535dcd746c3ae26d89891782fc6ec09c7347858cfd64/types.ts",
+      "bytes": 6374,
+      "sha256": "76182cc184f845e8a204535dcd746c3ae26d89891782fc6ec09c7347858cfd64",
+      "source_path_at_capture": "frontend/src/domain/types.ts",
+      "publication_note": "Captured bytes preserved separately from the current working source."
+    },
+    {
+      "path": "frontend/src/features/cameras/SchemaForm.tsx",
+      "bytes": 13065,
+      "sha256": "32c6370fb8ca9be6b1cf332ec72720a5bead34622a5831da90e383372bd15829"
+    },
+    {
+      "path": "frontend/src/features/cameras/RulesEditor.tsx",
+      "bytes": 12372,
+      "sha256": "72598d580ed3d10c989d4a0b4675e18e01092869dbf7791b9f794b0c21d4cf20"
+    },
+    {
+      "path": "frontend/src/features/cameras/CamerasPage.tsx",
+      "bytes": 13773,
+      "sha256": "b5e79cbb1c684790cb08958a465aa53e71d0efde958eedf75f5f1a9235c60252"
+    },
+    {
+      "path": "frontend/scripts/test-rule-config-ui.mjs",
+      "bytes": 13516,
+      "sha256": "fbf9ac2ab161324745ccf2ebfb93d3f90f4bafd8cf7b934927165a8106fd3ff5"
+    },
+    {
+      "path": "frontend/scripts/rule-config-ui-fixture.tsx",
+      "bytes": 1310,
+      "sha256": "bd9cbae1412443e6e7c29669efc5b1ba6a8a2af8be86ac702608dad2fed2ae99"
+    },
+    {
+      "path": "data/validation_snapshots_20261024/999901891b13d14258b46c26ff1f4db6cf40728a5d2632f221af5e9b6b1c55c3/VIOLATION_EXPANSION_PLAN.md",
+      "bytes": 37624,
+      "sha256": "999901891b13d14258b46c26ff1f4db6cf40728a5d2632f221af5e9b6b1c55c3",
+      "source_path_at_capture": "docs/VIOLATION_EXPANSION_PLAN.md",
+      "publication_note": "Captured bytes preserved separately from the current working source."
+    },
+    {
+      "path": "data/validation_snapshots_20261024/b1e5664852aec2fa6c0a60cdbc5fc777a6059d72430865ed676311220dccb375/VIOLATION_EXPANSION_RESULTS.md",
+      "bytes": 7724,
+      "sha256": "b1e5664852aec2fa6c0a60cdbc5fc777a6059d72430865ed676311220dccb375",
+      "source_path_at_capture": "docs/VIOLATION_EXPANSION_RESULTS.md",
+      "publication_note": "Captured bytes preserved separately from the current working source."
+    },
+    {
+      "path": "docs/RULE_CONFIG_UI.md",
+      "bytes": 5834,
+      "sha256": "bb83e1ef01b9f44511ae685a68cf91aa0296239adb7bcb2ed7ca768e87bf0871"
+    },
+    {
+      "path": "docs/VIOLATION_API_INTEGRATION.md",
+      "bytes": 4773,
+      "sha256": "d2bb7f63bdfe99044b6bcc3f535cf1a1813da55053de1a4eafa91e5ff0c7c866"
+    },
+    {
+      "path": ".orchestra/metrics/ppe-roi-quality-20261024.json",
+      "bytes": 29672,
+      "sha256": "9c5693811f45d04d4adfef5663ed3c382a35b50899e99872bdfb40865dfccba5"
+    },
+    {
+      "path": ".orchestra/metrics/rfdetr-quality-20261024.json",
+      "bytes": 33730,
+      "sha256": "263f24bff6e38f55c544e87b8717289b04c8af0c88e027669131f9be4fbe2aee"
+    }
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

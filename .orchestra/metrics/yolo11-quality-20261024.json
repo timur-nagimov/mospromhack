@@ -1,0 +1,1319 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "scope": "paired local FP32 quality, YOLOv8n640 vs YOLO11x640",
+  "status": "completed",
+  "ticket_mode": "no_ticket",
+  "selection_priority": "quality, CPU timing descriptive only; target server/external LinQ TPU",
+  "branch": "feature/yolo11-model-candidate",
+  "images": {
+    "images-n": {
+      "report": {
+        "path": "data/yolo11_evaluation_20261024/images-n/20261024T111125Z-6b97971d/report.json",
+        "bytes": 10687,
+        "sha256": "4478b7969282335989d8efb53d876e6f4c93d95c28de8a6e1c26f54ff19aa1ac"
+      },
+      "provenance": {
+        "model": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/yolov8n-640.onnx",
+          "bytes": 12851095,
+          "sha256": "aa9699693737742033bc899670016413e1c3f9c2725b5fd0b302cfda44ce3a99"
+        },
+        "config": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.cpu-baseline.yaml",
+          "bytes": 716,
+          "sha256": "d0c4c4e3d3ed9150b5d193643f016e6d61eb35f4798bdfa4bda98b05d23e704c"
+        },
+        "sidecar": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/det.json",
+          "bytes": 4054,
+          "sha256": "bfd32113a5e24e46fe9d0add4ea52f97dcad6c8023e18cb98506e7048980bd5e"
+        },
+        "revision": null,
+        "candidate_profile": null,
+        "source_manifest": null,
+        "license_provenance": null,
+        "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+        "images": 141,
+        "runner": {
+          "path": "data/validation_snapshots_20261024/e2bc252a5760212b4aae7363b594d47ba494c8aed676058140bead29300101ff/run_ppe_onnx.py",
+          "bytes": 19429,
+          "sha256": "e2bc252a5760212b4aae7363b594d47ba494c8aed676058140bead29300101ff",
+          "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+          "publication_note": "Captured bytes preserved separately from the current working source."
+        },
+        "metrics": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+          "bytes": 10674,
+          "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+        },
+        "versions": {
+          "numpy": "2.4.6",
+          "onnx": "1.23.2",
+          "onnxruntime": "1.31.0",
+          "pydantic": "2.14.1"
+        },
+        "class_names_source": "onnx_metadata_via_backend",
+        "inspection": {
+          "checker": "passed",
+          "input_shape": [
+            1,
+            3,
+            640,
+            640
+          ],
+          "output_shape": [
+            1,
+            84,
+            8400
+          ],
+          "input_dtype": "float32",
+          "output_dtype": "float32",
+          "grid_count": 8400,
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "metadata": {
+            "description": "Ultralytics YOLOv8n model trained on coco.yaml",
+            "author": "Ultralytics",
+            "date": "2026-10-24T03:36:39.328432",
+            "version": "8.3.221",
+            "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+            "docs": "https://docs.ultralytics.com",
+            "stride": "32",
+            "task": "detect",
+            "batch": "1",
+            "imgsz": "[640, 640]",
+            "names": "{0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light', 10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench', 14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow', 20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack', 25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee', 30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat', 35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket', 39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon', 45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli', 51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair', 57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv', 63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone', 68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}",
+            "args": "{'batch': 1, 'half': False, 'dynamic': False, 'simplify': False, 'opset': 12, 'nms': False}",
+            "channels": "3"
+          },
+          "metadata_checks": {
+            "imgsz": "matched",
+            "names": "matched"
+          }
+        }
+      },
+      "images": 141,
+      "metrics": {
+        "ap_method": "coco_101_point",
+        "conf_op": 0.35,
+        "person": {
+          "ap50": 0.757,
+          "p": 0.736,
+          "r": 0.78,
+          "n_gt": 236
+        },
+        "helmet": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 192
+        },
+        "no_helmet": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 40
+        },
+        "no_helmet@iou0.3": {
+          "ap": 0.0,
+          "p": 0.0,
+          "r": 0.0
+        },
+        "vest": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 178
+        },
+        "no_vest": null,
+        "core_ap50(person,helmet,vest)": 0.252,
+        "coverage": {
+          "model_supported_classes": [
+            "person"
+          ],
+          "model_unsupported_classes": [
+            "helmet",
+            "no_helmet",
+            "vest",
+            "no_vest"
+          ],
+          "classes_without_gt": [
+            "no_vest"
+          ],
+          "per_class": {
+            "person": {
+              "model_supported": true,
+              "n_gt": 236,
+              "status": "evaluated"
+            },
+            "helmet": {
+              "model_supported": false,
+              "n_gt": 192,
+              "status": "unsupported"
+            },
+            "no_helmet": {
+              "model_supported": false,
+              "n_gt": 40,
+              "status": "unsupported"
+            },
+            "vest": {
+              "model_supported": false,
+              "n_gt": 178,
+              "status": "unsupported"
+            },
+            "no_vest": {
+              "model_supported": false,
+              "n_gt": 0,
+              "status": "no_ground_truth"
+            }
+          },
+          "core": {
+            "classes_with_gt": [
+              "person",
+              "helmet",
+              "vest"
+            ],
+            "classes_without_gt": [],
+            "denominator": 3,
+            "supported_classes": [
+              "person"
+            ],
+            "unsupported_classes": [
+              "helmet",
+              "vest"
+            ],
+            "supported_fraction": 0.3333333333333333
+          }
+        }
+      },
+      "latency_ms": {
+        "mean": 60.08195651427625,
+        "p50": 59.8132919985801,
+        "p95": 62.4052919447422,
+        "includes": "Detector preprocess+infer+postprocess"
+      }
+    },
+    "images-yolo11x": {
+      "report": {
+        "path": "data/yolo11_evaluation_20261024/images-yolo11x/20261024T111135Z-a86091e4/report.json",
+        "bytes": 10781,
+        "sha256": "656758fe5b24271c7373a9de1ce83bc5358d2dd33e93a5ede90871585b3e70ea"
+      },
+      "provenance": {
+        "model": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolo11x-640/yolo11x-640.onnx",
+          "bytes": 228057790,
+          "sha256": "6ed1d257152c284ec7674417fa5d6e29dcfeb68677d40a67257af3323c2a94ea"
+        },
+        "config": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/configs/models.yolo11x-640.yaml",
+          "bytes": 444,
+          "sha256": "3f08f8165065b4a5a17a26af4a7d85586e1cc7c847f8860c4c5595a54ca7ae5f"
+        },
+        "sidecar": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/models/candidates/yolo11x-640/det.json",
+          "bytes": 4030,
+          "sha256": "6f4386c964299e20883e4ff1bcc0d744ada92635b7f078ec101a38bb792797ee"
+        },
+        "revision": null,
+        "candidate_profile": null,
+        "source_manifest": null,
+        "license_provenance": null,
+        "data_sha256": "800a03725b2c6fc37b8c80794735a03666fd424cc63b4eeecb54b548e37b6791",
+        "images": 141,
+        "runner": {
+          "path": "data/validation_snapshots_20261024/e2bc252a5760212b4aae7363b594d47ba494c8aed676058140bead29300101ff/run_ppe_onnx.py",
+          "bytes": 19429,
+          "sha256": "e2bc252a5760212b4aae7363b594d47ba494c8aed676058140bead29300101ff",
+          "source_path_at_capture": "ml/eval/run_ppe_onnx.py",
+          "publication_note": "Captured bytes preserved separately from the current working source."
+        },
+        "metrics": {
+          "path": "/Users/mikemoiseev/Documents/mospromhack/ml/eval_ppe.py",
+          "bytes": 10674,
+          "sha256": "75506002ac773b9aaac670e9258241c837d8f87977ebd23117c19400b31a3d7d"
+        },
+        "versions": {
+          "numpy": "2.4.6",
+          "onnx": "1.23.2",
+          "onnxruntime": "1.31.0",
+          "pydantic": "2.14.1"
+        },
+        "class_names_source": "onnx_metadata_via_backend",
+        "inspection": {
+          "checker": "passed",
+          "input_shape": [
+            1,
+            3,
+            640,
+            640
+          ],
+          "output_shape": [
+            1,
+            84,
+            8400
+          ],
+          "input_dtype": "float32",
+          "output_dtype": "float32",
+          "grid_count": 8400,
+          "classes": [
+            "person",
+            "bicycle",
+            "car",
+            "motorcycle",
+            "airplane",
+            "bus",
+            "train",
+            "truck",
+            "boat",
+            "traffic light",
+            "fire hydrant",
+            "stop sign",
+            "parking meter",
+            "bench",
+            "bird",
+            "cat",
+            "dog",
+            "horse",
+            "sheep",
+            "cow",
+            "elephant",
+            "bear",
+            "zebra",
+            "giraffe",
+            "backpack",
+            "umbrella",
+            "handbag",
+            "tie",
+            "suitcase",
+            "frisbee",
+            "skis",
+            "snowboard",
+            "sports ball",
+            "kite",
+            "baseball bat",
+            "baseball glove",
+            "skateboard",
+            "surfboard",
+            "tennis racket",
+            "bottle",
+            "wine glass",
+            "cup",
+            "fork",
+            "knife",
+            "spoon",
+            "bowl",
+            "banana",
+            "apple",
+            "sandwich",
+            "orange",
+            "broccoli",
+            "carrot",
+            "hot dog",
+            "pizza",
+            "donut",
+            "cake",
+            "chair",
+            "couch",
+            "potted plant",
+            "bed",
+            "dining table",
+            "toilet",
+            "tv",
+            "laptop",
+            "mouse",
+            "remote",
+            "keyboard",
+            "cell phone",
+            "microwave",
+            "oven",
+            "toaster",
+            "sink",
+            "refrigerator",
+            "book",
+            "clock",
+            "vase",
+            "scissors",
+            "teddy bear",
+            "hair drier",
+            "toothbrush"
+          ],
+          "metadata": {
+            "description": "Ultralytics YOLO11x model trained on /ultralytics/ultralytics/cfg/datasets/coco.yaml",
+            "author": "Ultralytics",
+            "date": "2026-10-24T14:03:17.530139",
+            "version": "8.3.221",
+            "license": "AGPL-3.0 License (https://ultralytics.com/license)",
+            "docs": "https://docs.ultralytics.com",
+            "stride": "32",
+            "task": "detect",
+            "batch": "1",
+            "imgsz": "[640, 640]",
+            "names": "{0: 'person', 1: 'bicycle', 2: 'car', 3: 'motorcycle', 4: 'airplane', 5: 'bus', 6: 'train', 7: 'truck', 8: 'boat', 9: 'traffic light', 10: 'fire hydrant', 11: 'stop sign', 12: 'parking meter', 13: 'bench', 14: 'bird', 15: 'cat', 16: 'dog', 17: 'horse', 18: 'sheep', 19: 'cow', 20: 'elephant', 21: 'bear', 22: 'zebra', 23: 'giraffe', 24: 'backpack', 25: 'umbrella', 26: 'handbag', 27: 'tie', 28: 'suitcase', 29: 'frisbee', 30: 'skis', 31: 'snowboard', 32: 'sports ball', 33: 'kite', 34: 'baseball bat', 35: 'baseball glove', 36: 'skateboard', 37: 'surfboard', 38: 'tennis racket', 39: 'bottle', 40: 'wine glass', 41: 'cup', 42: 'fork', 43: 'knife', 44: 'spoon', 45: 'bowl', 46: 'banana', 47: 'apple', 48: 'sandwich', 49: 'orange', 50: 'broccoli', 51: 'carrot', 52: 'hot dog', 53: 'pizza', 54: 'donut', 55: 'cake', 56: 'chair', 57: 'couch', 58: 'potted plant', 59: 'bed', 60: 'dining table', 61: 'toilet', 62: 'tv', 63: 'laptop', 64: 'mouse', 65: 'remote', 66: 'keyboard', 67: 'cell phone', 68: 'microwave', 69: 'oven', 70: 'toaster', 71: 'sink', 72: 'refrigerator', 73: 'book', 74: 'clock', 75: 'vase', 76: 'scissors', 77: 'teddy bear', 78: 'hair drier', 79: 'toothbrush'}",
+            "args": "{'batch': 1, 'half': False, 'dynamic': False, 'simplify': False, 'opset': 12, 'nms': False}",
+            "channels": "3"
+          },
+          "metadata_checks": {
+            "imgsz": "matched",
+            "names": "matched"
+          }
+        }
+      },
+      "images": 141,
+      "metrics": {
+        "ap_method": "coco_101_point",
+        "conf_op": 0.35,
+        "person": {
+          "ap50": 0.772,
+          "p": 0.675,
+          "r": 0.826,
+          "n_gt": 236
+        },
+        "helmet": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 192
+        },
+        "no_helmet": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 40
+        },
+        "no_helmet@iou0.3": {
+          "ap": 0.0,
+          "p": 0.0,
+          "r": 0.0
+        },
+        "vest": {
+          "ap50": 0.0,
+          "p": 0.0,
+          "r": 0.0,
+          "n_gt": 178
+        },
+        "no_vest": null,
+        "core_ap50(person,helmet,vest)": 0.257,
+        "coverage": {
+          "model_supported_classes": [
+            "person"
+          ],
+          "model_unsupported_classes": [
+            "helmet",
+            "no_helmet",
+            "vest",
+            "no_vest"
+          ],
+          "classes_without_gt": [
+            "no_vest"
+          ],
+          "per_class": {
+            "person": {
+              "model_supported": true,
+              "n_gt": 236,
+              "status": "evaluated"
+            },
+            "helmet": {
+              "model_supported": false,
+              "n_gt": 192,
+              "status": "unsupported"
+            },
+            "no_helmet": {
+              "model_supported": false,
+              "n_gt": 40,
+              "status": "unsupported"
+            },
+            "vest": {
+              "model_supported": false,
+              "n_gt": 178,
+              "status": "unsupported"
+            },
+            "no_vest": {
+              "model_supported": false,
+              "n_gt": 0,
+              "status": "no_ground_truth"
+            }
+          },
+          "core": {
+            "classes_with_gt": [
+              "person",
+              "helmet",
+              "vest"
+            ],
+            "classes_without_gt": [],
+            "denominator": 3,
+            "supported_classes": [
+              "person"
+            ],
+            "unsupported_classes": [
+              "helmet",
+              "vest"
+            ],
+            "supported_fraction": 0.3333333333333333
+          }
+        }
+      },
+      "latency_ms": {
+        "mean": 1046.4332801750563,
+        "p50": 1022.5524590350688,
+        "p95": 1069.7059999220073,
+        "includes": "Detector preprocess+infer+postprocess"
+      }
+    }
+  },
+  "s1": {
+    "s1-n": {
+      "report": {
+        "path": "data/yolo11_s1_evaluation_20261024/s1-n/report.json",
+        "bytes": 23393,
+        "sha256": "f76627feb39c89c40759a27bd36d298d728e0355050cc3a519493549edb9b7ac"
+      },
+      "git": {
+        "head": "3b6560ab2226e06cbef1160a1b39517546e18fe6",
+        "tracked_changes": []
+      },
+      "coverage": {
+        "videos_expected": 2,
+        "videos_completed": 2,
+        "selected_frames_expected": 600,
+        "frames_processed": 600
+      },
+      "global": {
+        "evaluator": {
+          "tol_s": 2.0,
+          "duration_s": 120.0,
+          "videos": [
+            "s1_01.mp4",
+            "s1_02.mp4"
+          ],
+          "by_type": {
+            "zone_intrusion": {
+              "tp": 3,
+              "fp": 0,
+              "fn": 1,
+              "duplicates": 1,
+              "ignored_uncertain": 1,
+              "precision": 1.0,
+              "recall": 0.75,
+              "f1": 0.8571428571428571,
+              "latency_median_s": 2.2050333333333327,
+              "latency_p95_s": 2.571948333333334,
+              "false_alarms_per_hour": 0.0
+            }
+          },
+          "overall": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 1,
+            "ignored_uncertain": 1,
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.8571428571428571,
+            "latency_median_s": 2.2050333333333327,
+            "latency_p95_s": 2.571948333333334,
+            "false_alarms_per_hour": 0.0
+          }
+        },
+        "supplemental_strict": {
+          "precision_denominator_evaluator": 3,
+          "raw_predictions": 5,
+          "precision_denominator_strict": 4,
+          "recall_denominator": 4,
+          "strict_precision": 0.75,
+          "alarms_false_or_duplicate_per_hour": 30.0,
+          "positive_video_exposure_s": 120.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 1
+        },
+        "label_counts": {
+          "certain": 4,
+          "uncertain": 3
+        },
+        "excluded_uncertain_labels": [
+          {
+            "label_id": "s1_01.mp4:2",
+            "video": "s1_01.mp4",
+            "type": "zone_intrusion",
+            "t_start": 50.2,
+            "t_end": 51.8,
+            "uncertain": true,
+            "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+          },
+          {
+            "label_id": "s1_02.mp4:0",
+            "video": "s1_02.mp4",
+            "type": "zone_intrusion",
+            "t_start": 22.5,
+            "t_end": 25.5,
+            "uncertain": true,
+            "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+          },
+          {
+            "label_id": "s1_02.mp4:2",
+            "video": "s1_02.mp4",
+            "type": "zone_intrusion",
+            "t_start": 38.0,
+            "t_end": 45.0,
+            "uncertain": true,
+            "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+          }
+        ],
+        "prediction_classifications": [
+          {
+            "prediction_id": "3d0e2c44acbd4b998374364b90855e6d",
+            "video": "s1_01.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "d27672347a0b44c4beace84f0d68381f",
+            "video": "s1_01.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "4f511b4300c74259b9dc742eb87f0a80",
+            "video": "s1_01.mp4",
+            "classification": "ignored_uncertain",
+            "reason": "existing_events_eval:ignored_uncertain",
+            "uncertain_label_ids": [
+              "s1_01.mp4:2"
+            ]
+          },
+          {
+            "prediction_id": "2a23554db13d4c25ad1364a63714f199",
+            "video": "s1_02.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "b1a5db4d193d4e51960fc25f4992aeba",
+            "video": "s1_02.mp4",
+            "classification": "duplicates",
+            "reason": "existing_events_eval:duplicates"
+          }
+        ],
+        "uncertain_exclusions": [
+          {
+            "prediction_id": "4f511b4300c74259b9dc742eb87f0a80",
+            "video": "s1_01.mp4",
+            "classification": "ignored_uncertain",
+            "reason": "existing_events_eval:ignored_uncertain",
+            "uncertain_label_ids": [
+              "s1_01.mp4:2"
+            ]
+          }
+        ]
+      },
+      "wall_s": 37.3005722919479,
+      "inference_stats": {
+        "backend": "onnx-cpu",
+        "device": "cpu",
+        "utilization": 0.947,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "intra_op_threads": 2,
+        "models": {
+          "det": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 300
+              },
+              "infer": {
+                "p50": 56.81,
+                "p95": 58.75,
+                "n": 300
+              }
+            },
+            "fps": 16.54,
+            "calls": 600,
+            "items": 600,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          }
+        }
+      }
+    },
+    "s1-yolo11x": {
+      "report": {
+        "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/report.json",
+        "bytes": 23569,
+        "sha256": "331bfe2a16e3e5f2d975aed617c0317892eba6f4b4ba0db0facb18e241f89cbf"
+      },
+      "git": {
+        "head": "3b6560ab2226e06cbef1160a1b39517546e18fe6",
+        "tracked_changes": []
+      },
+      "coverage": {
+        "videos_expected": 2,
+        "videos_completed": 2,
+        "selected_frames_expected": 600,
+        "frames_processed": 600
+      },
+      "global": {
+        "evaluator": {
+          "tol_s": 2.0,
+          "duration_s": 120.0,
+          "videos": [
+            "s1_01.mp4",
+            "s1_02.mp4"
+          ],
+          "by_type": {
+            "zone_intrusion": {
+              "tp": 3,
+              "fp": 0,
+              "fn": 1,
+              "duplicates": 1,
+              "ignored_uncertain": 1,
+              "precision": 1.0,
+              "recall": 0.75,
+              "f1": 0.8571428571428571,
+              "latency_median_s": 2.2050333333333327,
+              "latency_p95_s": 2.571948333333334,
+              "false_alarms_per_hour": 0.0
+            }
+          },
+          "overall": {
+            "tp": 3,
+            "fp": 0,
+            "fn": 1,
+            "duplicates": 1,
+            "ignored_uncertain": 1,
+            "precision": 1.0,
+            "recall": 0.75,
+            "f1": 0.8571428571428571,
+            "latency_median_s": 2.2050333333333327,
+            "latency_p95_s": 2.571948333333334,
+            "false_alarms_per_hour": 0.0
+          }
+        },
+        "supplemental_strict": {
+          "precision_denominator_evaluator": 3,
+          "raw_predictions": 5,
+          "precision_denominator_strict": 4,
+          "recall_denominator": 4,
+          "strict_precision": 0.75,
+          "alarms_false_or_duplicate_per_hour": 30.0,
+          "positive_video_exposure_s": 120.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 1
+        },
+        "label_counts": {
+          "certain": 4,
+          "uncertain": 3
+        },
+        "excluded_uncertain_labels": [
+          {
+            "label_id": "s1_01.mp4:2",
+            "video": "s1_01.mp4",
+            "type": "zone_intrusion",
+            "t_start": 50.2,
+            "t_end": 51.8,
+            "uncertain": true,
+            "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+          },
+          {
+            "label_id": "s1_02.mp4:0",
+            "video": "s1_02.mp4",
+            "type": "zone_intrusion",
+            "t_start": 22.5,
+            "t_end": 25.5,
+            "uncertain": true,
+            "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+          },
+          {
+            "label_id": "s1_02.mp4:2",
+            "video": "s1_02.mp4",
+            "type": "zone_intrusion",
+            "t_start": 38.0,
+            "t_end": 45.0,
+            "uncertain": true,
+            "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+          }
+        ],
+        "prediction_classifications": [
+          {
+            "prediction_id": "3d1c9d9c21fe4700894a08dfbd000917",
+            "video": "s1_01.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "633ddcc70c964ca3878f11a123e2218b",
+            "video": "s1_01.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "91a428a8b4c64e259d857c75b1dddd45",
+            "video": "s1_01.mp4",
+            "classification": "ignored_uncertain",
+            "reason": "existing_events_eval:ignored_uncertain",
+            "uncertain_label_ids": [
+              "s1_01.mp4:2"
+            ]
+          },
+          {
+            "prediction_id": "ce96fcdea51e4da687d5fd9ea0837fa4",
+            "video": "s1_02.mp4",
+            "classification": "tp",
+            "reason": "existing_events_eval:tp"
+          },
+          {
+            "prediction_id": "3ee1ec48ad1547359380053693493ee8",
+            "video": "s1_02.mp4",
+            "classification": "duplicates",
+            "reason": "existing_events_eval:duplicates"
+          }
+        ],
+        "uncertain_exclusions": [
+          {
+            "prediction_id": "91a428a8b4c64e259d857c75b1dddd45",
+            "video": "s1_01.mp4",
+            "classification": "ignored_uncertain",
+            "reason": "existing_events_eval:ignored_uncertain",
+            "uncertain_label_ids": [
+              "s1_01.mp4:2"
+            ]
+          }
+        ]
+      },
+      "wall_s": 624.865446166019,
+      "inference_stats": {
+        "backend": "onnx-cpu",
+        "device": "cpu",
+        "utilization": 1.0,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "intra_op_threads": 2,
+        "models": {
+          "det": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 59
+              },
+              "infer": {
+                "p50": 1018.0,
+                "p95": 1071.32,
+                "n": 59
+              }
+            },
+            "fps": 0.98,
+            "calls": 600,
+            "items": 600,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          }
+        }
+      }
+    }
+  },
+  "paired_sampling_identity": {
+    "s1_01": {
+      "rows": 300,
+      "matching": true,
+      "sha256": "6daaba83850300414d59310f0d705f8a9c2ffdb46e4f27bec3f7196e372db195"
+    },
+    "s1_02": {
+      "rows": 300,
+      "matching": true,
+      "sha256": "c56364db87ac1852a64f3e4ed4b113a93bd82c92075700aad242f3c2304ca3e9"
+    }
+  },
+  "independent_verification": {
+    "s1-n": {
+      "independent_db_cli_exact_match": true,
+      "sqlite_ids_equal_predictions": true,
+      "sqlite_events": 5,
+      "trace": [
+        {
+          "path": "samples_s1_01.jsonl",
+          "rows": 300,
+          "keys": [
+            "sample_index",
+            "target_s",
+            "source_frame_index",
+            "source_time_s",
+            "decoder_pos_s",
+            "capture_id",
+            "detections",
+            "raw_detections",
+            "person_tracks",
+            "violations",
+            "new_event_ids",
+            "timings_ms"
+          ]
+        },
+        {
+          "path": "samples_s1_02.jsonl",
+          "rows": 300,
+          "keys": [
+            "sample_index",
+            "target_s",
+            "source_frame_index",
+            "source_time_s",
+            "decoder_pos_s",
+            "capture_id",
+            "detections",
+            "raw_detections",
+            "person_tracks",
+            "violations",
+            "new_event_ids",
+            "timings_ms"
+          ]
+        }
+      ]
+    },
+    "s1-yolo11x": {
+      "independent_db_cli_exact_match": true,
+      "sqlite_ids_equal_predictions": true,
+      "sqlite_events": 5,
+      "trace": [
+        {
+          "path": "samples_s1_01.jsonl",
+          "rows": 300,
+          "keys": [
+            "sample_index",
+            "target_s",
+            "source_frame_index",
+            "source_time_s",
+            "decoder_pos_s",
+            "capture_id",
+            "detections",
+            "raw_detections",
+            "person_tracks",
+            "violations",
+            "new_event_ids",
+            "timings_ms"
+          ]
+        },
+        {
+          "path": "samples_s1_02.jsonl",
+          "rows": 300,
+          "keys": [
+            "sample_index",
+            "target_s",
+            "source_frame_index",
+            "source_time_s",
+            "decoder_pos_s",
+            "capture_id",
+            "detections",
+            "raw_detections",
+            "person_tracks",
+            "violations",
+            "new_event_ids",
+            "timings_ms"
+          ]
+        }
+      ]
+    }
+  },
+  "initial_cli_attempt": {
+    "report": {
+      "path": "data/yolo11_evaluation_20261024/run-results.json",
+      "bytes": 2362,
+      "sha256": "0ede13240b302012e452c951d220f9cc5d976f99f4fcebe57a2ec9aa4837ef09"
+    },
+    "reason": "1800s exceeded previous CLI cap600; no S1 inference began; completed image runs retained",
+    "resolution": "run_s1 explicit upper deadline1800, default180 unchanged; fresh paired S1 source3b6560a"
+  },
+  "promotion": {
+    "promoted": false,
+    "reason": "S1 event precision/recall unchanged; image recall increased with lower precision at fixed conf; target TPU compilation/quantization unverified"
+  },
+  "limitations": [
+    "141 public PPE images are a diagnostic set, not industrial field validation",
+    "S1 has4certain3uncertain labels, no actor identity or independent clean exposure",
+    "No helmet/PPE class support for COCO detector",
+    "Current stand det480/int8 is not the tested CPU n640 reference",
+    "FP32 ONNX success is not LinQ compiler/inference acceptance"
+  ],
+  "artifacts": [
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/run.py",
+      "bytes": 2565,
+      "sha256": "c90300e9ab1917521860bda478499a8bdb6101847121843a20dbb1c433e45c41"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/independent-verification.json",
+      "bytes": 1967,
+      "sha256": "1a4eb408091e91552cf326953cc1b7d528eb707b440362ca2255cb20ce12f1b7"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n.log",
+      "bytes": 126,
+      "sha256": "ea3f4307bf05cf566766024e2c081cfd2626b5fc95bd0b918084bd57b3b156f1"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x.log",
+      "bytes": 132,
+      "sha256": "1e478492fa877cea3821bd60632ab8a95d1c788b11fc4465bdd7ac8fb6a6c514"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/run-results.json",
+      "bytes": 1597,
+      "sha256": "658766a0cd871215ea8c07464338cd3eddeca9925d520ed6189c27fcea277c62"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/report.json",
+      "bytes": 23393,
+      "sha256": "f76627feb39c89c40759a27bd36d298d728e0355050cc3a519493549edb9b7ac"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/camera_s1_02.json",
+      "bytes": 1279,
+      "sha256": "d881772bf5ccdd5728a494aa95ec40335267a2ea32f85ada6bc66d9eb9d2c580"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/effective_config.json",
+      "bytes": 1040,
+      "sha256": "61b0405b98bb40b571f8a8afd32917601f9d180f87d19413fcbc5e389c24a66f"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/mapping.json",
+      "bytes": 283,
+      "sha256": "f9c7d76d50999c209fbbdbb37bc8821884db7a2ba6eadab693281d35a5dee26b"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/journal_events.json",
+      "bytes": 5788,
+      "sha256": "ac5f8093e589149e27fca26539ed832d1acb6dd4eb65a59a2cf394804aca1928"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/camera_s1_01.json",
+      "bytes": 1268,
+      "sha256": "9ca5c64e70e0c3741d90f35527e86014120d45426258ffc5358d08682da41220"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/samples_s1_01.jsonl",
+      "bytes": 200472,
+      "sha256": "5220489107cbbc4da461b74ce3b78b0e86a8946113f97122fb57d24eb08a365c"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/effective_model.json",
+      "bytes": 1449,
+      "sha256": "0382d208f517e5329afb224a6eb2531b90b5be76055f0ead5cd58cbbc9a01a83"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/manifest.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/lifecycle_s1_02.jsonl",
+      "bytes": 386,
+      "sha256": "46bffda67a19caabcff2a5e6098ea329e785f2f560d4383a2b726799a6c15dad"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/runtime.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/predictions.json",
+      "bytes": 5743,
+      "sha256": "d513bdc5b94a974ba9b9487a132414f18951690e004223b9f7f48be869cad774"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/independent-db-evaluation.json",
+      "bytes": 740,
+      "sha256": "a7765d21c0ac01e69f3dc3306740b585ad46066e5a31f473d3e0667442523c89"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/evaluation.json",
+      "bytes": 740,
+      "sha256": "a7765d21c0ac01e69f3dc3306740b585ad46066e5a31f473d3e0667442523c89"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/samples_s1_02.jsonl",
+      "bytes": 801898,
+      "sha256": "4640dd39cbb092a83324e727751e44ff1c6d4ab1dcf4a4129179735b24cf0f70"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/lifecycle_s1_01.jsonl",
+      "bytes": 786,
+      "sha256": "59cf2d30d909ee9d5deef7984ac7b578ec498c48aabd41735db98c27a454b1f7"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/labels_with_ids.json",
+      "bytes": 2334,
+      "sha256": "aa40bfe74dc9d42e3fa2d0e5565883ea403b0f01122458284177be6ff603b26d"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/durations.json",
+      "bytes": 45,
+      "sha256": "c925352b0779d406de8e97d9a9e2f78505fee62009d678a6d46af55fc9550721"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/report.json",
+      "bytes": 23569,
+      "sha256": "331bfe2a16e3e5f2d975aed617c0317892eba6f4b4ba0db0facb18e241f89cbf"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/camera_s1_02.json",
+      "bytes": 1279,
+      "sha256": "d881772bf5ccdd5728a494aa95ec40335267a2ea32f85ada6bc66d9eb9d2c580"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/effective_config.json",
+      "bytes": 1039,
+      "sha256": "41e90557eae429a001418e6fee66ea183dd70b8e9b3ab743935b6272543676bf"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/mapping.json",
+      "bytes": 283,
+      "sha256": "f9c7d76d50999c209fbbdbb37bc8821884db7a2ba6eadab693281d35a5dee26b"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/journal_events.json",
+      "bytes": 5775,
+      "sha256": "356e68490545496f089c0063b987d0aea46a4d2a5117810664f9408dc235a181"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/camera_s1_01.json",
+      "bytes": 1268,
+      "sha256": "9ca5c64e70e0c3741d90f35527e86014120d45426258ffc5358d08682da41220"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/samples_s1_01.jsonl",
+      "bytes": 202821,
+      "sha256": "9959ef0c4645eb4169db2bd3f58267b6b13f077ae9695c043511338dca2e6426"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/effective_model.json",
+      "bytes": 1449,
+      "sha256": "1459447e6aea3bc907154f5183bb3418a2eb4e4b832dc4f95baff41b4a852f83"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/manifest.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/lifecycle_s1_02.jsonl",
+      "bytes": 385,
+      "sha256": "c9b4304f6a2eb1eb402f8c0c168cbfedcbccf78b42d3e6469f43ceb3cb33cf55"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/runtime.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/predictions.json",
+      "bytes": 5730,
+      "sha256": "a4377a6cbbb60d8491dd0925d29517bb3704a4b1d5645ee53c0abcf3d53c53f8"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/independent-db-evaluation.json",
+      "bytes": 740,
+      "sha256": "a7765d21c0ac01e69f3dc3306740b585ad46066e5a31f473d3e0667442523c89"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/evaluation.json",
+      "bytes": 740,
+      "sha256": "a7765d21c0ac01e69f3dc3306740b585ad46066e5a31f473d3e0667442523c89"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/samples_s1_02.jsonl",
+      "bytes": 1148375,
+      "sha256": "40d780b58032b10d1ee2a56cbe5f32e76ff1d6e226f67520f2cd2a9e4bfc09a5"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/lifecycle_s1_01.jsonl",
+      "bytes": 786,
+      "sha256": "9902982cc03543c739bf8d0189b40e40e5b6c9550a122f01124d1d5d1851d635"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/labels_with_ids.json",
+      "bytes": 2334,
+      "sha256": "aa40bfe74dc9d42e3fa2d0e5565883ea403b0f01122458284177be6ff603b26d"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/durations.json",
+      "bytes": 45,
+      "sha256": "c925352b0779d406de8e97d9a9e2f78505fee62009d678a6d46af55fc9550721"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/labels/s1_02.json",
+      "bytes": 1239,
+      "sha256": "7113d810f91d3118233e841df427b455229d94828002848a2b04ea0a49b2b59a"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-yolo11x/labels/s1_01.json",
+      "bytes": 881,
+      "sha256": "159719b4b831f2649e39e6a608cab9228899cd0dd951912e4500bc36ba981065"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/labels/s1_02.json",
+      "bytes": 1239,
+      "sha256": "7113d810f91d3118233e841df427b455229d94828002848a2b04ea0a49b2b59a"
+    },
+    {
+      "path": "data/yolo11_s1_evaluation_20261024/s1-n/labels/s1_01.json",
+      "bytes": 881,
+      "sha256": "159719b4b831f2649e39e6a608cab9228899cd0dd951912e4500bc36ba981065"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/run.py",
+      "bytes": 3058,
+      "sha256": "62fe25fb4707dfe639200af99679a28f016ab04ff94ecddc60e4acfe096c357b"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-yolo11x.log",
+      "bytes": 326,
+      "sha256": "5610b3126bf53e40d8c276e6916533a0ec2ceb8388cf71f39c7fa3d9119103d8"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/eval-s1-yolo11x.json",
+      "bytes": 1039,
+      "sha256": "41e90557eae429a001418e6fee66ea183dd70b8e9b3ab743935b6272543676bf"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/s1-n.log",
+      "bytes": 251,
+      "sha256": "7f8896138f10e3560fd040d935fcc75a620293e6cf6d25ee1fce12902430dd9f"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-n.log",
+      "bytes": 320,
+      "sha256": "af3d76f1c2e5b19737b86cfdd5600ee11047e50b2c625e14b07ed1e5b2832f52"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/run-results.json",
+      "bytes": 2362,
+      "sha256": "0ede13240b302012e452c951d220f9cc5d976f99f4fcebe57a2ec9aa4837ef09"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-n/20261024T111125Z-6b97971d/report.json",
+      "bytes": 10687,
+      "sha256": "4478b7969282335989d8efb53d876e6f4c93d95c28de8a6e1c26f54ff19aa1ac"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-n/20261024T111125Z-6b97971d/predictions.jsonl",
+      "bytes": 3271459,
+      "sha256": "6b987a60994d0fee57b26631a6a7c89c950ea6823430a1648e1f3f177d65293b"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-n/20261024T111125Z-6b97971d/semantic-smoke.json",
+      "bytes": 284,
+      "sha256": "0d238a9af81e6835a1792a900a72ac2558ef7113db1c13b532736626335a0892"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-n/20261024T111125Z-6b97971d/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-yolo11x/20261024T111135Z-a86091e4/report.json",
+      "bytes": 10781,
+      "sha256": "656758fe5b24271c7373a9de1ce83bc5358d2dd33e93a5ede90871585b3e70ea"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-yolo11x/20261024T111135Z-a86091e4/predictions.jsonl",
+      "bytes": 1188769,
+      "sha256": "861c415ac5b499a79de368aea7d5151f48ddd7031ab4801f939e8ce2ce78e113"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-yolo11x/20261024T111135Z-a86091e4/semantic-smoke.json",
+      "bytes": 284,
+      "sha256": "0d238a9af81e6835a1792a900a72ac2558ef7113db1c13b532736626335a0892"
+    },
+    {
+      "path": "data/yolo11_evaluation_20261024/images-yolo11x/20261024T111135Z-a86091e4/inputs.json",
+      "bytes": 82531,
+      "sha256": "3b03f763960a0e9b640bdf5d8dc66d2c56e8797a92174bf304e954618d55ca5b"
+    }
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

@@ -1,54 +1,21 @@
-"""Transport for local and edge/gateway operation.
+"""Durable edge protocol plus explicit compatibility types for upstream callers.
 
-Local:
-    transport = MemoryTransport()
-    transport.on_message(handle_message)
-    transport.publish(message)
-
-RabbitMQ:
-    source = RabbitSource(callback=handle_message)
-    sink = RabbitSink()
-    sink.publish(message)
-
-Callbacks receive validated message models. RabbitMQ delivery is at least once:
-gateway handlers should upsert events by Event.id and tolerate redelivery.
-Connections and channels are used exclusively by their owning worker threads.
+Production replication uses Envelope with RabbitPublisher/RabbitConsumer.
+The transient MessageInput transports remain available for legacy integrations;
+their binary codec lives in guard.transport.codec, not these core encode/decode.
 """
 
-from .codec import decode, encode
+from guard.transport.protocol import Envelope, decode, encode
 from .memory import MemorySink, MemorySource, MemoryTransport
 from .messages import (
-    EventMsg,
-    FrameMetaMsg,
-    HeartbeatMsg,
-    MessageCallback,
-    MessageInput,
-    MetricsMsg,
-    Msg,
-    Sink,
-    Source,
-    TransportClosed,
-    parse_message,
+    EventMsg, FrameMetaMsg, HeartbeatMsg, MessageCallback, MessageInput,
+    MetricsMsg, Msg, Sink, Source, TransportClosed, parse_message,
 )
 from .rabbit import RabbitSink, RabbitSource
 
 __all__ = [
-    "EventMsg",
-    "FrameMetaMsg",
-    "HeartbeatMsg",
-    "MessageCallback",
-    "MessageInput",
-    "MetricsMsg",
-    "Msg",
-    "Sink",
-    "Source",
-    "TransportClosed",
-    "MemoryTransport",
-    "MemorySink",
-    "MemorySource",
-    "RabbitSink",
-    "RabbitSource",
-    "encode",
-    "decode",
-    "parse_message",
+    "Envelope", "decode", "encode", "EventMsg", "FrameMetaMsg", "HeartbeatMsg",
+    "MessageCallback", "MessageInput", "MetricsMsg", "Msg", "Sink", "Source",
+    "TransportClosed", "parse_message", "MemorySink", "MemorySource",
+    "MemoryTransport", "RabbitSink", "RabbitSource",
 ]

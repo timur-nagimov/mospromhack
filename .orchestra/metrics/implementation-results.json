@@ -1,0 +1,58 @@
+{
+  "date": "2026-10-24",
+  "scope": "local_code_and_synthetic_api_ui",
+  "base_commit": "c0176140eb6514973d8a2fec00984fd3c06fa81e",
+  "integration_branch": "feature/implementation-batch",
+  "tested_code_commit": "0021d96935c5ae99ae9c6336046ef918cb8878f9",
+  "features": {
+    "feature/analytics-api": "e1f01ccd51859b6943572785863eba8c4a170fca",
+    "feature/camera-config-atomicity": "9dcf857820028b83655f7ff4d25d74af521e7653",
+    "feature/offline-doctor": "81a9aa156ac80c8a75331a95480eb44326a9a71d"
+  },
+  "backend": {
+    "command": ".venv/bin/python -m pytest -q --junitxml=/private/tmp/mospromhack-final-tests.xml",
+    "tests": 639,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 639,
+    "duration_s": 3.88
+  },
+  "frontend": {
+    "analytics_tests": 7,
+    "analytics_tests_passed": 7,
+    "production_build": "passed",
+    "mock_build": "passed_in_feature_branch_at_e1f01cc"
+  },
+  "astra_review": {
+    "status": "no_remaining_blockers",
+    "fixed_finding": "concurrent status changes between analytics requests; all aggregates now share one SQLite read transaction"
+  },
+  "browser": {
+    "api": "real FastAPI and SQLite",
+    "events": "synthetic",
+    "total": 5205,
+    "critical": 3817,
+    "unreviewed": 1302,
+    "reviewed": 3903,
+    "javascript_errors": 0,
+    "temporary_server_stopped": true,
+    "temporary_tab_closed": true
+  },
+  "doctor": {
+    "scope": "offline",
+    "local_errors": 4,
+    "required_models": [
+      "det"
+    ],
+    "missing_video_files": 3,
+    "missing_required_onnx_files": 1,
+    "data_and_models_dirs_created": false,
+    "report": "offline-doctor.json"
+  },
+  "live_tpu_verified": false,
+  "real_model_inference_verified": false,
+  "pushed_to_github": false,
+  "main_unchanged": true,
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

@@ -13,6 +13,8 @@ from typing import Any, ClassVar
 
 from guard.contracts import CameraConfig, FrameContext, RuleConfig, Severity, Violation
 
+_OBSERVATION_PRIORITY = {"observed": 0, "not_observable": 1, "unsupported": 2, "error": 3}
+
 
 class RulePlugin(ABC):
     type: ClassVar[str]  # уникальное имя, на него ссылается RuleConfig.type
@@ -20,6 +22,7 @@ class RulePlugin(ABC):
     required_models: ClassVar[frozenset[str]] = frozenset({"det"})
     default_severity: ClassVar[Severity] = Severity.high
     params_schema: ClassVar[dict[str, Any]] = {}  # JSON Schema параметров — по ней UI строит форму
+    zone_schema: ClassVar[dict[str, Any] | None] = None  # Необязательная JSON Schema RuleConfig.zones
 
     def __init__(self, cfg: RuleConfig, camera: CameraConfig) -> None:
         self.cfg = cfg
@@ -32,6 +35,19 @@ class RulePlugin(ABC):
     def violation(self, ctx: FrameContext, **kwargs: Any) -> Violation:
         kwargs.setdefault("severity", self.cfg.severity)
         return Violation(rule_id=self.cfg.rule_id, type=self.type, **kwargs)
+
+    def observation_status(self, ctx: FrameContext) -> str:
+        """Combine current required-model coverage without inferring safety.
+
+        Missing model statuses mean not_observable; invalid values fail closed
+        as error. This pure helper does not gate evaluate(), change state, or
+        populate rule_observations. Plugins opt in explicitly.
+        """
+        statuses = []
+        for model in self.required_models:
+            status = ctx.model_observations.get(model, "not_observable")
+            statuses.append(status if isinstance(status, str) and status in _OBSERVATION_PRIORITY else "error")
+        return max(statuses, key=_OBSERVATION_PRIORITY.__getitem__, default="observed")
 
 
 _REGISTRY: dict[str, type[RulePlugin]] = {}
@@ -95,6 +111,7 @@ def available_rules() -> list[dict[str, Any]]:
             "required_models": sorted(cls.required_models),
             "default_severity": cls.default_severity.value,
             "params_schema": cls.params_schema,
+            **({"zone_schema": cls.zone_schema} if cls.zone_schema is not None else {}),
         }
         for cls in _REGISTRY.values()
     ]
