@@ -26,10 +26,19 @@ def project_root() -> Path:
     return Path(os.environ.get("GUARD_ROOT") or CODE_ROOT).expanduser()
 
 
-def find_dotenv(start: Path | None = None) -> Path | None:
+def find_dotenv(start: Path | None = None, *, stop_at_git_root: bool = True) -> Path | None:
+    """Ближайший .env вверх от start, не выше корня git-рабочей копии (первый каталог с .git — файлом или каталогом).
+
+    Граница нужна worktree агентов внутри основного репозитория: иначе они подхватывают его .env.
+    Без .git на пути или при stop_at_git_root=False поиск идёт до корня файловой системы."""
     start = Path(start) if start is not None else project_root()
-    return next((directory / ".env" for directory in (start, *start.parents)
-                 if (directory / ".env").is_file()), None)
+    for directory in (start, *start.parents):
+        env = directory / ".env"
+        if env.is_file():
+            return env
+        if stop_at_git_root and (directory / ".git").exists():
+            return None
+    return None
 
 
 def load_dotenv_guard(start: Path | None = None) -> Path | None:

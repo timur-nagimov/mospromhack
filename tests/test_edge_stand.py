@@ -84,7 +84,7 @@ def test_section_rejects_unknown_keys(tmp_path):
 
 
 def test_apply_section_respects_env_and_coerces_settings(tmp_path, monkeypatch):
-    for name in ("GUARD_BACKEND", "GUARD_MODELS_CONFIG", "GUARD_MODELS_DIR", "GUARD_DATA_DIR",
+    for name in ("GUARD_ROOT", "GUARD_BACKEND", "GUARD_MODELS_CONFIG", "GUARD_MODELS_DIR", "GUARD_DATA_DIR",
                  "GUARD_MEDIA_DIR", "GUARD_DB_PATH", "GUARD_RABBIT_URL", "GUARD_FRAME_META"):
         monkeypatch.delenv(name, raising=False)
     settings = make_settings(tmp_path)
