@@ -53,7 +53,7 @@ models:
   - model_id: fire
     task: detect
     onnx_path: fire-640.onnx
-    tpu_program: tpu/fire_640/fire_640_b1_o5_h1m.tpu
+    tpu_program: tpu/fire_640s1/fire_640s1_b1_o5_h1m.tpu   # A2: пороги sigmoid, Δconf −0.05 вместо −0.19
     input_size: [640, 640]
     input_dtype: float32
     output_format: yolov8
