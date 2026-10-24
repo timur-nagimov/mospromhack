@@ -34,7 +34,7 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
   - `decode_yolov8(outputs, meta, spec) -> list[Detection]`;
   - `decode_yolov8_pose(...)`;
   - NMS на numpy.
-- Решение «где делать препроцессинг» (ноутбук или рядом с TPU) записывается в `.orchestra/DECISIONS.md` по замерам.
+- Решение «где делать препроцессинг» (ноутбук или рядом с TPU) записывается в `docs/ARCHITECTURE.md` по замерам.
 
 ## Треки (`guard/tracking/`, Codex CX-002)
 

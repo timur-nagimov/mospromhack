@@ -4,6 +4,7 @@
 HOURS=${1:-14}
 ROOT=/Users/nagimov-timur/Desktop/mosprom
 LOG=$ROOT/.orchestra/keepalive.log
+mkdir -p "$(dirname "$LOG")"
 end=$(( $(date +%s) + HOURS*3600 ))
 unset PYTHONPATH
 while [ "$(date +%s)" -lt "$end" ]; do

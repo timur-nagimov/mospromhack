@@ -45,7 +45,7 @@ BINDINGS = ("edge.event", "edge.frame_meta", "edge.metrics")
 FRAME_TTL_SECONDS = 10.0
 # Потребитель шлюза держит до 200 неподтверждённых сообщений: при prefetch=1 через VPN (RTT ~225 мс)
 # приходит одно сообщение за RTT — 3.5 сообщения/с при 20.7 отправляемых; задержка оповещения 12.6 с
-# вместо 2.2 с, потеря 93 % frame_meta (A10, .orchestra/metrics/edge-tpu-prefetch1-20261024-1009.json).
+# вместо 2.2 с, потеря 93 % frame_meta (A10, замер edge-tpu-prefetch1-20261024-1009).
 CONSUMER_PREFETCH = 200
 
 _ROUTING_KEYS = {

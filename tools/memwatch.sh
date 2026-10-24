@@ -6,6 +6,7 @@
 # usage: tools/memwatch.sh [LIMIT_MB=6144] [MIN_FREE=15] [HOURS=14]
 LIMIT_MB=${1:-6144}; MIN_FREE=${2:-15}; HOURS=${3:-14}
 LOG=/Users/nagimov-timur/Desktop/mosprom/.orchestra/memwatch.log
+mkdir -p "$(dirname "$LOG")"
 end=$(( $(date +%s) + HOURS*3600 ))
 
 project_procs() {  # pid rss_kb для python/node, чья команда или cwd внутри mosprom*

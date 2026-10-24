@@ -17,6 +17,7 @@ case "${HEAVY_LANE:-default}" in
   stand)   LOCK="$ROOT/.orchestra/heavy-stand.lock"; STALE=3600 ;;
   *) echo "heavy.sh: неизвестная полоса ${HEAVY_LANE}" >&2; exit 2 ;;
 esac
+mkdir -p "$(dirname "$LOCK")"
 until mkdir "$LOCK" 2>/dev/null; do
   age=$(( $(date +%s) - $(stat -f %m "$LOCK" 2>/dev/null || date +%s) ))
   [ "$age" -gt "$STALE" ] && rm -rf "$LOCK" && continue   # протухший lock
