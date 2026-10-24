@@ -129,10 +129,10 @@ def test_roles_catalog(env):
     data = env.client.get("/api/auth/roles", headers=headers).json()
     assert [r["id"] for r in data["roles"]] == ["worker", "operator", "safety", "admin"]
     worker = data["roles"][0]
-    assert worker["title"] == "Сотрудник" and worker["permissions"] == ["analytics.view", "events.view"]
+    assert worker["title"] == "Сотрудник" and worker["permissions"] == ["analytics.view", "events.view", "employees.view"]
     assert worker["description"]
     perms = data["permissions"]
-    assert len(perms) == 12 and perms[0] == {
+    assert len(perms) == 15 and perms[0] == {
         "id": "analytics.view", "title": perms[0]["title"], "description": perms[0]["description"],
     }
     assert {p["id"] for p in perms} >= {"zones.edit", "users.manage", "flywheel.train"}
