@@ -1,0 +1,83 @@
+{
+  "Onest": {
+    "400": {
+      "typeface": "Onest",
+      "bold": false,
+      "file": "Onest-Regular.ttf"
+    },
+    "500": {
+      "typeface": "Onest Medium",
+      "bold": false,
+      "file": "Onest-Medium.ttf"
+    },
+    "600": {
+      "typeface": "Onest SemiBold",
+      "bold": false,
+      "file": "Onest-SemiBold.ttf"
+    },
+    "700": {
+      "typeface": "Onest",
+      "bold": true,
+      "file": "Onest-Bold.ttf"
+    },
+    "800": {
+      "typeface": "Onest ExtraBold",
+      "bold": false,
+      "file": "Onest-ExtraBold.ttf"
+    }
+  },
+  "JetBrains Mono": {
+    "400": {
+      "typeface": "JetBrains Mono",
+      "bold": false,
+      "file": "JetBrainsMono-Regular.ttf"
+    },
+    "500": {
+      "typeface": "JetBrains Mono Medium",
+      "bold": false,
+      "file": "JetBrainsMono-Medium.ttf"
+    },
+    "600": {
+      "typeface": "JetBrains Mono SemiBold",
+      "bold": false,
+      "file": "JetBrainsMono-SemiBold.ttf"
+    },
+    "700": {
+      "typeface": "JetBrains Mono",
+      "bold": true,
+      "file": "JetBrainsMono-Bold.ttf"
+    },
+    "800": {
+      "typeface": "JetBrains Mono ExtraBold",
+      "bold": false,
+      "file": "JetBrainsMono-ExtraBold.ttf"
+    }
+  },
+  "Tektur": {
+    "400": {
+      "typeface": "Tektur",
+      "bold": false,
+      "file": "Tektur-Regular.ttf"
+    },
+    "500": {
+      "typeface": "Tektur Medium",
+      "bold": false,
+      "file": "Tektur-Medium.ttf"
+    },
+    "600": {
+      "typeface": "Tektur SemiBold",
+      "bold": false,
+      "file": "Tektur-SemiBold.ttf"
+    },
+    "700": {
+      "typeface": "Tektur",
+      "bold": true,
+      "file": "Tektur-Bold.ttf"
+    },
+    "800": {
+      "typeface": "Tektur ExtraBold",
+      "bold": false,
+      "file": "Tektur-ExtraBold.ttf"
+    }
+  }
+}

@@ -7,53 +7,18 @@
 //   node render.mjs --serve         только локальный сервер для просмотра в браузере
 //   node render.mjs --data FILE     подставить другой data.json (проверить, как лягут новые цифры)
 //
+// Редактируемый PPTX из той же колоды — to_pptx.mjs (сервер и загрузка общие, deck_page.mjs).
 // Playwright берётся из frontend/node_modules (cd frontend && npm ci) или из PLAYWRIGHT_DIR.
 // На ноутбуке команды запускать через tools/heavy.sh: браузер — тяжёлый процесс.
-import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { HERE, DECK_PATH, cliOption, startServer, loadPlaywright, openDeck } from "./deck_page.mjs";
 
-const HERE = path.dirname(fileURLToPath(import.meta.url));
-const SERVE_ROOT = path.resolve(HERE, "..");            // deliverables/: нужны ../screens
-const REPO = path.resolve(HERE, "..", "..");
 const args = process.argv.slice(2);
-const opt = name => { const i = args.indexOf(name); return i >= 0 ? (args[i + 1] || true) : null; };
+const opt = name => cliOption(args, name);
 const OUT = path.resolve(opt("--out") || path.join(HERE, "zazerkalye.pdf"));
 const PNG_DIR = opt("--png");
 const DATA_FILE = opt("--data") ? path.resolve(opt("--data")) : null;
-
-const MIME = {
-  ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
-  ".mjs": "text/javascript; charset=utf-8", ".json": "application/json; charset=utf-8", ".woff2": "font/woff2",
-  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml",
-};
-
-function startServer() {
-  const server = http.createServer((req, res) => {
-    const url = decodeURIComponent((req.url || "/").split("?")[0]);
-    const file = (DATA_FILE && url === "/presentation/data.json") ? DATA_FILE : path.resolve(SERVE_ROOT, "." + url);
-    if (file !== DATA_FILE && !file.startsWith(SERVE_ROOT + path.sep)) { res.writeHead(403); res.end(); return; }
-    fs.readFile(file, (err, buf) => {
-      if (err) { res.writeHead(404); res.end("not found"); return; }
-      res.writeHead(200, { "content-type": MIME[path.extname(file).toLowerCase()] || "application/octet-stream", "cache-control": "no-store" });
-      res.end(buf);
-    });
-  });
-  return new Promise(resolve => server.listen(0, "127.0.0.1", () => resolve(server)));
-}
-
-function loadPlaywright() {
-  const tries = [];
-  if (process.env.PLAYWRIGHT_DIR) tries.push(path.resolve(process.env.PLAYWRIGHT_DIR));
-  tries.push("playwright");
-  const req = createRequire(path.join(REPO, "frontend", "package.json"));
-  for (const t of tries) {
-    try { return req(t); } catch { /* следующий вариант */ }
-  }
-  throw new Error("playwright не найден: выполните `cd frontend && npm ci` или задайте PLAYWRIGHT_DIR=/путь/к/node_modules/playwright");
-}
 
 // Проверка вёрстки: что вылезло за .body слайда или обрезано overflow:hidden.
 function layoutCheck() {
@@ -86,8 +51,8 @@ function layoutCheck() {
 }
 
 async function main() {
-  const server = await startServer();
-  const base = "http://127.0.0.1:" + server.address().port + "/presentation/index.html";
+  const server = await startServer({ dataFile: DATA_FILE });
+  const base = "http://127.0.0.1:" + server.address().port + DECK_PATH;
   if (args.includes("--serve")) {
     console.log("Слайды: " + base + "  (Ctrl+C — остановить)");
     return;
@@ -96,14 +61,7 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   let code = 0;
   try {
-    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, deviceScaleFactor: 1 });
-    page.on("pageerror", e => { console.error("Ошибка JS:", e.message); code = 1; });
-    await page.goto(base, { waitUntil: "load" });
-    await page.waitForSelector("body[data-ready='1']", { timeout: 30000 });
-    const err = await page.getAttribute("body", "data-error");
-    if (err) throw new Error("страница не собралась: " + err);
-    await page.evaluate(() => Promise.all([...document.images].map(im => im.complete ? 0 : new Promise(r => { im.onload = im.onerror = r; }))));
-    const bad = await page.evaluate(() => [...document.images].filter(im => !im.naturalWidth).map(im => im.getAttribute("src")));
+    const { page, badImages: bad } = await openDeck(browser, base, { onPageError: e => { console.error("Ошибка JS:", e.message); code = 1; } });
     if (bad.length) { console.error("Не загрузились картинки:", bad.join(", ")); code = 1; }
 
     const issues = await page.evaluate(layoutCheck);
