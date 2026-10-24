@@ -481,6 +481,7 @@ class EdgeStats:
         self.started = time.time()
         self.last: dict[str, Any] = {}
         self.cpu_samples: list[float] = []
+        self.proc_samples: list[float] = []
 
     def start(self) -> None:
         self.ntp.start()
@@ -490,6 +491,8 @@ class EdgeStats:
         cpu = self.cpu.sample()
         if cpu.get("container_cores") is not None:
             self.cpu_samples.append(cpu["container_cores"])
+        if cpu.get("process_cores") is not None:
+            self.proc_samples.append(cpu["process_cores"])
         snap = self.engine.metrics.snapshot()
         self.last = {
             "node_id": self.node_id,
@@ -561,6 +564,10 @@ def run(args: argparse.Namespace) -> int:
             if deadline is not None and time.monotonic() >= deadline:
                 break
     finally:
+        try:  # снимок до остановки: после неё темп кадров в окне 5 с начинает падать
+            final = engine.metrics_snapshot()
+        except Exception:  # noqa: BLE001
+            final = {}
         engine.stop()
         stats.ntp.stop()
         close = getattr(engine.sink, "close", None)
@@ -577,6 +584,17 @@ def run(args: argparse.Namespace) -> int:
             "transport": engine.sink.stats() if hasattr(engine.sink, "stats") else {},
             "frames_processed": (stats.last or {}).get("frames_processed"),
             "container_cores_avg": round(sum(stats.cpu_samples) / len(stats.cpu_samples), 3) if stats.cpu_samples else None,
+            "process_cores_avg": round(sum(stats.proc_samples) / len(stats.proc_samples), 3) if stats.proc_samples else None,
+            "cameras": {
+                cid: {
+                    "fps_processed": round(c.get("fps_processed", 0.0), 2),
+                    "lag_s": c.get("lag_s"),
+                    "timings_ms": {k: v.get("p50") for k, v in (c.get("timings_ms") or {}).items()},
+                    "timings_p95_ms": {k: v.get("p95") for k, v in (c.get("timings_ms") or {}).items()},
+                }
+                for cid, c in (final.get("cameras") or {}).items()
+            },
+            "inference": final.get("inference"),
         }
         log.info("edge stopped: %s", json.dumps(_json_safe(summary), ensure_ascii=False))
     return 0

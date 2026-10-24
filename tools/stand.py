@@ -535,6 +535,9 @@ def stop():
 def dispatch(request):
     op = request["op"]
     if op == "state":
+        # contents API не создаёт промежуточные каталоги: первый sync на чистом сервере падал с HTTP 400
+        if not BASE.is_symlink():
+            BASE.mkdir(parents=True, exist_ok=True)
         return {"prefix": prefix(), "manifest": read_manifest()}
     if op == "apply":
         return apply_archive(request)
