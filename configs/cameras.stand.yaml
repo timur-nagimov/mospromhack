@@ -2,8 +2,9 @@
 #   ~/guard311/bin/python -m guard.edge --config configs/cameras.stand.yaml
 # (tools/stand.py start делает именно это; OMP_NUM_THREADS=2, GUARD_BACKEND=linq-tpu.)
 #
-# camera_id, зоны и правила те же, что в configs/cameras.yaml (демо A3): gateway на ноутбуке
-# показывает эти камеры по своему конфигу, а frame_meta и события приходят с edge.
+# camera_id, зоны и правила те же, что в configs/cameras.yaml (демо A3, параметры A9 от 24.10 11:20):
+# gateway на ноутбуке показывает эти камеры по своему конфигу, а frame_meta и события приходят с edge.
+# Отличие одно: min_conf zone_intrusion на 0.05 ниже (уверенность int8 на TPU занижена).
 # source.uri — относительно edge.data_dir. На сервере это
 #   /home/hackathon10864/work/mosprom/data/videos/{s1_01,s2_01,s3_02,s4_02}.mp4
 # (заливает tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02); на ноутбуке — data/videos/.
@@ -38,7 +39,7 @@ cameras:
     type: zone_intrusion
     enabled: true
     zones: [behind_tape]
-    params: {min_conf: 0.35, min_box_h_px: 40}
+    params: {min_conf: 0.45, min_box_h_px: 40}   # A9: 0.5 на CPU (det 640); int8 на TPU ниже на ~0.05
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
@@ -57,7 +58,7 @@ cameras:
     enabled: true
     zones: null
     params: {required: [helmet], min_box_h_px: 60}
-    min_duration_s: 2.0
+    min_duration_s: 1.5                       # A9
     min_ratio: 0.7
     close_after_s: 3.0
     cooldown_s: 10.0
@@ -74,9 +75,9 @@ cameras:
     type: fall_immobile
     enabled: true
     zones: null
-    params: {min_lying_s: 1.0, immobile_window_s: 2.0}
+    params: {min_lying_s: 1.0, immobile_window_s: 1.5}   # A9
     min_duration_s: 1.0
-    min_ratio: 0.6
+    min_ratio: 0.5
     close_after_s: 3.0
     cooldown_s: 10.0
     severity: critical
@@ -92,7 +93,7 @@ cameras:
     type: vehicle_proximity
     enabled: true
     zones: null
-    params: {}
+    params: {min_vehicle_speed_bh: 0.05}      # A9
     min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
