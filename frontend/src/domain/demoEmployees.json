@@ -1,0 +1,12 @@
+[
+  { "full_name": "Иванов Иван Андреевич", "personnel_number": "DEMO-001", "department": "Цех 1", "position": "Слесарь" },
+  { "full_name": "Петров Алексей Сергеевич", "personnel_number": "DEMO-002", "department": "Цех 1", "position": "Оператор станка" },
+  { "full_name": "Смирнов Дмитрий Олегович", "personnel_number": "DEMO-003", "department": "Цех 2", "position": "Сварщик" },
+  { "full_name": "Кузнецов Максим Игоревич", "personnel_number": "DEMO-004", "department": "Цех 2", "position": "Наладчик оборудования" },
+  { "full_name": "Попов Артём Викторович", "personnel_number": "DEMO-005", "department": "Склад", "position": "Комплектовщик" },
+  { "full_name": "Соколов Никита Павлович", "personnel_number": "DEMO-006", "department": "Склад", "position": "Водитель погрузчика" },
+  { "full_name": "Лебедева Анна Михайловна", "personnel_number": "DEMO-007", "department": "Служба охраны труда", "position": "Инженер по охране труда" },
+  { "full_name": "Морозова Елена Сергеевна", "personnel_number": "DEMO-008", "department": "Цех 1", "position": "Мастер смены" },
+  { "full_name": "Волков Роман Александрович", "personnel_number": "DEMO-009", "department": "Энергослужба", "position": "Электромонтёр" },
+  { "full_name": "Орлова Мария Дмитриевна", "personnel_number": "DEMO-010", "department": "Контроль качества", "position": "Контролёр ОТК" }
+]

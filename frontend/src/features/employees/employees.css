@@ -1,0 +1,21 @@
+.employees-page { display: flex; flex-direction: column; gap: 16px; }
+.employee-form { display: grid; grid-template-columns: minmax(200px, 2fr) repeat(3, minmax(140px, 1fr)); gap: 14px; align-items: end; }
+.employee-form > .btn { justify-self: start; }
+.employee-form__error { grid-column: 1 / -1; margin: 0; }
+.employee-assignment { display: grid; gap: 10px; padding: 14px; border: 1px solid var(--line-2); border-radius: var(--r-l); background: var(--bg-2); }
+.employee-assignment p { margin: 0; }
+.employee-chips { display: flex; flex-wrap: wrap; gap: 6px; font-size: 12px; }
+.employee-chips .badge { white-space: normal; max-width: 100%; overflow-wrap: anywhere; }
+.employee-choices { max-height: 180px; overflow-y: auto; display: grid; gap: 3px; }
+.employee-choice { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-radius: var(--r-s); cursor: pointer; font-size: 12.5px; }
+.employee-choice:hover { background: var(--bg-3); }
+.employee-choice input { accent-color: var(--brand); flex: none; }
+.employee-choice small { display: block; color: var(--text-3); font-size: 11px; }
+.employee-choice > span { min-width: 0; overflow-wrap: anywhere; }
+.employee-assignment__actions { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; }
+.employee-report__summary { display: flex; flex-wrap: wrap; gap: 10px 20px; margin-top: 16px; font-size: 13px; color: var(--text-2); }
+.employee-report__summary b { color: var(--text-1); font-variant-numeric: tabular-nums; }
+.employee-report__table { max-height: 320px; margin-top: 12px; }
+.employee-report .panel__head { flex-wrap: wrap; }
+@media (max-width: 1200px) { .employee-form { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 700px) { .employee-form { grid-template-columns: 1fr; } }
