@@ -6,6 +6,7 @@ import { ToastHost } from './components/ui/toast';
 import { AnalyticsPage } from './features/analytics/AnalyticsPage';
 import { CamerasPage } from './features/cameras/CamerasPage';
 import { EventModalHost } from './features/event/EventModal';
+import { DataPage } from './features/flywheel/DataPage';
 import { JournalPage } from './features/journal/JournalPage';
 import { MonitoringPage } from './features/monitoring/MonitoringPage';
 import { PerformancePage } from './features/performance/PerformancePage';
@@ -42,6 +43,7 @@ export function App() {
             <Route path="/cameras" element={<CamerasPage />} />
             <Route path="/cameras/:cameraId" element={<CamerasPage />} />
             <Route path="/performance" element={<PerformancePage />} />
+            <Route path="/data" element={<DataPage />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </AppShell>

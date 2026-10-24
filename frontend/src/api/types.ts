@@ -11,6 +11,18 @@ import type {
   StatsResponse,
   WsMessage,
 } from '../domain/types';
+import type {
+  DatasetBuildRequest,
+  DatasetVersion,
+  FlywheelJob,
+  FlywheelSample,
+  FlywheelSummary,
+  JobKind,
+  ModelCard,
+  SamplePage,
+  SamplePatch,
+  SampleQuery,
+} from '../domain/flywheel';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
@@ -34,6 +46,27 @@ export interface Subscription {
   onStatus?(status: ConnectionStatus): void;
 }
 
+/** Маховик данных: /api/flywheel/* (docs/FLYWHEEL.md, раздел «API») */
+export interface FlywheelApi {
+  summary(): Promise<FlywheelSummary>;
+  listSamples(query: SampleQuery, signal?: AbortSignal): Promise<SamplePage>;
+  getSample(id: string): Promise<FlywheelSample>;
+  patchSample(id: string, patch: SamplePatch): Promise<FlywheelSample>;
+  /** Текущий кадр камеры в выборку (source = operator) */
+  capture(cameraId: string): Promise<FlywheelSample>;
+  /** Экспорт синхронный: ответ — описание новой версии */
+  buildDataset(request: DatasetBuildRequest): Promise<DatasetVersion>;
+  listDatasets(): Promise<DatasetVersion[]>;
+  /** Карточки ml/model_cards/, новые сверху */
+  listModels(): Promise<ModelCard[]>;
+  /** train и deploy без GUARD_FLYWHEEL_ALLOW_TRAIN=1 отвечают 403 */
+  startJob(kind: JobKind, args?: Record<string, unknown>): Promise<FlywheelJob>;
+  listJobs(): Promise<FlywheelJob[]>;
+  getJob(id: string): Promise<FlywheelJob>;
+  /** Сырой кадр сэмпла; thumb — подсказка мок-режиму рисовать кадр меньше */
+  frameUrl(sample: FlywheelSample, size?: 'thumb' | 'full'): string;
+}
+
 /** Единый интерфейс: HTTP-реализация и мок взаимозаменяемы */
 export interface GuardApi {
   readonly mode: 'http' | 'mock';
@@ -51,6 +84,7 @@ export interface GuardApi {
   /** Подписка на WS /ws/events; возвращает функцию отписки */
   subscribe(subscription: Subscription): () => void;
   media: MediaUrls;
+  flywheel: FlywheelApi;
 }
 
 export class ApiError extends Error {

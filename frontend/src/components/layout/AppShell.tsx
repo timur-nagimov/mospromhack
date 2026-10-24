@@ -1,4 +1,4 @@
-import { Bell, BellOff, ChartColumn, Cctv, Gauge, LayoutGrid, ScrollText, Siren, X } from 'lucide-react';
+import { Bell, BellOff, ChartColumn, Cctv, DatabaseZap, Gauge, LayoutGrid, ScrollText, Siren, X } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { api } from '../../api';
@@ -21,6 +21,7 @@ const NAV = [
   { to: '/analytics', label: 'Аналитика', icon: ChartColumn },
   { to: '/cameras', label: 'Камеры и правила', icon: Cctv },
   { to: '/performance', label: 'Производи­тельность', icon: Gauge },
+  { to: '/data', label: 'Данные', icon: DatabaseZap },
 ];
 
 const TITLES: Record<string, { title: string; sub: string }> = {
@@ -29,6 +30,7 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   '/analytics': { title: 'Аналитика', sub: 'Нарушения по типам, участкам и времени' },
   '/cameras': { title: 'Камеры и правила', sub: 'Зоны, расписания и правила без кода' },
   '/performance': { title: 'Производительность', sub: 'FPS, задержки по этапам и загрузка ускорителя' },
+  '/data': { title: 'Данные', sub: 'Маховик данных: сбор, проверка, датасеты и дообучение моделей' },
 };
 
 function NavRail() {

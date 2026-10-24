@@ -17,6 +17,7 @@ import { getViolationMeta } from '../../domain/violations';
 import { dayKey, nowSec } from '../../domain/format';
 import { ApiError, type GuardApi, type StatsQuery, type Subscription } from '../types';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
+import { createFlywheelMock } from './flywheel';
 import { between, mulberry32 } from './random';
 import { renderToDataUrl } from './scene';
 
@@ -81,6 +82,9 @@ export function createMockApi(): GuardApi {
   function emit(message: WsMessage): void {
     for (const s of subscribers) s.onMessage(clone(message));
   }
+
+  // Маховик данных: сэмплы событий и живой сбор по фейковому WS
+  const flywheel = createFlywheelMock({ cameras: () => cameras, events: () => events, emit, respond, fail });
 
   function findCamera(id: string): CameraConfig | undefined {
     return cameras.find((c) => c.camera_id === id);
@@ -162,6 +166,7 @@ export function createMockApi(): GuardApi {
     const event = buildEvent(rng, draft, 'new', false);
     events.unshift(event);
     emit({ kind: 'event', event });
+    flywheel.onEvent(event);
     const closeIn = between(rng, 20000, 45000);
     timers.push(
       window.setTimeout(() => {
@@ -182,12 +187,14 @@ export function createMockApi(): GuardApi {
 
   function start(): void {
     scheduleLive(2500);
+    flywheel.start();
     timers.push(window.setInterval(() => emit({ kind: 'metrics', data: metricsSnapshot() }), 2000));
     // первый снимок метрик сразу — UI не ждёт 2 с
     timers.push(window.setTimeout(() => emit({ kind: 'metrics', data: metricsSnapshot() }), 300));
   }
 
   function stop(): void {
+    flywheel.stop();
     if (liveTimer != null) window.clearTimeout(liveTimer);
     liveTimer = null;
     for (const id of timers) {
@@ -258,6 +265,7 @@ export function createMockApi(): GuardApi {
       if (!ev) return fail(404, 'Событие не найдено');
       if (patch.status) ev.status = patch.status;
       if (patch.operator_note !== undefined) ev.operator_note = patch.operator_note;
+      if (patch.status) flywheel.onEventPatch(ev);
       window.setTimeout(() => emit({ kind: 'event_update', event: ev }), 140);
       return respond(ev, 100, 220);
     },
@@ -327,5 +335,6 @@ export function createMockApi(): GuardApi {
       },
       clipUrl: () => null,
     },
+    flywheel: flywheel.api,
   };
 }
