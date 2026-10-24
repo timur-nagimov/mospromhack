@@ -21,6 +21,13 @@ class FileSource(FrameSource):
     loop=True — по кругу. realtime=False — без пауз (последний кадр всё равно перезаписывается)."""
 
     kind = "file"
+    frame_count: int | None = None
+    _sync_target: tuple[int, float] | None = None
+
+    def sync(self, frame_idx: int, at_mono: float | None = None) -> None:
+        """Режим gateway: подтянуть воспроизведение к позиции frame_idx (кадр файла у edge),
+        которую edge обработал в момент at_mono (локальные часы). Без перемотки при дрейфе < 0.5 с."""
+        self._sync_target = (int(frame_idx), time.monotonic() if at_mono is None else at_mono)
 
     def _open(self) -> cv2.VideoCapture | None:
         cap = cv2.VideoCapture(self.uri)
@@ -30,6 +37,8 @@ class FileSource(FrameSource):
             return None
         fps = cap.get(cv2.CAP_PROP_FPS)
         self.native_fps = fps if fps and 1.0 <= fps <= 240.0 else 25.0
+        n = cap.get(cv2.CAP_PROP_FRAME_COUNT)
+        self.frame_count = int(n) if n and n > 0 else None
         return cap
 
     def _run(self) -> None:
@@ -45,6 +54,16 @@ class FileSource(FrameSource):
             idx = 0  # номер следующего кадра от начала прохода
             try:
                 while not self._stop.is_set():
+                    target = self._sync_target
+                    if target is not None:
+                        self._sync_target = None
+                        desired = target[0] + (time.monotonic() - target[1]) * fps
+                        if self.frame_count:
+                            desired %= self.frame_count
+                        if abs(desired - idx) > max(0.5 * fps, 3):
+                            cap.set(cv2.CAP_PROP_POS_FRAMES, int(desired))
+                            idx = int(desired)
+                        t0 = time.monotonic() - desired / fps  # дальше темп ведёт часы edge
                     if self.cfg.realtime:
                         due = t0 + idx / fps
                         now = time.monotonic()

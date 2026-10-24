@@ -21,6 +21,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from guard.contracts import CameraConfig, Event, EventStatus
 from guard.pipeline.engine import CameraError, CameraExists, PipelineEngine
+from guard.pipeline.gateway import make_engine
 from guard.pipeline.settings import Settings
 from guard.rules.base import available_rules, load_plugins
 from guard.rules.geometry import LOCAL_TZ
@@ -376,7 +377,7 @@ def create_app(settings: Settings | None = None, engine: PipelineEngine | None =
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        eng = engine or PipelineEngine(settings)
+        eng = engine or make_engine(settings)  # local или gateway (GUARD_MODE)
         app.state.engine = eng
         if settings.autostart:
             await run_in_threadpool(eng.start)
