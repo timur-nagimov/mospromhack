@@ -21,7 +21,9 @@ edge:
                                              # общий воркер стоит по 2+ с (13 откатов на CPU за час при 2 с),
                                              # а CPU контейнера 4 камеры не тянет (docs/EDGE.md §7.2)
   gateway_guard: {backlog_limit: 300}        # без потребителя очереди шлюза телеметрию не копим
-  settings: {max_batch: 8, batch_timeout_ms: 4.0}
+  # preview_max_width 384 вместо 480: превью ~11 КБ вместо ~18.5 КБ, 4 камеры × 1 к/с — ~47 КиБ/с из
+  # ~110–120 КиБ/с туннеля стенд → ноутбук; остаток — событиям со снимком (docs/EDGE.md §7.1а)
+  settings: {max_batch: 8, batch_timeout_ms: 4.0, preview_max_width: 384}
 
 cameras:
 - camera_id: cam_s1

@@ -29,6 +29,17 @@ def test_stand_section_parses_and_points_to_tpu_registry():
     assert section.gateway_guard.enabled and section.gateway_guard.backlog_limit > 0
 
 
+def test_stand_preview_fits_vpn_tunnel_budget(tmp_path, monkeypatch):
+    # Туннель стенд → ноутбук 106–122 КиБ/с; превью 480×270 (~18.5 КБ в конверте) от 4 камер занимало
+    # 73 КиБ/с, и события со снимком почти не проходили (docs/EDGE.md §7.1а).
+    monkeypatch.delenv("GUARD_PREVIEW_MAX_WIDTH", raising=False)
+    section = edge.load_edge_section(STAND_CAMERAS)
+    settings = make_settings(tmp_path)
+    edge.apply_edge_section(settings, section)
+    assert 320 <= settings.preview_max_width <= 400
+    assert settings.preview_fps <= 1.0
+
+
 def test_stand_models_have_tpu_programs_and_match_main_registry():
     stand = load_models(STAND_MODELS)
     main = load_models(ROOT / "configs" / "models.yaml")
