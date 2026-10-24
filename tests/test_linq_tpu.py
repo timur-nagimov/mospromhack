@@ -57,6 +57,24 @@ def test_raw_unpack_crop_and_scale():
     np.testing.assert_allclose(y, ref, rtol=0, atol=1e-6)
 
 
+def test_raw_unpack_float16_output():
+    # Видимость ключевых точек pose (Sigmoid_1) программа отдаёт в float16, а не int8:
+    # 2 байта на значение, scale 1.0. Чтение байтов как int8 давало шум −128..127.
+    meta = {"v": {**OUT_META["y"], "tpu_dtype": "float16", "scales": [1.0], "size": 3840}}
+    codec = lt.RawCodec(IN_META, meta)
+    v = np.random.rand(3, 5, 1, 128).astype(np.float16)  # C/B, W, N, B
+    y = codec.unpack("v", v.view(np.uint8).reshape(-1, 32))
+    assert y.dtype == np.float32 and y.shape == (1, 5, 300)
+    ref = v.transpose(2, 1, 0, 3).reshape(1, 5, 384)[:, :, :300].astype(np.float32)
+    np.testing.assert_array_equal(y, ref)
+
+
+def test_raw_unpack_rejects_unknown_dtype():
+    meta = {"v": {**OUT_META["y"], "tpu_dtype": "bfloat16"}}
+    with pytest.raises(NotImplementedError):
+        lt.RawCodec(IN_META, meta).unpack("v", np.zeros(3840, np.uint8))
+
+
 class FakeClient:
     """Имитация RabbitClient: отвечает тензором y=сумма входа, проверяет формат raw-запроса."""
 

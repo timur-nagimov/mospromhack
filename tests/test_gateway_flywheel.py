@@ -76,7 +76,9 @@ def test_actual_gateway_api_store_capture_503_and_durable_operator_labels(tmp_pa
         owner.start()
         assert owner._thread is consumer_thread and owner.flywheel_writer._thread is writer_thread
         assert owner.consumer.runs == 1 and owner.flywheel_writer.running
-        assert owner.flywheel is None and owner.flywheel_assembler is None
+        # Samples arrive from the edge in parts; a fake consumer gets no AMQP sample receiver.
+        assert owner.flywheel is None and owner.flywheel_assembler is not None
+        assert owner.flywheel_receiver is None
         summary = client.get("/api/flywheel/summary")
         assert summary.status_code == 200 and summary.json()["total"] == 0
         assert summary.json()["mode"] == "gateway" and not summary.json()["collecting"]

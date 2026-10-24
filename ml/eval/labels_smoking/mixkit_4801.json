@@ -1,0 +1,26 @@
+{
+  "video": "mixkit_4801.mp4",
+  "events": [],
+  "scenario": "clean",
+  "description": "Чистый: вид сверху, человек за ноутбуком, на столе мелкие предметы",
+  "rules_to_enable": [
+    "smoking_fire"
+  ],
+  "zones": [],
+  "persons": "1 человек",
+  "sources": [
+    {
+      "page": "https://mixkit.co/free-stock-video/young-man-sitting-scrolling-on-his-cell-phone-4801/",
+      "url": "https://assets.mixkit.co/videos/4801/4801-720.mp4",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit",
+      "ss": null,
+      "to": null
+    }
+  ],
+  "duration_s": 15.72,
+  "size": [
+    1280,
+    720
+  ]
+}

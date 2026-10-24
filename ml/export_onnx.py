@@ -71,23 +71,28 @@ def image_size(value: str) -> int:
     return number
 
 
-def package_versions(packages: Sequence[str]) -> dict[str, str | None]:
-    """Версии пакетов для метаданных; пакета нет в окружении (например, только opencv-python-headless) — None."""
-    versions: dict[str, str | None] = {}
-    for package in packages:
-        try:
-            versions[package] = importlib.metadata.version(package)
-        except importlib.metadata.PackageNotFoundError:
-            versions[package] = None
-    return versions
-
-
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1 << 20), b""):
             h.update(chunk)
     return h.hexdigest()
+
+
+VERSION_PACKAGES = ("ultralytics", "torch", "torchvision", "onnx", "onnxslim", "onnxruntime", "numpy",
+                    "opencv-python", "opencv-python-headless")
+
+
+def package_versions(packages: Sequence[str] = VERSION_PACKAGES) -> dict[str, str | None]:
+    """Версии пакетов окружения экспорта. Не установленный пакет — None: в .venv проекта стоит
+    только opencv-python-headless, и экспорт не должен падать на записи метаданных."""
+    out: dict[str, str | None] = {}
+    for package in packages:
+        try:
+            out[package] = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            out[package] = None
+    return out
 
 
 def inspect_onnx(path: Path, threads: int = 2) -> dict:
@@ -219,8 +224,7 @@ def export_one(
         "torch_threads": torch.get_num_threads(),
         "torch_interop_threads": torch.get_num_interop_threads(),
         "simplified_by": "onnxslim",
-        "versions": package_versions(("ultralytics", "torch", "torchvision", "onnx", "onnxslim", "onnxruntime",
-                                      "numpy", "opencv-python", "opencv-python-headless")),
+        "versions": package_versions(),
         "export_s": round(time.time() - t0, 1),
         **info,
     }

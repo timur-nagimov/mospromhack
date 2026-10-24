@@ -283,7 +283,7 @@ def download_coco(raw: Path, image_ids: list[int]) -> None:
 
 
 def cmd_download(args: argparse.Namespace) -> None:
-    raw = args.out / "raw"
+    raw = args.raw_dir
     only = set(args.only.split(","))
     for sid in ("forklift_rf", "construction_rf"):
         if sid in only:
@@ -390,7 +390,8 @@ def _hash_split(key: str, test: int = 1, val: int = 1) -> str:
 
 
 def load_sources(raw: Path, teacher: dict[str, list],
-                 teacher_forklift: dict[str, list] | None = None) -> list[Sample]:
+                 teacher_forklift: dict[str, list] | None = None,
+                 forklift_conf: float = 0.6) -> list[Sample]:
     samples: list[Sample] = []
     for split, sub in (("train", "train"), ("val", "valid"), ("test", "test")):
         samples += read_coco_json("forklift_rf", raw / "forklift_rf" / sub, split)
@@ -430,12 +431,14 @@ def load_sources(raw: Path, teacher: dict[str, list],
 
     # ImageNet forklift: рамки погрузчика ставит учитель. Кадры без уверенной рамки пропускаем:
     # погрузчик на них есть, и без рамки он стал бы фоном. Только train — val и test размечены людьми.
+    # Рамка учителя — [cx, cy, w, h, conf]; старый формат без conf считается уверенным.
     for path in sorted((raw / "imagenet_forklift" / "images").glob("*.jpg")):
-        boxes = (teacher_forklift or {}).get(str(path))
+        boxes = [b for b in (teacher_forklift or {}).get(str(path), [])
+                 if (b[4] if len(b) > 4 else 1.0) >= forklift_conf][:FORKLIFT_TEACHER_MAX]
         if not boxes:
             continue
         s = Sample("imagenet_forklift", "train", f"imagenet:{path.name}", path)
-        s.boxes += [(1, *b) for b in boxes]
+        s.boxes += [(1, *b[:4]) for b in boxes]
         samples.append(s)
 
     # Учитель добавляет людей там, где их разметка неполная.
@@ -464,7 +467,8 @@ def _iou_cxcywh(a, b) -> float:
 
 
 TEACHER_SOURCES = ("construction_rf", "excavators_rf100", "imagenet_forklift")
-FORKLIFT_TEACHER_CONF = 0.6
+FORKLIFT_TEACHER_CONF = 0.6   # порог по умолчанию (forklift-ds-v1); в v2 — 0.4
+FORKLIFT_TEACHER_FLOOR = 0.25  # учитель сохраняет рамки от этого conf
 FORKLIFT_TEACHER_MAX = 3  # рамок погрузчика на кадр
 
 
@@ -511,7 +515,8 @@ def _predict_onnx(onnx: Path, paths: list[str], conf: dict[int, float], classes:
         dets = sorted(decode(sess.run(None, {inp.name: x}), meta, spec), key=lambda d: -d.conf)
         for c, threshold in conf.items():
             result[c][path] = [[round((d.bbox[0] + d.bbox[2]) / 2 / w, 5), round((d.bbox[1] + d.bbox[3]) / 2 / h, 5),
-                                round((d.bbox[2] - d.bbox[0]) / w, 5), round((d.bbox[3] - d.bbox[1]) / h, 5)]
+                                round((d.bbox[2] - d.bbox[0]) / w, 5), round((d.bbox[3] - d.bbox[1]) / h, 5),
+                                round(d.conf, 3)]
                                for d in dets if d.cls_id == c and d.conf >= threshold]
     return result
 
@@ -521,7 +526,7 @@ def cmd_teacher(args: argparse.Namespace) -> None:
     от keremberke/yolov8s-forklift-detection (ONNX models/forklift-640.onnx). На этих кадрах погрузчик есть
     заведомо, поэтому его слабость (фуры и экскаваторы как forklift) здесь не мешает.
     torch — запускать через tools/heavy.sh. Готовые ответы учителя из teacher_person.json не пересчитываются."""
-    raw = args.out / "raw"
+    raw = args.raw_dir
     t0 = time.time()
     out_people = raw / "teacher_person.json"
     people = json.loads(out_people.read_text())["images"] if out_people.exists() else {}
@@ -535,13 +540,14 @@ def cmd_teacher(args: argparse.Namespace) -> None:
     imagenet = sorted(str(p) for p in (raw / "imagenet_forklift" / "images").glob("*.jpg"))
     if imagenet:
         fw = Path(args.forklift_teacher_onnx)
-        # у keremberke 0 = forklift, 1 = person
-        pred = _predict_onnx(fw, imagenet, {0: FORKLIFT_TEACHER_CONF, 1: TEACHER_CONF}, ["forklift", "person"])
-        boxes = {k: v[:FORKLIFT_TEACHER_MAX] for k, v in pred[0].items() if v}
-        people.update(pred[1])
+        # у keremberke 0 = forklift, 1 = person. Рамки погрузчика храним с conf от нижней границы:
+        # порог выбирает build (--forklift-teacher-conf), учителя не нужно гонять заново.
+        pred = _predict_onnx(fw, imagenet, {0: FORKLIFT_TEACHER_FLOOR, 1: TEACHER_CONF}, ["forklift", "person"])
+        boxes = {k: v for k, v in pred[0].items() if v}
+        people.update({k: [b[:4] for b in v] for k, v in pred[1].items()})
         out = raw / "teacher_forklift.json"
-        out.write_text(json.dumps({"weights": fw.name, "conf": FORKLIFT_TEACHER_CONF,
-                                   "max_per_image": FORKLIFT_TEACHER_MAX, "images": boxes}))
+        out.write_text(json.dumps({"weights": fw.name, "conf_min": FORKLIFT_TEACHER_FLOOR,
+                                   "box": "cx, cy, w, h, conf", "images": boxes}))
         log(f"teacher: imagenet_forklift {len(imagenet)} кадров, с погрузчиком {len(boxes)}, "
             f"рамок {sum(len(v) for v in boxes.values())} → {out}")
     out_people.write_text(json.dumps({"weights": weights.name, "conf": TEACHER_CONF, "images": people}))
@@ -641,12 +647,12 @@ def file_list_sha(names: list[str]) -> str:
 
 def cmd_build(args: argparse.Namespace) -> None:
     out: Path = args.out
-    raw = out / "raw"
+    raw = args.raw_dir
     teacher_file = raw / "teacher_person.json"
     teacher = json.loads(teacher_file.read_text())["images"] if teacher_file.exists() else {}
     fork_file = raw / "teacher_forklift.json"
     teacher_forklift = json.loads(fork_file.read_text())["images"] if fork_file.exists() else {}
-    samples = load_sources(raw, teacher, teacher_forklift)
+    samples = load_sources(raw, teacher, teacher_forklift, args.forklift_teacher_conf)
     if not teacher:
         # Без учителя люди на негативах стали бы фоном: такие источники пропускаем.
         samples = [s for s in samples if s.source not in TEACHER_SOURCES]
@@ -692,11 +698,11 @@ def cmd_build(args: argparse.Namespace) -> None:
         (out / f"test_{sid}.txt").write_text("\n".join(sorted(paths)) + "\n")
     data_yaml = out / "data.yaml"
     data_yaml.write_text(
-        f"# {VERSION}: собран ml/datasets/forklift.py, описание — docs/DATASETS.md\n"
+        f"# {args.version}: собран ml/datasets/forklift.py, описание — docs/DATASETS.md\n"
         f"path: {out}\ntrain: images/train\nval: images/val\ntest: images/test\n"
         f"names:\n" + "".join(f"  {i}: {n}\n" for i, n in enumerate(CLASSES)))
     manifest = {
-        "version": VERSION,
+        "version": args.version,
         "created_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
         "classes": list(CLASSES),
         "data_yaml": str(data_yaml),
@@ -706,7 +712,7 @@ def cmd_build(args: argparse.Namespace) -> None:
                                "sources": list(TEACHER_SOURCES), "images": len(teacher)},
                     "forklift": {"weights": "forklift_keremberke_v8s.pt "
                                             "(https://huggingface.co/keremberke/yolov8s-forklift-detection)",
-                                 "conf": FORKLIFT_TEACHER_CONF, "max_per_image": FORKLIFT_TEACHER_MAX,
+                                 "conf": args.forklift_teacher_conf, "max_per_image": FORKLIFT_TEACHER_MAX,
                                  "sources": ["imagenet_forklift"], "images": len(teacher_forklift)}},
         "split_rule": {"forklift_rf, logistics_rf, construction_rf": "исходные train/valid/test",
                        "excavators_rf100": "по ролику, sha1(имя ролика) % 10: 0 test, 1 val",
@@ -737,6 +743,10 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("cmd", choices=["download", "teacher", "build", "all"])
     ap.add_argument("--out", type=Path, default=ROOT / "data/datasets/forklift")
+    ap.add_argument("--raw-dir", type=Path, help="скачанные источники (по умолчанию <out>/raw)")
+    ap.add_argument("--version", default=VERSION, help="версия набора в manifest.json и data.yaml")
+    ap.add_argument("--forklift-teacher-conf", type=float, default=FORKLIFT_TEACHER_CONF,
+                    help="порог рамок учителя на ImageNet forklift (v1 — 0.6, v2 — 0.4)")
     ap.add_argument("--videos", type=Path, default=ROOT / "data/videos", help="ролики оценки для сверки")
     ap.add_argument("--only", default=",".join(SOURCES), help="источники для download через запятую")
     ap.add_argument("--coco-truck", type=int, default=450)
@@ -749,6 +759,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--device", default="mps")
     args = ap.parse_args(argv)
     args.out = args.out.resolve()
+    args.raw_dir = (args.raw_dir or args.out / "raw").resolve()
     if args.cmd in ("download", "all"):
         cmd_download(args)
     if args.cmd in ("teacher", "all"):

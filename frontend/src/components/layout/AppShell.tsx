@@ -1,4 +1,4 @@
-import { Bell, BellOff, ChartColumn, Cctv, DatabaseZap, Gauge, LayoutGrid, ScrollText, Siren, X } from 'lucide-react';
+import { Bell, BellOff, ChartColumn, Cctv, ChevronDown, DatabaseZap, Gauge, LayoutGrid, ScrollText, Siren, UsersRound, X } from 'lucide-react';
 import { useEffect, type ReactNode } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { api } from '../../api';
@@ -6,23 +6,26 @@ import { useCameraMap } from '../../api/queries';
 import { formatClock, formatLongDate, formatTime } from '../../domain/format';
 import { backendLabel } from '../../domain/labels';
 import { getViolationMeta } from '../../domain/violations';
+import { canViewSection, isRole, ROLES, type SectionPermission } from '../../domain/roles';
 import { useEventModal } from '../../features/event/useEventModal';
 import { isAudioBlocked } from '../../hooks/alarmSound';
 import { useNow } from '../../hooks/useNow';
 import { liveActions, useLive } from '../../state/live';
+import { selectRole, useRole } from '../../state/role';
 import { toggleSound, useSettings } from '../../state/settings';
 import { confirmLeave } from '../../state/unsaved';
 import { MirrorMark } from '../ui/customIcons';
 import './shell.css';
 
 const NAV = [
-  { to: '/', label: 'Мониторинг', icon: LayoutGrid, end: true },
-  { to: '/journal', label: 'Журнал', icon: ScrollText },
-  { to: '/analytics', label: 'Аналитика', icon: ChartColumn },
-  { to: '/cameras', label: 'Камеры и правила', icon: Cctv },
-  { to: '/performance', label: 'Производи­тельность', icon: Gauge },
-  { to: '/data', label: 'Данные', icon: DatabaseZap },
-];
+  { to: '/', label: 'Мониторинг', icon: LayoutGrid, end: true, permission: 'video.view' },
+  { to: '/journal', label: 'Журнал', icon: ScrollText, permission: 'events.view' },
+  { to: '/analytics', label: 'Аналитика', icon: ChartColumn, permission: 'analytics.view' },
+  { to: '/cameras', label: 'Камеры и правила', icon: Cctv, permission: 'cameras.view' },
+  { to: '/performance', label: 'Производи­тельность', icon: Gauge, permission: 'system.view' },
+  { to: '/data', label: 'Данные', icon: DatabaseZap, permission: 'flywheel.review' },
+  { to: '/employees', label: 'Сотрудники', icon: UsersRound, permission: 'employees.view' },
+] satisfies { to: string; label: string; icon: typeof LayoutGrid; end?: boolean; permission: SectionPermission }[];
 
 const TITLES: Record<string, { title: string; sub: string }> = {
   '/': { title: 'Мониторинг', sub: 'Камеры и лента тревог в реальном времени' },
@@ -31,9 +34,34 @@ const TITLES: Record<string, { title: string; sub: string }> = {
   '/cameras': { title: 'Камеры и правила', sub: 'Зоны, расписания и правила без кода' },
   '/performance': { title: 'Производительность', sub: 'FPS, задержки по этапам и загрузка ускорителя' },
   '/data': { title: 'Данные', sub: 'Маховик данных: сбор, проверка, датасеты и дообучение моделей' },
+  '/employees': { title: 'Сотрудники', sub: 'Полный справочник сотрудников предприятия' },
 };
 
+function RoleSelector() {
+  const role = useRole();
+  const { pathname } = useLocation();
+  const section = NAV.find(({ to }) => pathname === to || (to !== '/' && pathname.startsWith(`${to}/`)));
+  return (
+    <label className="role-selector" title={`Роль: ${ROLES[role].title}`}>
+      <span className="role-selector__caption" aria-hidden="true">Роль <ChevronDown size={12} /></span>
+      <span className="role-selector__value" aria-hidden="true">{ROLES[role].shortTitle}</span>
+      <select
+        aria-label="Роль"
+        value={role}
+        onChange={(event) => {
+          const next = event.currentTarget.value;
+          if (!isRole(next) || next === role) return;
+          if (!section || canViewSection(next, section.permission) || confirmLeave()) selectRole(next);
+        }}
+      >
+        {Object.entries(ROLES).map(([id, { title }]) => <option key={id} value={id}>{title}</option>)}
+      </select>
+    </label>
+  );
+}
+
 function NavRail() {
+  const role = useRole();
   const unreviewed = useLive((s) => s.unreviewed);
   const hasCritical = useLive((s) => s.alarm != null);
   return (
@@ -41,8 +69,9 @@ function NavRail() {
       <div className="rail__brand" title="Зазеркалье — видеоаналитика ТБ">
         <MirrorMark size={42} />
       </div>
+      <RoleSelector />
       <ul className="rail__nav">
-        {NAV.map(({ to, label, icon: Icon, end }) => (
+        {NAV.filter(({ permission }) => canViewSection(role, permission)).map(({ to, label, icon: Icon, end }) => (
           <li key={to}>
             <NavLink
               to={to}

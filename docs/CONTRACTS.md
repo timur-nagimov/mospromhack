@@ -128,7 +128,7 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
 - `PATCH /api/events/{id}`: возвращает полный Event и рассылает `event_update` по WS. Когда клип готов, тоже рассылается `event_update` с `clip_path`.
 - Ключи `Event.details`, которые понимает UI: `missing`, `vehicle`, `distance_bh`, `distance_m`, `immobile_s`, `speed_bh`, `pose_state`, `source`, `cls`, `conf`.
 - Оверлеи MJPEG компактные: ID трека, а у нарушителя — короткая метка нарушения. Неизвестные атрибуты («?») не выводить.
-- Режимы запуска: `local`, `edge` и `gateway`, выбираются `GUARD_MODE`. Сообщения транспорта edge → gateway: `event`, `event_update`, `frame_meta`, `metrics`, `cameras`.
+- Режимы запуска: `local`, `edge` и `gateway`, выбираются `GUARD_MODE`. Сообщения транспорта edge → gateway: `event`, `event_update`, `frame_meta`, `metrics`, `cameras`, `camera_config_ack`; gateway → edge: `camera_config` (раздел «Конфигурация камер из шлюза» ниже).
 
 ## Локальная реализация после проверки (24.10)
 
@@ -153,7 +153,7 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
 
 - Для пары процессов обязательны `GUARD_EDGE_ID` и `GUARD_RABBIT_URL`; SQLite и media-каталоги разделены. Exchange `guard.edge.v1` отделён от канала inference TPU. На edge событие и outbox фиксируются в одной транзакции; publisher confirmation предшествует удалению outbox. Получатель подтверждает доставку после commit события и receipt.
 - Повторная доставка идемпотентна. Edge не меняет `status` и `operator_note` gateway. При сбое локального SQLite edge не переходит к непостоянному журналу. Snapshot/body замораживаются до первой отправки и сохраняются при restart.
-- Gateway не загружает модели, inference или источники. Каталог камер получает от edge; POST/PUT/DELETE камер возвращают 409, PATCH событий работает локально с WS-уведомлением. URI источника заменён на `edge://<edge_id>/<camera_id>`.
+- Gateway не загружает модели, inference или источники. Каталог камер получает от edge; POST/PUT/DELETE камер передаются на edge командой `camera_config` (раздел «Конфигурация камер из шлюза»), при `GUARD_CONFIG_SYNC=0` — 409. PATCH событий работает локально с WS-уведомлением. URI источника заменён на `edge://<edge_id>/<camera_id>`.
 - JPEG события сохраняется под проверенным локальным путём gateway. Пути edge не используются; `clip_path=null`, доставка клипов ещё не реализована. Повреждённый/слишком большой снимок не блокирует durable событие, ошибка видна в состоянии репликации.
 - Превью — JPEG конкретного analysis-кадра вместе с bbox/зонами, `capture_id`, `frame_seq`, `capture_ts`, `source_pos_s`. Наложения относятся к этому же изображению. По умолчанию до 1 кадра/с, ширина до 480 px, срок свежести 10 с. Возраст считается от захвата, задержка передачи/обработки уменьшает остаточный срок; старые кадры не оживают после reconnect. При истечении срока frame API возвращает 503.
 - Камеры/кадры/метрики — временная телеметрия в отдельной ограниченной очереди с TTL. События durable. Полные гарантии требуют persistent SQLite, работающих AMQP confirms/ACK и отдельного живого прогона; fake-broker тесты не подтверждают доступность реального брокера или TPU.
@@ -167,6 +167,28 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
 - `GET /health` возвращает `status=ok|degraded|error`, `mode`, `backend`, число работающих/всех камер и uptime, а также доступные сведения backend/репликации. Edge не заменяет родительский `degraded/error` на `ok`; незаписанные revisions дают `error`. В gateway health описывает связь/доставку и не является проверкой TPU inference.
 - В `/api/metrics` могут присутствовать `mode`, `media`, состояние edge/transport и backend counters. PID, успешный doctor, накопленные сообщения и старые счётчики не доказывают активный TPU: приёмка требует свежих успешных вызовов каждой нужной модели и новых обработанных кадров при выключенном fallback.
 - Отсутствующая модель для включённого правила — ошибка конфигурации/запуска, а не основание тихо выключить правило. Важность по умолчанию берётся из `default_severity` плагина через `with_default_severity`.
-- На gateway камеры остаются только для чтения (409 для POST/PUT/DELETE); upstream-семантика изменения локального YAML gateway не используется. Конфиг и правила меняют на local/edge.
+- На gateway камеры меняются через канал конфигурации: правка применяется на edge, а не в локальном YAML шлюза (раздел «Конфигурация камер из шлюза»). При `GUARD_CONFIG_SYNC=0` камеры шлюза только для чтения (409).
 - `GET /api/reports/shift` формирует JSON/HTML/Markdown (`format=json|html|md`) по тому же журналу. Его границы полуоткрытые `[from,to)` по `confirmed_at`, epoch или ISO 8601; даты без timezone — МСК. Без границ выбирается смена 08–20 или 20–08. `GET /api/reports/presets` возвращает current_shift/previous_shift/day/week. Эти полуоткрытые границы не меняют включительные фильтры `/api/events`, `/api/stats` и `/api/analytics`.
 - `scripts/run_tpu.sh` не удаляет очередь, receipt или outbox. `GUARD_VPN_MODE=auto` использует готовые AMQP/HTTP-пробросы, иначе пробует контейнер проекта; `external` запрещает автоматический VPN up, `container` выбирает контейнер явно. Эти проверки доступа и готовность процесса не заменяют активную приёмку новой версии. Исторические результаты отдельных TPU/CPU/channel-прогонов сохраняются как датированные измерения со своими ограничениями.
+
+## Конфигурация камер из шлюза (24.10)
+
+Операционные подробности — `docs/EDGE.md` §8, wire-формат — `docs/EDGE_PROTOCOL.md`.
+
+- `POST /api/cameras`, `PUT /api/cameras/{id}`, `DELETE /api/cameras/{id}` в режиме gateway: тело и коды те же, что в local. 201, 200 и 204 означают «правка принята шлюзом и отправлена на edge», а не «применена». Шлюз проверяет конфигурацию так же, как local, кроме наличия моделей: 422 — ошибка конфигурации, 409 — камера уже есть (POST), 404 — камеры нет (PUT, DELETE).
+- `source.uri` = `edge://<edge_id>/<camera_id>` означает «источник не меняется», любой другой URI — новый источник. Новой камере нужен настоящий URI. ID камеры, зон и правил — латинские идентификаторы протокола событий: первая буква или цифра, далее буквы, цифры, `_`, `-`, `.`, до 128 символов.
+- `status.config_sync` в ответах `/api/cameras` (только чтение, в PUT и POST игнорируется):
+
+  ```json
+  {"camera_id": "cam_s1", "state": "pending | synced | error", "version": 1792790123456,
+   "edge_version": 1792790123456, "op": "upsert | delete | null", "error": null,
+   "updated_at": 1792790123.4, "acked_at": 1792790124.1}
+  ```
+
+  `version` — версия последней правки шлюза, `edge_version` — версия из каталога edge (`null`, если edge её не сообщает). При `state=error` текст ошибки повторяется в `status.errors.config_sync`. Камера, которую шлюз не менял: `state=synced`, `version=edge_version`.
+- WS `/ws/events`, новый вид сообщения: `{"kind": "camera_sync", "camera_id", "state", "version", "op", "error", "updated_at", "acked_at"}` на каждый переход состояния.
+- Команда gateway → edge `camera_config`, payload: `{"camera_id", "version", "op": "upsert" | "delete", "config": <CameraConfig> | null}`. При `upsert` `config.camera_id` совпадает с `camera_id`, при `delete` `config` = null. `version` — целое от 1: `max(предыдущая + 1, время в мс)`, монотонно для камеры.
+- Ответ edge → gateway `camera_config_ack`, payload: `{"camera_id", "version", "ok", "error", "current_version"}`. При `ok=true` `error` = null, иначе текст до 1000 символов без URI. `current_version` — версия действующей на edge правки камеры (0 — базовый файл).
+- Edge применяет только версию новее обработанной. На меньшую отвечает `ok=false` («stale version»), на равную — прежним результатом без перезапуска камеры. В каталоге edge (`cameras.statuses.<id>.config_version`) — версия действующей правки.
+- `GUARD_CONFIG_SYNC` (по умолчанию 1), `GUARD_CAMERAS_OVERLAY` (оверлей edge), `GUARD_RABBIT_SUFFIX` (суффикс exchange и очередей для изолированных проверок).
+
