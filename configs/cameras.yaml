@@ -1,6 +1,7 @@
 # Камеры сервиса «Зазеркалье». Файл меняет API (/api/cameras), правки руками тоже допустимы.
 # source.uri для file/images: абсолютный путь или относительно GUARD_DATA_DIR.
 # Полигоны зон — нормированные координаты 0..1; active_hours — по Europe/Moscow.
+# Демо (режим local): ролики и зоны A5 — data/videos/sN_0M.mp4, data/labels/sN_0M.json.
 cameras:
 - camera_id: cam_s1
   name: Цех 1, ограждённый сектор
@@ -12,19 +13,14 @@ cameras:
   - zone_id: behind_tape
     name: За ограничительной лентой
     kind: danger
-    polygon:
-    - [0.0, 0.3]
-    - [0.07, 0.31]
-    - [0.4, 0.7]
-    - [0.22, 1.0]
-    - [0.0, 1.0]
+    polygon: [[0.0, 0.3], [0.07, 0.31], [0.4, 0.7], [0.22, 1.0], [0.0, 1.0]]
     active_hours: null
   rules:
   - rule_id: s1_tape
     type: zone_intrusion
     enabled: true
     zones: [behind_tape]
-    params: {min_conf: 0.35, min_box_h_px: 40}
+    params: {min_conf: 0.5, min_box_h_px: 40}
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
@@ -36,26 +32,14 @@ cameras:
   source: {type: file, uri: videos/s2_01.mp4, loop: true, realtime: true}
   sample_fps: 5.0
   enabled: true
-  zones:
-  - zone_id: z-dz94i
-    name: Зона 1
-    kind: danger
-    polygon:
-    - [0.4308, 0.833]
-    - [0.5637, 0.8799]
-    - [0.7022, 0.9874]
-    - [0.1945, 0.9874]
-    - [0.3989, 0.8115]
-    active_hours: null
+  zones: []
   rules:
   - rule_id: s2_ppe
     type: ppe_missing
     enabled: true
     zones: null
-    params:
-      required: [helmet]
-      min_box_h_px: 60
-    min_duration_s: 2.0
+    params: {required: [helmet], min_box_h_px: 60}
+    min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
     cooldown_s: 10.0
@@ -72,9 +56,9 @@ cameras:
     type: fall_immobile
     enabled: true
     zones: null
-    params: {min_lying_s: 1.0, immobile_window_s: 2.0}
+    params: {min_lying_s: 1.0, immobile_window_s: 1.5}
     min_duration_s: 1.0
-    min_ratio: 0.6
+    min_ratio: 0.5
     close_after_s: 3.0
     cooldown_s: 10.0
     severity: critical
@@ -90,7 +74,7 @@ cameras:
     type: vehicle_proximity
     enabled: true
     zones: null
-    params: {}
+    params: {min_vehicle_speed_bh: 0.05}
     min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
