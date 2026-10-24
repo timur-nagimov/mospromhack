@@ -3,6 +3,8 @@ from __future__ import annotations
 import copy
 import json
 import os
+from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 
 import cv2
@@ -11,9 +13,23 @@ import pytest
 import yaml
 
 from guard.contracts import Detection
+from guard.pipeline import settings as pipeline_settings
 from guard.tracking import Tracker as RealTracker
 from ml.eval import events_eval
 from ml.eval import run_offline as offline
+
+
+@pytest.fixture(autouse=True)
+def isolate_guard_environment(monkeypatch):
+    """Не читаем .env основного репозитория и не наследуем его GUARD_*."""
+    for key in tuple(os.environ):
+        if key.startswith("GUARD_"):
+            monkeypatch.delenv(key, raising=False)
+    monkeypatch.setattr(
+        pipeline_settings,
+        "load_dotenv_guard",
+        lambda *args, **kwargs: None,
+    )
 
 
 def _write_manifest(bundle):
@@ -132,8 +148,15 @@ def bundle(tmp_path):
 
 @pytest.fixture
 def fake_models(monkeypatch):
-    """Подменяется инференс; трекер, атрибуты, правило и EventManager настоящие."""
-    state = SimpleNamespace(detectors=[], backend_calls=[], timestamps=[])
+    """Подменяется инференс; алгоритмы трекинга, правил и событий настоящие."""
+    state = SimpleNamespace(
+        detectors=[],
+        backend_calls=[],
+        timestamps=[],
+        tracker_calls=[],
+        event_manager_calls=0,
+        settings_calls=0,
+    )
 
     class Backend:
         def __init__(self):
@@ -177,22 +200,40 @@ def fake_models(monkeypatch):
         state.backend_calls.append((name, kwargs))
         return state.backend
 
-    # min_hits=1 делает момент появления трека явной частью теста.
-    # Все вычисления ассоциации и ведение истории выполняет настоящий Tracker.
+    # Тесты времён явно используют min_hits=1 через Settings. Фабрика
+    # трекера не исправляет переданные runner параметры и сохраняет их
+    # для проверки соответствия боевому конвейеру.
+    state.settings = replace(
+        offline.Settings.from_env(), tracker_min_hits=1
+    )
+
+    def settings_factory(cls):
+        state.settings_calls += 1
+        return replace(state.settings)
+
     def tracker_factory(**kwargs):
-        kwargs["min_hits"] = 1
+        state.tracker_calls.append(dict(kwargs))
         return RealTracker(**kwargs)
 
-    original_assign = offline.assign_attributes
+    original_assign = offline.compat.assign_attributes
+    original_manager = offline.compat.EventManager
 
     def record_attributes(people, detections, ts):
         state.timestamps.append(ts)
         return original_assign(people, detections, ts)
 
+    def manager_factory():
+        state.event_manager_calls += 1
+        return original_manager()
+
     monkeypatch.setattr(offline, "get_backend", backend_factory)
     monkeypatch.setattr(offline, "Detector", FixedDetector)
-    monkeypatch.setattr(offline, "Tracker", tracker_factory)
-    monkeypatch.setattr(offline, "assign_attributes", record_attributes)
+    monkeypatch.setattr(
+        offline.Settings, "from_env", classmethod(settings_factory)
+    )
+    monkeypatch.setattr(offline.compat, "Tracker", tracker_factory)
+    monkeypatch.setattr(offline.compat, "assign_attributes", record_attributes)
+    monkeypatch.setattr(offline.compat, "EventManager", manager_factory)
     return state
 
 
@@ -260,6 +301,8 @@ def test_cli_events_timestamps_and_evaluation(
     assert fake_models.backend.loaded == ["det"]
     assert fake_models.backend.closed
     assert fake_models.backend_calls[0][1]["intra_op_threads"] == 2
+    assert fake_models.settings_calls == 1
+    assert fake_models.event_manager_calls == 1
     assert os.environ["OMP_NUM_THREADS"] == "2"
     text = capsys.readouterr().out
     assert "TOTAL" in text
@@ -403,3 +446,166 @@ def test_help_needs_no_model_loading(fake_models, capsys):
     assert exc.value.code == 0
     assert "--scenarios" in capsys.readouterr().out
     assert fake_models.backend_calls == []
+
+
+def test_explicit_scenario_paths_override_guard_environment(
+    bundle, fake_models, monkeypatch, tmp_path
+):
+    missing = tmp_path / "does-not-exist"
+    assert not missing.exists()
+    monkeypatch.setenv("GUARD_ROOT", str(missing))
+    monkeypatch.setenv("GUARD_DATA_DIR", str(missing / "data"))
+    monkeypatch.setenv("GUARD_MODELS_DIR", str(missing / "models"))
+    monkeypatch.setenv("GUARD_MODELS_CONFIG", str(missing / "models.yaml"))
+
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.labels_dir == bundle.labels.resolve()
+    assert suite.models_config == bundle.models.resolve()
+    assert suite.models_dir == (tmp_path / "models").resolve()
+    assert Path(suite.scenarios[0].camera.source.uri) == bundle.video.resolve()
+
+    result = offline.run_evaluation(suite)
+    assert result["overall"]["tp"] == 1
+    assert result["processing"]["frames_decoded"] == 30
+    assert fake_models.backend_calls[0][1]["models_dir"] == suite.models_dir
+
+
+def test_explicit_data_dir_overrides_guard_data_dir(
+    bundle, monkeypatch, tmp_path
+):
+    bundle.raw.pop("videos_dir")
+    bundle.raw.pop("labels_dir")
+    bundle.raw["data_dir"] = "explicit-data"
+    _write_manifest(bundle)
+    monkeypatch.setenv("GUARD_DATA_DIR", str(tmp_path / "wrong-data"))
+
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.labels_dir == (tmp_path / "explicit-data" / "labels").resolve()
+    assert Path(suite.scenarios[0].camera.source.uri) == (
+        tmp_path / "explicit-data" / "videos" / "sample.avi"
+    ).resolve()
+
+
+def test_environment_paths_are_used_when_yaml_omits_them(
+    bundle, monkeypatch, tmp_path
+):
+    for key in ("root", "videos_dir", "labels_dir", "models_dir", "models_config"):
+        bundle.raw.pop(key)
+    _write_manifest(bundle)
+    env_root = tmp_path / "shared"
+    env_data = tmp_path / "shared-data"
+    env_models = tmp_path / "shared-models"
+    monkeypatch.setenv("GUARD_ROOT", str(env_root))
+    monkeypatch.setenv("GUARD_DATA_DIR", str(env_data))
+    monkeypatch.setenv("GUARD_MODELS_DIR", str(env_models))
+    monkeypatch.setenv("GUARD_MODELS_CONFIG", str(bundle.models))
+
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.labels_dir == (env_data / "labels").resolve()
+    assert suite.models_dir == env_models.resolve()
+    assert suite.models_config == bundle.models.resolve()
+    assert Path(suite.scenarios[0].camera.source.uri) == (
+        env_data / "videos" / "sample.avi"
+    ).resolve()
+
+    monkeypatch.delenv("GUARD_DATA_DIR", raising=False)
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.labels_dir == (env_root / "data" / "labels").resolve()
+
+
+def test_model_registry_directory_overrides_environment(
+    bundle, monkeypatch, tmp_path
+):
+    bundle.raw.pop("models_dir")
+    _write_manifest(bundle)
+    registry = yaml.safe_load(bundle.models.read_text(encoding="utf-8"))
+    registry["models_dir"] = "registry-weights"
+    bundle.models.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    monkeypatch.setenv("GUARD_MODELS_DIR", str(tmp_path / "wrong-models"))
+
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.models_dir == (bundle.models.parent / "registry-weights").resolve()
+
+    # Более конкретный сценарий может переопределить каталог реестра.
+    bundle.raw["models_dir"] = "scenario-weights"
+    _write_manifest(bundle)
+    suite = offline.load_scenarios(bundle.path)
+    assert suite.models_dir == (tmp_path / "scenario-weights").resolve()
+
+
+def test_cli_model_paths_override_yaml_and_environment(
+    bundle, fake_models, monkeypatch, tmp_path
+):
+    bundle.raw["models_config"] = "missing-registry.yaml"
+    bundle.raw["models_dir"] = "wrong-yaml-models"
+    _write_manifest(bundle)
+    monkeypatch.setenv("GUARD_MODELS_CONFIG", str(tmp_path / "wrong-env.yaml"))
+    monkeypatch.setenv("GUARD_MODELS_DIR", str(tmp_path / "wrong-env-models"))
+
+    cli_models = tmp_path / "cli-models"
+    output = tmp_path / "cli-paths.json"
+    assert offline.main(
+        [
+            "--scenarios", str(bundle.path),
+            "--models-config", str(bundle.models),
+            "--models-dir", str(cli_models),
+            "--out", str(output),
+        ]
+    ) == 0
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["models_config"] == str(bundle.models.resolve())
+    assert result["models_dir"] == str(cli_models.resolve())
+    assert fake_models.backend_calls[0][1]["models_dir"] == cli_models.resolve()
+    assert result["overall"]["tp"] == 1
+
+
+def test_tracker_uses_live_settings_from_env(bundle, fake_models):
+    result = offline.run_evaluation(offline.load_scenarios(bundle.path))
+    expected = {
+        "high_thresh": 0.4,
+        "low_thresh": 0.1,
+        "match_iou": 0.25,
+        "new_track_thresh": 0.45,
+        "track_buffer_s": 3.0,
+        # Явная настройка тестовой Settings, остальные значения штатные.
+        "min_hits": 1,
+    }
+    assert fake_models.settings_calls == 1
+    assert len(fake_models.tracker_calls) == 2
+    for call in fake_models.tracker_calls:
+        assert {key: value for key, value in call.items() if key != "classes"} == expected
+    assert fake_models.tracker_calls[0]["classes"] == set(offline.PERSON_CLASSES)
+    assert fake_models.tracker_calls[1]["classes"] == set(offline.OBJECT_CLASSES)
+    assert fake_models.event_manager_calls == 1
+    assert len(fake_models.timestamps) == 15
+    assert result["tracker"] == expected
+
+
+def test_custom_settings_reach_both_trackers(bundle, fake_models):
+    settings = replace(
+        fake_models.settings,
+        tracker_high_thresh=0.83,
+        tracker_low_thresh=0.17,
+        tracker_match_iou=0.41,
+        tracker_new_track_thresh=0.87,
+        tracker_buffer_s=4.5,
+        tracker_min_hits=2,
+    )
+    result = offline.run_evaluation(
+        offline.load_scenarios(bundle.path), settings=settings
+    )
+    expected = {
+        "high_thresh": 0.83,
+        "low_thresh": 0.17,
+        "match_iou": 0.41,
+        "new_track_thresh": 0.87,
+        "track_buffer_s": 4.5,
+        "min_hits": 2,
+    }
+    assert fake_models.settings_calls == 0
+    assert len(fake_models.tracker_calls) == 2
+    for call in fake_models.tracker_calls:
+        assert {key: value for key, value in call.items() if key != "classes"} == expected
+    assert result["tracker"] == expected
+    assert fake_models.event_manager_calls == 1
+    assert len(fake_models.timestamps) == 15

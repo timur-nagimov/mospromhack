@@ -1,12 +1,21 @@
 """Последовательная офлайн-оценка событий без ожидания реального времени.
 
-Пути в сценариях разрешаются относительно root, а root — относительно YAML.
+Приоритет путей: флаги CLI, явная конфигурация YAML, GUARD_*, значения
+по умолчанию. root разрешается относительно scenarios.yaml, остальные
+пути сценария — относительно root. Необязательный models_dir из реестра
+моделей разрешается относительно models.yaml; scenarios.yaml имеет
+приоритет над этим значением. Относительные пути CLI разрешаются от cwd.
+
 camera.source формируется из videos_dir и имени video. Время кадра:
 t0 + frame_idx / native_fps, где frame_idx начинается с нуля.
 
 Выбирается первый кадр не раньше очередного момента выборки. Частота
 выборки ограничена FPS исходника. Пропуски из-за скорости инференса,
 потоки источников, медиа и искусственные кадры после EOF отсутствуют.
+
+Трекеры, атрибуты и менеджер событий берутся из pipeline.compat.
+Параметры трекеров совпадают с CameraWorker: переданный Settings
+или Settings.from_env(). Пути из Settings не переопределяют Suite.
 
 JSON содержит метрики events_eval, items/total с полными Event, mapping,
 durations и статистику обработки. Его можно читать через
@@ -37,15 +46,15 @@ import cv2
 import yaml
 
 from guard.contracts import TIMING_KEYS, CameraConfig, Event, FrameContext
-from guard.events.manager import EventManager
 from guard.inference import get_backend
 from guard.pipeline import compat
+from guard.pipeline import settings as pipeline_settings
 from guard.pipeline.config import load_models
 from guard.pipeline.detector import Detector
+from guard.pipeline.settings import Settings
 from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES
 from guard.rules.base import RulePlugin, build_rules, load_plugins
 from guard.rules.geometry import validate_active_hours
-from guard.tracking import Tracker, assign_attributes
 from ml.eval import events_eval
 
 
@@ -91,8 +100,47 @@ def _finite(value: Any, name: str) -> float:
 
 
 def _path(base: Path, value: Any, name: str) -> Path:
-    path = Path(_text(value, name)).expanduser()
+    if isinstance(value, Path):
+        path = value.expanduser()
+    else:
+        path = Path(_text(value, name)).expanduser()
     return (path if path.is_absolute() else base / path).resolve()
+
+
+def _config_or_env(
+    raw: Mapping[str, Any], key: str, env_name: str, default: Any
+) -> Any:
+    # Явное, но некорректное значение YAML должно пройти в валидацию,
+    # а не незаметно замениться окружением.
+    if key in raw:
+        return raw[key]
+    return os.environ.get(env_name) or default
+
+
+def _resolve_models_dir(
+    root: Path,
+    raw: Mapping[str, Any],
+    models_config: Path,
+    override: str | Path | None,
+) -> Path:
+    if override is not None:
+        return _path(Path.cwd(), override, "--models-dir")
+    if "models_dir" in raw:
+        return _path(root, raw["models_dir"], "models_dir")
+
+    # Допускается models_dir рядом с models в реестре. Отсутствие такого
+    # поля сохраняет поддержку всех форматов guard.pipeline.config.
+    if models_config.is_file():
+        registry = yaml.safe_load(models_config.read_text(encoding="utf-8"))
+        if isinstance(registry, dict) and "models_dir" in registry:
+            return _path(
+                models_config.parent,
+                registry["models_dir"],
+                f"{models_config}: models_dir",
+            )
+    return _path(
+        root, os.environ.get("GUARD_MODELS_DIR") or "models", "models_dir"
+    )
 
 
 def _validate_camera(camera: CameraConfig) -> None:
@@ -125,23 +173,48 @@ def _validate_camera(camera: CameraConfig) -> None:
             raise ValueError(f"{rule.rule_id}: min_ratio must be in [0, 1]")
 
 
-def load_scenarios(path: str | Path) -> Suite:
+def load_scenarios(
+    path: str | Path,
+    *,
+    models_config: str | Path | None = None,
+    models_dir: str | Path | None = None,
+) -> Suite:
     path = Path(path).expanduser().resolve()
     raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     if not isinstance(raw, dict) or raw.get("version") != 1:
         raise ValueError("Scenarios must be an object with version: 1")
 
-    root = _path(path.parent, raw.get("root", "."), "root")
-    videos_dir = _path(root, raw.get("videos_dir", "data/videos"), "videos_dir")
-    labels_dir = _path(root, raw.get("labels_dir", "data/labels"), "labels_dir")
-    models_config = _path(
-        root, raw.get("models_config", "configs/models.yaml"), "models_config"
+    # .env заполняет только резервные значения. Вызов через модуль позволяет
+    # тестам изолировать загрузчик вместе со всеми GUARD_*.
+    pipeline_settings.load_dotenv_guard()
+    root = _path(
+        path.parent, _config_or_env(raw, "root", "GUARD_ROOT", "."), "root"
     )
-    models_dir = _path(
+    data_dir = _path(
         root,
-        os.environ.get("GUARD_MODELS_DIR") or raw.get("models_dir", "models"),
-        "models_dir",
+        _config_or_env(raw, "data_dir", "GUARD_DATA_DIR", "data"),
+        "data_dir",
     )
+    videos_dir = _path(
+        root, raw.get("videos_dir", data_dir / "videos"), "videos_dir"
+    )
+    labels_dir = _path(
+        root, raw.get("labels_dir", data_dir / "labels"), "labels_dir"
+    )
+    if models_config is not None:
+        registry_path = _path(Path.cwd(), models_config, "--models-config")
+    else:
+        registry_path = _path(
+            root,
+            _config_or_env(
+                raw, "models_config", "GUARD_MODELS_CONFIG", "configs/models.yaml"
+            ),
+            "models_config",
+        )
+    resolved_models_dir = _resolve_models_dir(
+        root, raw, registry_path, models_dir
+    )
+
     sample_fps = _finite(raw.get("sample_fps", 5.0), "sample_fps")
     if sample_fps <= 0:
         raise ValueError("sample_fps must be positive")
@@ -189,7 +262,9 @@ def load_scenarios(path: str | Path) -> Suite:
         if len(values) != len(set(values)):
             raise ValueError(f"Duplicate {name} in scenarios")
 
-    return Suite(labels_dir, models_config, models_dir, tuple(scenarios))
+    return Suite(
+        labels_dir, registry_path, resolved_models_dir, tuple(scenarios)
+    )
 
 
 def _select(suite: Suite, only: Sequence[str] | None) -> list[Scenario]:
@@ -242,6 +317,18 @@ def _load_detectors(
         raise
 
 
+def _tracker_kwargs(settings: Settings) -> dict[str, Any]:
+    """Те же параметры, которые CameraWorker передаёт обоим трекерам."""
+    return {
+        "high_thresh": settings.tracker_high_thresh,
+        "low_thresh": settings.tracker_low_thresh,
+        "match_iou": settings.tracker_match_iou,
+        "new_track_thresh": settings.tracker_new_track_thresh,
+        "track_buffer_s": settings.tracker_buffer_s,
+        "min_hits": settings.tracker_min_hits,
+    }
+
+
 def _remember(events: dict[str, Event], event: Event) -> None:
     # Закрытие/повторное открытие обновляет тот же Event, а не создаёт дубль.
     previous = events.get(event.id)
@@ -255,11 +342,14 @@ def run_video(
     detectors: Mapping[str, Any],
     *,
     rules: Sequence[RulePlugin] | None = None,
+    settings: Settings | None = None,
 ) -> VideoResult:
     """Прочитать один файл потоково; трекеры и EventManager изолированы."""
     camera = scenario.camera
     _validate_camera(camera)
     _finite(scenario.t0, "t0")
+    if settings is None:
+        settings = Settings.from_env()
     if rules is None:
         load_plugins()
         rules = build_rules(camera)
@@ -290,9 +380,14 @@ def run_video(
         )
         effective_fps = min(camera.sample_fps, fps)
 
-        person_tracker = Tracker(classes=set(PERSON_CLASSES))
-        object_tracker = Tracker(classes=set(OBJECT_CLASSES))
-        manager = EventManager()
+        tracker_kwargs = _tracker_kwargs(settings)
+        person_tracker = compat.Tracker(
+            classes=set(PERSON_CLASSES), **tracker_kwargs
+        )
+        object_tracker = compat.Tracker(
+            classes=set(OBJECT_CLASSES), **tracker_kwargs
+        )
+        manager = compat.EventManager()
 
         while True:
             read_started = time.perf_counter()
@@ -332,7 +427,7 @@ def run_video(
                 ],
                 ts,
             )
-            assign_attributes(people, detections, ts)
+            compat.assign_attributes(people, detections, ts)
             rules_started = time.perf_counter()
             timings["tracking"] = (rules_started - tracking_started) * 1000.0
 
@@ -402,6 +497,7 @@ def run_evaluation(
     backend: str = "onnx-cpu",
     only: Sequence[str] | None = None,
     tol_s: float = 2.0,
+    settings: Settings | None = None,
 ) -> dict[str, Any]:
     """Оценить выбранные видео, включая пустую разметку и все её типы."""
     if backend not in {"onnx-cpu", "linq-tpu"}:
@@ -411,6 +507,8 @@ def run_evaluation(
 
     wall_started = time.perf_counter()
     scenarios = _select(suite, only)
+    if settings is None:
+        settings = Settings.from_env()
     labels, annotated_videos = events_eval.load_labels(suite.labels_dir)
     selected_videos = {scenario.video for scenario in scenarios}
     unknown = selected_videos - annotated_videos
@@ -445,7 +543,9 @@ def run_evaluation(
     runs = []
     try:
         for scenario, rules in prepared:
-            result = run_video(scenario, detectors, rules=rules)
+            result = run_video(
+                scenario, detectors, rules=rules, settings=settings
+            )
             events.extend(result.events)
             mapping[scenario.camera.camera_id] = {
                 "video": scenario.video,
@@ -482,6 +582,7 @@ def run_evaluation(
         "models_config": str(suite.models_config),
         "models_dir": str(suite.models_dir),
         "required_models": sorted(model_ids),
+        "tracker": _tracker_kwargs(settings),
         "processing": {
             "frames_decoded": frames_decoded,
             "frames_analyzed": frames_analyzed,
@@ -507,22 +608,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     try:
-        suite = load_scenarios(args.scenarios)
-        if args.models_config is not None or args.models_dir is not None:
-            suite = Suite(
-                labels_dir=suite.labels_dir,
-                models_config=(
-                    args.models_config.expanduser().resolve()
-                    if args.models_config is not None
-                    else suite.models_config
-                ),
-                models_dir=(
-                    args.models_dir.expanduser().resolve()
-                    if args.models_dir is not None
-                    else suite.models_dir
-                ),
-                scenarios=suite.scenarios,
-            )
+        suite = load_scenarios(
+            args.scenarios,
+            models_config=args.models_config,
+            models_dir=args.models_dir,
+        )
         result = run_evaluation(
             suite,
             backend=args.backend,
