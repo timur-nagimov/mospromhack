@@ -1,6 +1,6 @@
 import { ImageOff } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { classColor, classLabel } from '../../domain/flywheel';
+import { classColor, classLabel, formatConf } from '../../domain/flywheel';
 import type { BBox } from '../../domain/types';
 
 export interface FrameBox {
@@ -67,7 +67,8 @@ export function FrameBoxes({
         const [x1, y1, x2, y2] = clampBox(b.bbox, w, h);
         const color = classColor(b.cls);
         const active = highlight === b.key;
-        const text = `${classLabel(b.cls)}${b.conf != null ? ` ${b.conf.toFixed(2)}` : ''}`;
+        const conf = formatConf(b.conf);
+        const text = conf ? `${classLabel(b.cls)} ${conf}` : classLabel(b.cls);
         const tw = text.length * font * 0.62 + font * 0.8;
         const th = font * 1.45;
         const above = y1 - th >= 0;

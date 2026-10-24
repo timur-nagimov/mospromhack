@@ -13,7 +13,8 @@ export type LabelOrigin = 'teacher' | 'operator' | 'model' | 'dataset';
 export interface SampleDetection {
   model_id: string;
   cls: string;
-  conf: number;
+  /** null — уверенность неизвестна (рамки из frame_meta edge) */
+  conf: number | null;
   bbox: BBox;
   track_id?: number | null;
 }
@@ -22,7 +23,7 @@ export interface SampleDetection {
 export interface SampleLabel {
   cls: string;
   bbox: BBox;
-  origin: LabelOrigin | string;
+  origin?: LabelOrigin | string | null;
   conf?: number | null;
 }
 
@@ -46,6 +47,8 @@ export interface FlywheelSample {
   reviewed_at: number | null;
   dataset_version: string | null;
   frame_url?: string;
+  /** сверх контракта: например camera_name — имя камеры на момент кадра */
+  meta?: Record<string, unknown> | null;
 }
 
 /** Короткая форма сэмпла из WS-сообщения flywheel_sample: гарантирован только id */
@@ -165,11 +168,16 @@ export interface FlywheelSummary {
   today: number;
   by_source: Record<string, number>;
   by_status: Record<string, number>;
+  /** классы в метках */
   by_class: Record<string, number>;
+  /** сверх контракта: классы в детекциях моделей */
+  by_detected_class?: Record<string, number>;
   reviewed: number;
   holdout: number;
   /** сэмплы, отброшенные при переполнении очереди записи */
   dropped: number;
+  /** сверх контракта: отброшенные по причинам */
+  dropped_detail?: Record<string, number>;
   last_dataset: DatasetVersion | string | null;
   models: { deployed: (string | Partial<ModelCard>)[]; candidate: (string | Partial<ModelCard>)[] };
   collecting: boolean;
@@ -211,6 +219,9 @@ export const SOURCE_COLORS: Record<SampleSource, string> = {
 };
 
 export const SAMPLE_STATUS_ORDER: SampleStatus[] = ['new', 'auto', 'accepted', 'rejected'];
+
+/** Фильтр очереди по умолчанию: ещё не проверены человеком (status=new,auto) */
+export const REVIEW_STATUSES = 'new,auto';
 
 export const SAMPLE_STATUS_LABELS: Record<SampleStatus, string> = {
   new: 'Новый',
@@ -322,6 +333,17 @@ export function modelStatusLabel(status: string | null | undefined): string {
 export function jobKindLabel(kind: string | null | undefined): string {
   if (!kind) return 'Задача';
   return JOB_KIND_LABELS[kind as JobKind] ?? kind;
+}
+
+/** Имя камеры: из конфигурации, иначе из meta сэмпла, иначе id */
+export function sampleCameraName(sample: Pick<FlywheelSample, 'camera_id' | 'meta'>, configured?: string): string {
+  if (configured) return configured;
+  const fromMeta = sample.meta?.camera_name;
+  return typeof fromMeta === 'string' && fromMeta ? fromMeta : sample.camera_id;
+}
+
+export function formatConf(conf: number | null | undefined): string {
+  return typeof conf === 'number' && Number.isFinite(conf) ? conf.toFixed(2) : '';
 }
 
 export function classLabel(cls: string): string {
