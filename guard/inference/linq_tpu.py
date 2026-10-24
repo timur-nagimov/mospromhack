@@ -1,25 +1,11 @@
-"""Бэкенд LinQ TPU: инференс через облачный воркер по RabbitMQ (формат tpu_pycloud_format).
+"""Бэкенд LinQ TPU: инференс через RabbitMQ с быстрым отказом и circuit breaker.
 
-Протокол (vendor/linq_examples/example.ipynb + tpu_pycloud_format 0.0.1, проверено на стенде 24.10):
-  * брокер RABBIT_HOST:5672, guest/guest; exchange ``tpu.direct``; задачи — routing key ``input``;
-  * тело — protobuf ``Task``: dict_data {имя входа: Array(dtype, shape, byte_data)};
-  * AMQP-заголовки: ``uri`` = ``file:///auto/cache/<login>/<prog>.tpu?raw=False`` (программа лежит на
-    общей ФС стенда), ``response_routing_keys`` = JSON-список ключей ответа (последний — первый хоп),
-    ``tpu_pycloud_message_id`` — наш id, воркер возвращает его в заголовках ответа;
-  * ответ — тот же ``Task``: dict_data {имя выхода: float32}, worker_pid, inference_time (с),
-    status_code (0 = ок), error_message.
+Модель на TPU может быть «головой» сети; ONNX-хвост выполняется на CPU.
+После трёх неуспешных вызовов сеть не используется в течение 10 секунд.
+По истечении интервала допускается один пробный вызов.
 
-Модель на TPU может быть «головой» сети: tpu/compile.py режет граф (--cut-preset yolov8), а хвост
-(decode DFL + concat -> output0) лежит в *_tail.onnx и выполняется здесь на CPU (onnxruntime), поэтому
-infer() возвращает выходы в том же формате, что исходная ONNX (контракт CONTRACTS.md).
-
-Привязка программы (ModelSpec.tpu_program):
-  * ``file:///auto/cache/...tpu[?raw=False]`` — URI как есть; manifest ищется в models/tpu/<model_id>/;
-  * локальный путь к .tpu (абсолютный или от GUARD_MODELS_DIR) — URI = file://<LINQ_PROGRAM_DIR>/<имя>,
-    LINQ_PROGRAM_DIR по умолчанию /auto/cache/<JUPYTER_LOGIN>; manifest.json — рядом с программой.
-
-Окружение: LINQ_RABBIT_HOST/PORT (иначе RABBIT_HOST/RABBIT_PORT из .env; с ноутбука через туннель —
-127.0.0.1:5672), LINQ_RABBIT_USER/PASSWORD (guest/guest), LINQ_PROGRAM_DIR, LINQ_TIMEOUT_S.
+Окружение: LINQ_RABBIT_HOST/PORT, LINQ_RABBIT_USER/PASSWORD,
+LINQ_PROGRAM_DIR, LINQ_TIMEOUT_S. Таймаут ответа по умолчанию — 2 секунды.
 """
 
 from __future__ import annotations
@@ -65,9 +51,7 @@ def _dotenv() -> dict[str, str]:
 
 
 def _default_host() -> str:
-    """Брокер по умолчанию: на стенде (single-user контейнер Jupyter) — 10.0.114.30 напрямую,
-    иначе — локальный проброс VPN-контейнера 127.0.0.1:5672 (infra/vpn). RABBIT_HOST из .env ноутбука
-    напрямую недоступен (системный VPN не поднимаем)."""
+    """На стенде подключаемся напрямую, с ноутбука — через локальный туннель."""
     if os.environ.get("JUPYTERHUB_USER") or Path("/auto/cache").is_dir():
         return "10.0.114.30"
     return "127.0.0.1"
@@ -86,9 +70,8 @@ def _cfg(*names: str, default: str | None = None) -> str | None:
     return default
 
 
-# ---------------------------------------------------------------- wire format (tpu_pycloud_format 0.0.1)
+# ---------------------------------------------------------------- wire format
 
-# Сериализованный дескриптор message.proto из tpu_pycloud_format-0.0.1 (packages/ на стенде): Array, MetadataDict, Task.
 _PROTO_DESCRIPTOR = (
     b'\n\rmessage.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"8\n\x05\x41rray\x12\r\n\x05\x64type\x18\x01 '
     b'\x01(\t\x12\r\n\x05shape\x18\x02 \x03(\x05\x12\x11\n\tbyte_data\x18\x03 \x01(\x0c\"m\n\x0cMetadataDict'
@@ -106,7 +89,6 @@ _TASK_LOCK = threading.Lock()
 
 
 def _task_cls() -> Any:
-    """Класс protobuf Task: из установленного tpu_pycloud_format или из встроенного дескриптора."""
     global _TASK_CLS
     if _TASK_CLS is not None:
         return _TASK_CLS
@@ -117,7 +99,7 @@ def _task_cls() -> Any:
 
                 _TASK_CLS = message_pb2.Task
             except ImportError:
-                from google.protobuf import descriptor_pool, timestamp_pb2  # noqa: F401
+                from google.protobuf import descriptor_pool, timestamp_pb2
                 from google.protobuf.internal import builder
 
                 pool = descriptor_pool.DescriptorPool()
@@ -150,7 +132,7 @@ def deserialize_task(body: bytes) -> tuple[dict[str, np.ndarray], dict[str, Any]
     worker = {
         "worker_pid": msg.worker_pid,
         "thread_name": msg.thread_name,
-        "inference_time": float(msg.inference_time),  # секунды
+        "inference_time": float(msg.inference_time),
         "status_code": int(msg.status_code),
         "error_message": msg.error_message,
         "data_path": msg.data_path,
@@ -158,15 +140,11 @@ def deserialize_task(body: bytes) -> tuple[dict[str, np.ndarray], dict[str, Any]
     return data, worker
 
 
-# ---------------------------------------------------------------- raw-кодек (упаковка как tpu_io, на numpy)
+# ---------------------------------------------------------------- raw-кодек
 
 
 class RawCodec:
-    """Упаковка user-тензоров в формат TPU и обратно по metadata.json программы (inputs/outputs).
-
-    Повторяет tpu_io.pack/unpack для int8 (tpu_framework.pdf стр. 7, 46-47): scale -> round -> int8,
-    паддинг по `padding` (отрицательный — обрезка), ось C делится на (C_outer, B), перестановка в tpu_order.
-    Сверка с tpu_io — tpu/raw_probe.py."""
+    """Упаковка user-тензоров в формат TPU и обратно по metadata.json."""
 
     def __init__(self, inputs: dict[str, dict], outputs: dict[str, dict]) -> None:
         self.inputs, self.outputs = inputs, outputs
@@ -202,7 +180,6 @@ class RawCodec:
         t = self.outputs[name]
         uo, to = list(t["user_order"]), list(t["tpu_order"])
         q = np.asarray(raw).reshape(-1)[: int(np.prod(t["tpu_shape"]))].view(np.int8).reshape(t["tpu_shape"])
-        # tpu_order -> user_order, где C = (C_outer, B)
         perm = [to.index(a) if a != "C" else to.index("C") for a in uo]
         ci = uo.index("C")
         perm = perm[:ci] + [to.index("C"), to.index("B")] + perm[ci + 1:]
@@ -222,7 +199,11 @@ class RawCodec:
 # ---------------------------------------------------------------- транспорт
 
 
-class TpuWorkerError(RuntimeError):
+class BackendUnavailable(RuntimeError):
+    """Бэкенд не смог выполнить инференс либо временно отключён."""
+
+
+class TpuWorkerError(BackendUnavailable):
     """Воркер вернул ошибку (status_code != 0 или пустой ответ)."""
 
 
@@ -230,45 +211,56 @@ class TpuWorkerError(RuntimeError):
 class Reply:
     data: dict[str, np.ndarray]
     worker: dict[str, Any]
-    t_sent: float  # monotonic, после publish
-    t_recv: float  # monotonic, ответ получен
+    t_sent: float
+    t_recv: float
     req_bytes: int
     resp_bytes: int
 
 
 class RabbitClient:
-    """Одно соединение pika + своя exclusive-очередь ответов. НЕ потокобезопасен — по экземпляру на поток.
-
-    submit() публикует задачу и сразу возвращает id; collect() ждёт ответы — так кадры батча
-    идут конвейером (на стенде воркер обслуживает несколько задач параллельно: Worker Thread #0/#1)."""
+    """Одно pika-соединение на поток; submit/collect поддерживают конвейер."""
 
     def __init__(self, host: str, port: int, user: str = "guest", password: str = "guest",
-                 connect_timeout: float = 15.0, heartbeat: int = 60) -> None:
+                 connect_timeout: float = 2.0, heartbeat: int = 60) -> None:
         self.host, self.port, self.user, self.password = host, port, user, password
-        self.connect_timeout, self.heartbeat = connect_timeout, heartbeat
+        self.connect_timeout = max(0.01, min(2.0, float(connect_timeout)))
+        self.heartbeat = heartbeat
         self.conn: Any = None
         self.ch: Any = None
         self.reply_queue = ""
         self._replies: dict[str, Reply] = {}
         self._pending: dict[str, tuple[float, int]] = {}
+        self._stop = threading.Event()
         self.connect_ms = 0.0
 
     def connect(self) -> None:
         import pika
 
+        if self._stop.is_set():
+            raise BackendUnavailable("linq-tpu: соединение закрывается")
         self.close()
         t0 = time.perf_counter()
         params = pika.ConnectionParameters(
             self.host, self.port, credentials=pika.PlainCredentials(self.user, self.password),
-            heartbeat=self.heartbeat, blocked_connection_timeout=60, socket_timeout=self.connect_timeout,
-            connection_attempts=2, retry_delay=1,
+            heartbeat=self.heartbeat,
+            blocked_connection_timeout=self.connect_timeout,
+            socket_timeout=self.connect_timeout / 2.0,
+            stack_timeout=self.connect_timeout,
+            connection_attempts=1,
+            retry_delay=0,
         )
-        self.conn = pika.BlockingConnection(params)
-        self.ch = self.conn.channel()
-        self.reply_queue = f"zz_guard_{uuid.uuid4().hex[:12]}"
-        self.ch.queue_declare(queue=self.reply_queue, exclusive=True)
-        self.ch.queue_bind(exchange=EXCHANGE, queue=self.reply_queue, routing_key=self.reply_queue)
-        self.ch.basic_consume(self.reply_queue, self._on_reply, auto_ack=True)
+        try:
+            self.conn = pika.BlockingConnection(params)
+            if self._stop.is_set():
+                raise BackendUnavailable("linq-tpu: соединение закрывается")
+            self.ch = self.conn.channel()
+            self.reply_queue = f"zz_guard_{uuid.uuid4().hex[:12]}"
+            self.ch.queue_declare(queue=self.reply_queue, exclusive=True)
+            self.ch.queue_bind(exchange=EXCHANGE, queue=self.reply_queue, routing_key=self.reply_queue)
+            self.ch.basic_consume(self.reply_queue, self._on_reply, auto_ack=True)
+        except Exception:
+            self.close()
+            raise
         self._replies.clear()
         self._pending.clear()
         self.connect_ms = (time.perf_counter() - t0) * 1000
@@ -277,13 +269,20 @@ class RabbitClient:
     def is_open(self) -> bool:
         return bool(self.conn is not None and self.conn.is_open and self.ch is not None and self.ch.is_open)
 
+    def request_close(self) -> None:
+        """Сигнал владельцу соединения; pika не вызывается из чужого потока."""
+        self._stop.set()
+
     def close(self) -> None:
         try:
             if self.conn is not None and self.conn.is_open:
                 self.conn.close()
         except Exception:  # noqa: BLE001
             pass
-        self.conn = self.ch = None
+        finally:
+            self.conn = self.ch = None
+            self._pending.clear()
+            self._replies.clear()
 
     def _on_reply(self, ch: Any, method: Any, props: Any, body: bytes) -> None:
         t = time.monotonic()
@@ -298,6 +297,8 @@ class RabbitClient:
     def submit(self, tensors: dict[str, np.ndarray], uri: str, body: bytes | None = None) -> str:
         import pika
 
+        if self._stop.is_set():
+            raise BackendUnavailable("linq-tpu: соединение закрывается")
         if not self.is_open:
             self.connect()
         mid = uuid.uuid4().hex
@@ -316,12 +317,15 @@ class RabbitClient:
     def collect(self, ids: list[str], timeout: float) -> dict[str, Reply]:
         deadline = time.monotonic() + timeout
         while any(i not in self._replies for i in ids):
+            if self._stop.is_set():
+                raise BackendUnavailable("linq-tpu: соединение закрывается")
             left = deadline - time.monotonic()
             if left <= 0:
                 for i in ids:
                     self._pending.pop(i, None)
-                raise TimeoutError(f"linq-tpu: нет ответа за {timeout:.0f} с ({sum(i not in self._replies for i in ids)} шт.)")
-            self.conn.process_data_events(time_limit=min(left, 0.5))
+                    self._replies.pop(i, None)
+                raise TimeoutError(f"linq-tpu: нет ответа за {timeout:g} с")
+            self.conn.process_data_events(time_limit=min(left, 0.1))
         return {i: self._replies.pop(i) for i in ids}
 
 
@@ -335,12 +339,12 @@ class _TpuModel:
     input_name: str
     program_batch: int
     tpu_outputs: list[str]
-    out_names: list[str]  # порядок итоговых выходов (как у исходной ONNX)
-    tail: Any = None  # onnxruntime.InferenceSession хвоста или None
+    out_names: list[str]
+    tail: Any = None
     tail_inputs: list[str] = field(default_factory=list)
     manifest: dict[str, Any] = field(default_factory=dict)
-    tail_batch1: bool = False  # у хвоста статический batch=1
-    codec: Any = None  # RawCodec при raw=True
+    tail_batch1: bool = False
+    codec: Any = None
     ddr_word_len: int = 32
 
 
@@ -367,6 +371,8 @@ def _find_manifest(spec: ModelSpec, models_dir: Path | None, local_program: Path
 
 class LinqTpuBackend(InferenceBackend):
     name = "linq-tpu"
+    FAILURE_THRESHOLD = 3
+    CIRCUIT_RESET_S = 10.0
 
     def __init__(
         self,
@@ -377,9 +383,10 @@ class LinqTpuBackend(InferenceBackend):
         program_dir: str | None = None,
         models_dir: str | Path | None = None,
         timeout_s: float | None = None,
-        retries: int = 2,
+        retries: int = 0,
         raw: bool | None = None,
         window: int | None = None,
+        connect_timeout_s: float = 2.0,
     ) -> None:
         self.host = host or os.environ.get("LINQ_RABBIT_HOST") or _default_host()
         self.port = int(port or _cfg("LINQ_RABBIT_PORT", default="5672"))
@@ -388,33 +395,80 @@ class LinqTpuBackend(InferenceBackend):
         login = _cfg("LINQ_LOGIN", "JUPYTER_LOGIN", default="hackathon10864")
         self.program_dir = (program_dir or _cfg("LINQ_PROGRAM_DIR", default=f"/auto/cache/{login}")).rstrip("/")
         self.models_dir = Path(models_dir).expanduser() if models_dir else None
-        self.timeout_s = float(timeout_s or _cfg("LINQ_TIMEOUT_S", default="30"))
-        self.retries = int(retries)
-        # raw=True: клиент сам пакует вход в int8-слова TPU и распаковывает выходы (RawCodec) — трафик в ~3-4 раза
-        # меньше (yolov8n 640: запрос 1.64 МБ вместо 4.9, ответ 0.71 вместо 2.8). Проверено на стенде 24.10.
+        self.timeout_s = max(0.01, float(
+            timeout_s if timeout_s is not None else _cfg("LINQ_TIMEOUT_S", default="2")
+        ))
+        self.retries = max(0, min(1, int(retries)))
+        self.connect_timeout_s = max(0.01, min(2.0, float(connect_timeout_s)))
         self.raw = bool(int(_cfg("LINQ_RAW", default="0"))) if raw is None else bool(raw)
-        # окно задач в полёте для submit(): столько потоков, у каждого своё соединение и очередь ответов
-        self.window = int(window or _cfg("LINQ_WINDOW", default="4"))
+        self.window = max(1, int(window or _cfg("LINQ_WINDOW", default="4")))
         self._pool: Any = None
         self._models: dict[str, _TpuModel] = {}
         self._lock = threading.Lock()
+        self._condition = threading.Condition(self._lock)
+        self._close_lock = threading.Lock()
         self._local = threading.local()
         self._clients: list[RabbitClient] = []
         self._stats = BackendStats()
         self._bytes = {"sent": 0, "received": 0}
+        self._closed = False
+        self._inflight = 0
+        self._consecutive_failures = 0
+        self._open_until = 0.0
+        self._half_open = False
+        self._last_error: str | None = None
+        self._availability: dict[str, bool] = {}
 
-    # ---- соединения ----
+    # ---- соединения и circuit breaker ----
 
     def _client(self) -> RabbitClient:
         c = getattr(self._local, "client", None)
         if c is None:
-            c = RabbitClient(self.host, self.port, self.user, self.password)
-            self._local.client = c
             with self._lock:
+                if self._closed:
+                    raise BackendUnavailable("linq-tpu: бэкенд закрыт")
+                c = RabbitClient(
+                    self.host, self.port, self.user, self.password,
+                    connect_timeout=self.connect_timeout_s,
+                )
                 self._clients.append(c)
+                self._local.client = c
         if not c.is_open:
             c.connect()
         return c
+
+    def _begin_call(self) -> None:
+        with self._condition:
+            if self._closed:
+                raise BackendUnavailable("linq-tpu: бэкенд закрыт")
+            now = time.monotonic()
+            if now < self._open_until or self._half_open:
+                raise BackendUnavailable(f"linq-tpu: circuit open; {self._last_error}")
+            if self._open_until:
+                self._half_open = True
+            self._inflight += 1
+
+    def _finish_call(self) -> None:
+        with self._condition:
+            self._inflight -= 1
+            self._condition.notify_all()
+
+    def _failed(self, model_id: str, exc: Exception) -> None:
+        with self._lock:
+            self._availability[model_id] = False
+            self._consecutive_failures += 1
+            self._last_error = f"{type(exc).__name__}: {exc}"[:300]
+            if self._consecutive_failures >= self.FAILURE_THRESHOLD:
+                self._open_until = time.monotonic() + self.CIRCUIT_RESET_S
+            self._half_open = False
+
+    def _succeeded(self, model_id: str) -> None:
+        with self._lock:
+            self._availability[model_id] = True
+            self._consecutive_failures = 0
+            self._open_until = 0.0
+            self._half_open = False
+            self._last_error = None
 
     # ---- загрузка ----
 
@@ -426,11 +480,13 @@ class LinqTpuBackend(InferenceBackend):
             p = resolve_model_path(ref, self.models_dir)
             local = p if p.exists() else None
             uri = f"file://{self.program_dir}/{p.name}"
-        uri = uri.split("?")[0] + ("?raw=True" if self.raw else "?raw=False")  # режим задаёт бэкенд
+        uri = uri.split("?")[0] + ("?raw=True" if self.raw else "?raw=False")
         return uri, local
 
     def load(self, spec: ModelSpec) -> None:
         with self._lock:
+            if self._closed:
+                raise BackendUnavailable("linq-tpu: бэкенд закрыт")
             if spec.model_id in self._models:
                 return
         if not spec.tpu_program:
@@ -464,7 +520,7 @@ class LinqTpuBackend(InferenceBackend):
                     meta = json.loads(z.read("metadata.json"))
             except Exception:  # noqa: BLE001
                 meta = {}
-        if input_name is None and meta:  # без manifest: имена из metadata.json программы
+        if input_name is None and meta:
             try:
                 ins = [n for d in meta.get("inputs", {}).values() for n in d]
                 outs = [n for d in meta.get("outputs", {}).values() for n in d]
@@ -474,7 +530,7 @@ class LinqTpuBackend(InferenceBackend):
                 batch = int(next(t for d in meta["inputs"].values() for t in d.values())["user_shape"][0])
             except Exception:  # noqa: BLE001
                 pass
-        if input_name is None:  # иначе — имя входа из исходной ONNX
+        if input_name is None:
             try:
                 import onnx
 
@@ -498,18 +554,22 @@ class LinqTpuBackend(InferenceBackend):
             shp = tail.get_inputs()[0].shape
             model.tail_batch1 = bool(shp) and shp[0] == 1
         with self._lock:
+            if self._closed:
+                raise BackendUnavailable("linq-tpu: бэкенд закрыт")
             self._models[spec.model_id] = model
         log.info("linq-tpu: %s -> %s (input %s, tail=%s)", spec.model_id, uri, input_name, bool(tail))
 
     def loaded_models(self) -> list[str]:
-        return list(self._models)
+        with self._lock:
+            return list(self._models)
 
     def max_batch_size(self, model_id: str) -> int:
-        return 8  # кадры батча уходят конвейером отдельными задачами
+        return 8
 
     def class_names(self, model_id: str) -> list[str] | None:
-        m = self._models.get(model_id)
-        return list(m.spec.classes) if m and m.spec.classes else None
+        with self._lock:
+            m = self._models.get(model_id)
+            return list(m.spec.classes) if m and m.spec.classes else None
 
     # ---- инференс ----
 
@@ -517,28 +577,48 @@ class LinqTpuBackend(InferenceBackend):
         x = np.asarray(batch)
         if x.ndim == 3:
             x = x[None]
-        if x.dtype == np.uint8:  # программа ждёт float32 0..1 (letterbox-препроцессинг YOLO)
+        if x.dtype == np.uint8:
             x = x.astype(np.float32) / 255.0
         elif x.dtype != np.float32:
             x = x.astype(np.float32)
         return np.ascontiguousarray(x)
 
     def infer_timed(self, model_id: str, batch: np.ndarray) -> tuple[list[np.ndarray], dict[str, float]]:
+        self._begin_call()
+        try:
+            result = self._infer_timed(model_id, batch)
+        except Exception as exc:
+            self._failed(model_id, exc)
+            if isinstance(exc, BackendUnavailable):
+                raise
+            raise BackendUnavailable(f"linq-tpu: {type(exc).__name__}: {exc}") from exc
+        else:
+            self._succeeded(model_id)
+            return result
+        finally:
+            self._finish_call()
+
+    def _infer_timed(self, model_id: str, batch: np.ndarray) -> tuple[list[np.ndarray], dict[str, float]]:
         m = self._models.get(model_id)
         if m is None:
             raise KeyError(f"модель {model_id} не загружена")
         x = self._prepare(m, batch)
+        if x.shape[0] == 0:
+            raise ValueError("linq-tpu: пустой батч")
         pb = max(1, m.program_batch)
         chunks = [x[i:i + pb] for i in range(0, x.shape[0], pb)]
-        if chunks[-1].shape[0] != pb:  # программа со статическим batch — добиваем нулями
+        if chunks[-1].shape[0] != pb:
             pad = np.zeros((pb - chunks[-1].shape[0],) + x.shape[1:], np.float32)
             chunks[-1] = np.concatenate([chunks[-1], pad])
-        last_exc: BaseException | None = None
+        last_exc: Exception | None = None
         for attempt in range(self.retries + 1):
+            with self._lock:
+                if self._closed:
+                    raise BackendUnavailable("linq-tpu: бэкенд закрыт")
             try:
-                c = self._client()  # подключение (если нужно) не входит в замеры этапов
+                c = self._client()
                 t0 = time.perf_counter()
-                if m.codec is not None:  # raw: uint8 [rows, ddr_word_len] — так требует воркер
+                if m.codec is not None:
                     bodies = [serialize_task({m.input_name: m.codec.pack(m.input_name, ch).reshape(-1, m.ddr_word_len)})
                               for ch in chunks]
                 else:
@@ -559,14 +639,15 @@ class LinqTpuBackend(InferenceBackend):
                         outs_per_chunk.append({n: m.codec.unpack(n, a) for n, a in r.data.items()})
                     else:
                         outs_per_chunk.append(r.data)
-                    self._bytes["sent"] += r.req_bytes
-                    self._bytes["received"] += r.resp_bytes
+                    with self._lock:
+                        self._bytes["sent"] += r.req_bytes
+                        self._bytes["received"] += r.resp_bytes
                 names = m.tail_inputs or m.tpu_outputs or sorted(outs_per_chunk[0])
                 merged = {n: np.concatenate([o[n] for o in outs_per_chunk])[: x.shape[0]] for n in names}
                 t_tail0 = time.perf_counter()
                 if m.tail is not None:
                     feeds = {n: merged[n].astype(np.float32) for n in m.tail_inputs}
-                    if m.tail_batch1 and x.shape[0] > 1:  # хвост со статическим batch=1 — по кадру
+                    if m.tail_batch1 and x.shape[0] > 1:
                         parts = [m.tail.run(m.out_names, {n: v[i:i + 1] for n, v in feeds.items()})
                                  for i in range(x.shape[0])]
                         outputs = [np.concatenate([p[k] for p in parts]) for k in range(len(m.out_names))]
@@ -581,8 +662,8 @@ class LinqTpuBackend(InferenceBackend):
                     "serialize": (t_ser - t0) * 1000.0,
                     "publish": (t_pub - t_ser) * 1000.0,
                     "rtt": rtt_ms,
-                    "transfer": max(0.0, rtt_ms - infer_ms),  # сеть туда-обратно + очередь воркера
-                    "infer": infer_ms,  # время инференса по данным воркера
+                    "transfer": max(0.0, rtt_ms - infer_ms),
+                    "infer": infer_ms,
                     "tail": (t_end - t_tail0) * 1000.0,
                     "total": (t_end - t0) * 1000.0,
                 }
@@ -591,15 +672,15 @@ class LinqTpuBackend(InferenceBackend):
             except TpuWorkerError as e:
                 last_exc = e
                 self._stats.error(model_id, e)
-                break  # ошибка программы/воркера — повтор не поможет
-            except Exception as e:  # noqa: BLE001 — сеть/таймаут: переподключаемся и повторяем
+                break
+            except Exception as e:  # noqa: BLE001
                 last_exc = e
                 self._stats.error(model_id, e)
                 log.warning("linq-tpu: %s попытка %d: %r", model_id, attempt + 1, e)
                 c = getattr(self._local, "client", None)
                 if c is not None:
                     c.close()
-                time.sleep(min(2.0, 0.3 * (attempt + 1)))
+                # Повтор только явный; никаких вложенных повторов pika и пауз.
         assert last_exc is not None
         raise last_exc
 
@@ -607,36 +688,71 @@ class LinqTpuBackend(InferenceBackend):
         return self.infer_timed(model_id, batch)[0]
 
     def submit(self, model_id: str, batch: np.ndarray) -> Any:
-        """Асинхронно: concurrent.futures.Future[(outputs, timings)]. До `window` задач в полёте —
-        конвейер для потока камеры без батчинга (на стенде окно 4-8 даёт x1.6-2 к/с)."""
-        if self._pool is None:
-            import concurrent.futures as cf
+        """Future[(outputs, timings)], до window параллельных задач."""
+        import concurrent.futures as cf
 
-            with self._lock:
-                if self._pool is None:
-                    self._pool = cf.ThreadPoolExecutor(self.window, thread_name_prefix="linq-tpu")
-        return self._pool.submit(self.infer_timed, model_id, batch)
+        with self._lock:
+            if self._closed:
+                future = cf.Future()
+                future.set_exception(BackendUnavailable("linq-tpu: бэкенд закрыт"))
+                return future
+            if self._pool is None:
+                self._pool = cf.ThreadPoolExecutor(self.window, thread_name_prefix="linq-tpu")
+            return self._pool.submit(self.infer_timed, model_id, batch)
 
     def stats(self) -> dict[str, Any]:
-        return {
-            "backend": self.name,
-            "broker": f"{self.host}:{self.port}",
-            "bytes": dict(self._bytes),
-            "models": self._stats.snapshot(),
-        }
+        with self._lock:
+            state = {
+                "backend": self.name,
+                "active": self.name,
+                "broker": f"{self.host}:{self.port}",
+                "bytes": dict(self._bytes),
+                "consecutive_failures": self._consecutive_failures,
+                "circuit_open": self._half_open or time.monotonic() < self._open_until,
+                "last_error": self._last_error,
+                "closed": self._closed,
+                "available": not self._closed and (
+                    not self._availability or any(self._availability.values())
+                ),
+            }
+        state["models"] = self._stats.snapshot()
+        return state
 
     def close(self) -> None:
-        if self._pool is not None:
-            self._pool.shutdown(wait=True)
-            self._pool = None
-        with self._lock:
-            for c in self._clients:
-                c.close()
-            self._clients.clear()
+        """Отменить очередь, прервать collect, дождаться вызовов и закрыть соединения."""
+        with self._close_lock:
+            with self._condition:
+                self._closed = True
+                clients = list(self._clients)
+                pool = self._pool
+            for client in clients:
+                request_close = getattr(client, "request_close", None)
+                if callable(request_close):
+                    request_close()
+            if pool is not None:
+                pool.shutdown(wait=True, cancel_futures=True)
+            with self._condition:
+                while self._inflight:
+                    self._condition.wait()
+                clients = list(self._clients)
+                self._clients.clear()
+                self._pool = None
+                self._models.clear()
+            # Теперь ни один поток не использует pika.
+            for client in clients:
+                client.close()
 
 
 def create_backend(**kwargs: Any) -> LinqTpuBackend:
     return LinqTpuBackend(**kwargs)
 
 
-__all__ = ["LinqTpuBackend", "RabbitClient", "TpuWorkerError", "create_backend", "deserialize_task", "serialize_task"]
+__all__ = [
+    "BackendUnavailable",
+    "LinqTpuBackend",
+    "RabbitClient",
+    "TpuWorkerError",
+    "create_backend",
+    "deserialize_task",
+    "serialize_task",
+]
