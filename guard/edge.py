@@ -88,7 +88,10 @@ def run(args: argparse.Namespace) -> int:
         engine.stop()
         close = getattr(engine.sink, "close", None)
         if callable(close):
-            close(timeout=5.0)
+            try:
+                close(timeout=5.0)
+            except TimeoutError as exc:  # медленный канал: недоотправленная телеметрия не повод падать
+                log.warning("sink close: %s", exc)
         log.info("edge stopped: events=%d sink_errors=%d", engine.events_created, engine.sink_errors)
     return 0
 
