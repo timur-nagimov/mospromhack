@@ -44,6 +44,16 @@ OBJECT_CLASSES = frozenset(
 )
 
 
+def object_detections(dets: dict[str, list[Detection]]) -> list[Detection]:
+    """Детекции техники для трекера объектов: классы OBJECT_CLASSES из всех моделей кадра.
+
+    Грузовики и автобусы даёт det, погрузчик — отдельная модель (model_id forklift), её подключает
+    правило vehicle_proximity параметром models. Модели перебираются по model_id, поэтому порядок не зависит
+    от порядка правил. На камере только с det результат прежний.
+    """
+    return [d for model_id in sorted(dets) for d in dets[model_id] if d.cls in OBJECT_CLASSES]
+
+
 @dataclass(slots=True)
 class AnalysisResult:
     seq: int
@@ -199,7 +209,7 @@ class CameraWorker:
         else:
             person_dets = list(dets.get("pose", []))
         people = self.person_tracker.update(person_dets, ts)
-        objects = self.object_tracker.update([d for d in dets.get("det", []) if d.cls in OBJECT_CLASSES], ts)
+        objects = self.object_tracker.update(object_detections(dets), ts)
         compat.assign_attributes(people, dets, ts)
         t1 = time.perf_counter()
         timings["tracking"] = (t1 - t0) * 1000.0
