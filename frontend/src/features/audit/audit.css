@@ -1,0 +1,85 @@
+/* «Журнал действий»: фильтры и пагинация — общие с журналом событий (journal.css) */
+
+.audit .filters .select {
+  width: 190px;
+}
+.audit__action-filter .select {
+  width: 220px;
+}
+
+.audit__table td {
+  vertical-align: top;
+}
+
+.audit-user {
+  display: grid;
+  line-height: 1.3;
+}
+.audit-user__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+}
+
+.audit-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+}
+.audit-action__icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  color: var(--text-2);
+}
+.audit-action__text {
+  display: grid;
+  line-height: 1.3;
+  font-weight: 550;
+}
+.audit-action__text code {
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+/* неудачный вход и удаление — единственный цветовой сигнал журнала */
+.audit-action--bad .audit-action__icon {
+  border-color: rgba(229, 72, 77, 0.5);
+  background: rgba(229, 72, 77, 0.1);
+  color: #ff8b8e;
+}
+.audit-action--bad .audit-action__text > span {
+  color: #ffb3b5;
+}
+
+.audit-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-1);
+  text-decoration: underline;
+  text-decoration-color: var(--line-3);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  font-size: 12.5px;
+}
+.audit-link:hover {
+  text-decoration-color: var(--text-1);
+}
+
+.audit__details {
+  max-width: 420px;
+  color: var(--text-2);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+
+.audit__hint {
+  font-size: 12px;
+}

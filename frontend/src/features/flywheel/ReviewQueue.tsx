@@ -25,6 +25,7 @@ import {
 } from '../../domain/flywheel';
 import { formatNumber, formatSmartDateTime, plural } from '../../domain/format';
 import { useLive } from '../../state/live';
+import { Can } from '../auth/Can';
 import { LazyFrame } from './FrameBoxes';
 import { HoldoutBadge, SampleStatusBadge, SourceTag } from './parts';
 import { SampleCard } from './SampleCard';
@@ -293,10 +294,12 @@ export function ReviewQueue({
           </button>
         )}
         <div className="filters__actions fw-filters__actions">
-          <button type="button" className="btn" onClick={runAutolabel} disabled={startJob.isPending || autolabelRunning} title="Учитель (YOLOv8x и YOLO-World) размечает новые сэмплы">
-            {autolabelRunning ? <span className="spinner fw-spinner-sm" /> : <Sparkles size={15} />}
-            {autolabelRunning ? 'Идёт авторазметка' : `Авторазметка${newCount ? ` (${formatNumber(newCount, 0)})` : ''}`}
-          </button>
+          <Can perm="flywheel.train">
+            <button type="button" className="btn" onClick={runAutolabel} disabled={startJob.isPending || autolabelRunning} title="Учитель (YOLOv8x и YOLO-World) размечает новые сэмплы">
+              {autolabelRunning ? <span className="spinner fw-spinner-sm" /> : <Sparkles size={15} />}
+              {autolabelRunning ? 'Идёт авторазметка' : `Авторазметка${newCount ? ` (${formatNumber(newCount, 0)})` : ''}`}
+            </button>
+          </Can>
           <div className="fw-capture">
             <select
               className="select"

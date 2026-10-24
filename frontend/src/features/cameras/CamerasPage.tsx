@@ -1,4 +1,4 @@
-import { Cctv, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
+import { Cctv, Eye, Pentagon, Plus, RotateCcw, Save, ShieldCheck, Trash2, Video } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { useCameras, useDeleteCamera, useRuleTypes, useSaveCamera } from '../../api/queries';
@@ -7,11 +7,14 @@ import { formatNumber, plural } from '../../domain/format';
 import { SOURCE_TYPE_LABELS } from '../../domain/labels';
 import type { CameraConfig, Zone } from '../../domain/types';
 import { isValidHoursRange } from '../../domain/zones';
+import { useCan } from '../../state/auth';
 import { useLive } from '../../state/live';
 import { confirmLeave, setUnsaved } from '../../state/unsaved';
 import { RulesEditor, validateRules, zoneRemovalError } from './RulesEditor';
 import { CAMERA_ID_RE, SourceForm } from './SourceForm';
 import { ZoneEditor } from './ZoneEditor';
+import { Can } from '../auth/Can';
+import { NoAccess } from '../auth/NoAccess';
 import './cameras.css';
 
 type Tab = 'zones' | 'rules' | 'source';
@@ -53,10 +56,16 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
   const save = useSaveCamera();
   const remove = useDeleteCamera();
   const { data: ruleTypes = [] } = useRuleTypes();
+  // Зоны и правила — zones.edit (инженер по ОТ); источник, добавление и удаление — cameras.manage
+  const can = useCan();
+  const canZones = can('zones.edit');
+  const canManage = can('cameras.manage');
+  const canSave = isNew ? canManage : canZones || canManage;
   // baseline — последняя загруженная или сохранённая версия; с ней сравниваем черновик
   const [baseline, setBaseline] = useState<CameraConfig>(original);
   const [draft, setDraft] = useState<CameraConfig>(() => structuredClone(original));
-  const [tab, setTab] = useState<Tab>(isNew ? 'source' : 'zones');
+  const [tabChoice, setTab] = useState<Tab>(isNew ? 'source' : 'zones');
+  const tab: Tab = tabChoice === 'source' && !canManage ? 'zones' : tabChoice;
   const [zoneError, setZoneError] = useState<string | null>(null);
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseline), [draft, baseline]);
   const error = validate(draft, isNew) ?? validateRules(draft, ruleTypes);
@@ -157,23 +166,32 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
         </div>
         <div className="cam-editor__actions">
           {dirty && <span className="dirty-mark">Есть несохранённые изменения</span>}
-          {!isNew && (
+          {!canSave && (
+            <span className="readonly-mark" title="Изменять зоны и правила может роль с правом zones.edit">
+              <Eye size={14} aria-hidden="true" /> Только просмотр
+            </span>
+          )}
+          {!isNew && canManage && (
             <button type="button" className="btn btn--danger btn--sm" onClick={onDelete} disabled={remove.isPending}>
               <Trash2 size={14} /> Удалить
             </button>
           )}
-          <button type="button" className="btn btn--sm" onClick={() => { setDraft(structuredClone(baseline)); setZoneError(null); }} disabled={!dirty}>
-            <RotateCcw size={14} /> Отменить
-          </button>
-          <button
-            type="button"
-            className="btn btn--primary btn--sm"
-            onClick={onSave}
-            disabled={Boolean(error) || (!dirty && !isNew) || save.isPending}
-            title={error ?? 'PUT /api/cameras/{id}'}
-          >
-            <Save size={14} /> {save.isPending ? 'Сохранение…' : isNew ? 'Создать камеру' : 'Сохранить'}
-          </button>
+          {canSave && (
+            <>
+              <button type="button" className="btn btn--sm" onClick={() => { setDraft(structuredClone(baseline)); setZoneError(null); }} disabled={!dirty}>
+                <RotateCcw size={14} /> Отменить
+              </button>
+              <button
+                type="button"
+                className="btn btn--primary btn--sm"
+                onClick={onSave}
+                disabled={Boolean(error) || (!dirty && !isNew) || save.isPending}
+                title={error ?? 'PUT /api/cameras/{id}'}
+              >
+                <Save size={14} /> {save.isPending ? 'Сохранение…' : isNew ? 'Создать камеру' : 'Сохранить'}
+              </button>
+            </>
+          )}
         </div>
       </header>
 
@@ -184,9 +202,11 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
         <button type="button" role="tab" aria-selected={tab === 'rules'} onClick={() => setTab('rules')}>
           <ShieldCheck size={15} /> Правила <span className="count">{draft.rules.length}</span>
         </button>
-        <button type="button" role="tab" aria-selected={tab === 'source'} onClick={() => setTab('source')}>
-          <Video size={15} /> Источник
-        </button>
+        {canManage && (
+          <button type="button" role="tab" aria-selected={tab === 'source'} onClick={() => setTab('source')}>
+            <Video size={15} /> Источник
+          </button>
+        )}
       </div>
 
       <div className="cam-editor__body">
@@ -199,10 +219,12 @@ export function CameraEditor({ original, isNew, existing }: { original: CameraCo
               <span>Стоп-кадр для рисования зон появится, когда камера начнёт передавать видео</span>
             </div>
           ) : (
-            <ZoneEditor camera={draft} onChange={onZonesChange} />
+            <ZoneEditor camera={draft} onChange={onZonesChange} readOnly={!canZones} />
           ))}
-        {tab === 'rules' && <RulesEditor camera={draft} onChange={(rules) => { setZoneError(null); setDraft((d) => ({ ...d, rules })); }} />}
-        {tab === 'source' && <SourceForm camera={draft} isNew={isNew} onChange={setDraft} />}
+        {tab === 'rules' && (
+          <RulesEditor camera={draft} onChange={(rules) => { setZoneError(null); setDraft((d) => ({ ...d, rules })); }} readOnly={!canZones} />
+        )}
+        {tab === 'source' && canManage && <SourceForm camera={draft} isNew={isNew} onChange={setDraft} />}
       </div>
     </section>
   );
@@ -215,6 +237,7 @@ export function CamerasPage() {
   const metrics = useLive((s) => s.metrics);
   const isNew = cameraId === 'new';
   const newCamera = useMemo(() => blankCamera(cameras), [cameras]);
+  const canManage = useCan()('cameras.manage');
 
   if (!cameraId && cameras.length > 0) return <Navigate to={`/cameras/${encodeURIComponent(cameras[0].camera_id)}`} replace />;
 
@@ -225,9 +248,11 @@ export function CamerasPage() {
       <aside className="cam-list panel reveal">
         <div className="cam-list__head">
           <span className="eyebrow">Камеры · {cameras.length}</span>
-          <button type="button" className="btn btn--sm" onClick={() => confirmLeave() && navigate('/cameras/new')}>
-            <Plus size={14} /> Добавить
-          </button>
+          <Can perm="cameras.manage">
+            <button type="button" className="btn btn--sm" onClick={() => confirmLeave() && navigate('/cameras/new')}>
+              <Plus size={14} /> Добавить
+            </button>
+          </Can>
         </div>
         {isError && <div className="error-box">Список камер не загрузился: {(error as Error).message}</div>}
         <ul>
@@ -271,7 +296,9 @@ export function CamerasPage() {
         </ul>
       </aside>
 
-      {current ? (
+      {isNew && !canManage ? (
+        <NoAccess permission="cameras.manage" area="Новая камера" embedded />
+      ) : current ? (
         <CameraEditor key={isNew ? 'new' : current.camera_id} original={current} isNew={isNew} existing={cameras} />
       ) : (
         <section className="panel empty">
@@ -281,9 +308,11 @@ export function CamerasPage() {
             <>
               <Cctv size={30} />
               <span className="empty__title">{cameraId ? `Камера ${cameraId} не найдена` : 'Камер пока нет'}</span>
-              <button type="button" className="btn btn--primary" onClick={() => confirmLeave() && navigate('/cameras/new')}>
-                <Plus size={15} /> Добавить камеру
-              </button>
+              <Can perm="cameras.manage">
+                <button type="button" className="btn btn--primary" onClick={() => confirmLeave() && navigate('/cameras/new')}>
+                  <Plus size={15} /> Добавить камеру
+                </button>
+              </Can>
             </>
           )}
         </section>

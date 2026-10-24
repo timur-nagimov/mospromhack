@@ -83,7 +83,7 @@ test('Mock поддерживает новые группировки и фил�
   const previous = globalThis.window;
   globalThis.window = { setTimeout: (callback) => { callback(); return 1; } };
   try {
-    const api = createMockApi();
+    const api = createMockApi({ auth: false }); // вход выключен, как GUARD_AUTH=0: роли здесь не проверяются
     const page = await api.listEvents({ limit: 100000 });
     for (const [group, keyFor] of [
       ['site', (event) => event.site],
@@ -126,7 +126,7 @@ test('Mock summary сохраняет снимок при PATCH до доста�
   const flush = () => { while (callbacks.length) callbacks.shift()(); };
   const total = (items) => items.reduce((sum, item) => sum + item.count, 0);
   try {
-    const api = createMockApi();
+    const api = createMockApi({ auth: false }); // вход выключен, как GUARD_AUTH=0: роли здесь не проверяются
     const eventPromise = api.listEvents({ status: 'new', limit: 1 });
     flush();
     const event = (await eventPromise).items[0];

@@ -1,4 +1,4 @@
-import { Ban, Check, ChevronRight, DatabaseZap, Film, Forward, Image as ImageIcon, ImageOff, X } from 'lucide-react';
+import { Ban, Check, ChevronRight, DatabaseZap, EyeOff, Film, Forward, Image as ImageIcon, ImageOff, Lock, X } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../api';
@@ -13,6 +13,7 @@ import { OPERATOR_DECISIONS, STATUS_LABELS, ZONE_KIND_LABELS } from '../../domai
 import type { EventStatus, GuardEvent } from '../../domain/types';
 import { getViolationMeta } from '../../domain/violations';
 import { useNow } from '../../hooks/useNow';
+import { useCan } from '../../state/auth';
 import { liveActions, liveStore, useLive } from '../../state/live';
 import { useEventModal } from './useEventModal';
 import './event.css';
@@ -76,6 +77,22 @@ function EventMedia({ event }: { event: GuardEvent }) {
   );
 }
 
+/** Без video.view снимок и клип не запрашиваются: изображение человека — персональные данные */
+function MediaLocked() {
+  return (
+    <div className="ev-media">
+      <div className="snapshot ev-media__view ev-media__locked" role="note">
+        <EyeOff size={28} strokeWidth={1.7} aria-hidden="true" />
+        <strong>Снимок и видео скрыты</strong>
+        <span>
+          Изображения людей — персональные данные (152-ФЗ). Их видят роли с правом <code className="mono">video.view</code>: диспетчер смены,
+          инженер по ОТ, администратор.
+        </span>
+      </div>
+    </div>
+  );
+}
+
 /**
  * Кадр события попал в выборку маховика данных — ссылка на сэмпл на странице «Данные».
  * Без API маховика (404) или без сэмпла бейджа просто нет.
@@ -98,6 +115,9 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
   const now = useNow();
   const cameras = useCameraMap();
   const patch = usePatchEvent();
+  const can = useCan();
+  const canVideo = can('video.view');
+  const canHandle = can('events.handle');
   const [note, setNote] = useState(event.operator_note ?? '');
   const noteRef = useRef<HTMLTextAreaElement>(null);
   const meta = getViolationMeta(event.type);
@@ -112,7 +132,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
   // event_update из WS не затирает то, что оператор печатает
 
   const decide = (status: Exclude<EventStatus, 'new'>) => {
-    if (patch.isPending) return;
+    if (patch.isPending || !canHandle) return;
     patch.mutate(
       { id: event.id, patch: { status, operator_note: note.trim() ? note.trim() : null } },
       {
@@ -147,7 +167,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
         decide(decision.status);
       } else if ((e.key === 'n' || e.key === 'т') && hasNext) {
         onNext();
-      } else if (e.key === 'c' || e.key === 'с') {
+      } else if ((e.key === 'c' || e.key === 'с') && canHandle) {
         e.preventDefault();
         noteRef.current?.focus();
       }
@@ -182,7 +202,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
       </header>
 
       <div className="ev-body">
-        <EventMedia event={event} />
+        {canVideo ? <EventMedia event={event} /> : <MediaLocked />}
 
         <aside className="ev-side">
           <dl className="ev-facts">
@@ -256,50 +276,65 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
         </aside>
       </div>
 
-      <footer className="ev-actions">
-        <div className="ev-decisions" role="group" aria-label="Решение оператора">
-          {OPERATOR_DECISIONS.map((d) => {
-            const Icon = DECISION_ICON[d.status];
-            return (
-              <button
-                key={d.status}
-                type="button"
-                className={`decision decision--${d.status}${event.status === d.status ? ' is-active' : ''}`}
-                onClick={() => decide(d.status)}
-                disabled={patch.isPending}
-                aria-pressed={event.status === d.status}
-              >
-                <Icon size={18} strokeWidth={2.4} aria-hidden="true" />
-                <span>{d.label}</span>
-                <span className="kbd">{d.hotkey}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className="ev-note">
-          <textarea
-            ref={noteRef}
-            className="textarea"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            placeholder="Комментарий оператора (C): кто уведомлён, какие меры приняты…"
-            maxLength={1000}
-            rows={2}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote();
-            }}
-          />
-          <div className="ev-note__actions">
-            <button type="button" className="btn btn--sm" onClick={saveNote} disabled={patch.isPending || note === (event.operator_note ?? '')}>
-              Сохранить комментарий
-            </button>
-            <button type="button" className="btn btn--sm btn--ghost" onClick={onNext} disabled={!hasNext}>
-              Следующее неразобранное <span className="kbd">N</span>
-              <ChevronRight size={14} />
-            </button>
+      {canHandle ? (
+        <footer className="ev-actions">
+          <div className="ev-decisions" role="group" aria-label="Решение оператора">
+            {OPERATOR_DECISIONS.map((d) => {
+              const Icon = DECISION_ICON[d.status];
+              return (
+                <button
+                  key={d.status}
+                  type="button"
+                  className={`decision decision--${d.status}${event.status === d.status ? ' is-active' : ''}`}
+                  onClick={() => decide(d.status)}
+                  disabled={patch.isPending}
+                  aria-pressed={event.status === d.status}
+                >
+                  <Icon size={18} strokeWidth={2.4} aria-hidden="true" />
+                  <span>{d.label}</span>
+                  <span className="kbd">{d.hotkey}</span>
+                </button>
+              );
+            })}
           </div>
-        </div>
-      </footer>
+          <div className="ev-note">
+            <textarea
+              ref={noteRef}
+              className="textarea"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="Комментарий оператора (C): кто уведомлён, какие меры приняты…"
+              maxLength={1000}
+              rows={2}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote();
+              }}
+            />
+            <div className="ev-note__actions">
+              <button type="button" className="btn btn--sm" onClick={saveNote} disabled={patch.isPending || note === (event.operator_note ?? '')}>
+                Сохранить комментарий
+              </button>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={onNext} disabled={!hasNext}>
+                Следующее неразобранное <span className="kbd">N</span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          </div>
+        </footer>
+      ) : (
+        <footer className="ev-actions ev-actions--readonly">
+          <p className="ev-readonly">
+            <Lock size={15} aria-hidden="true" />
+            <span>
+              Решение по событию принимает диспетчер смены или инженер по ОТ — нужно право <code className="mono">events.handle</code>
+            </span>
+          </p>
+          <div className="ev-readonly__note">
+            <span className="eyebrow">Комментарий оператора</span>
+            <p className={event.operator_note ? undefined : 'muted'}>{event.operator_note || 'нет'}</p>
+          </div>
+        </footer>
+      )}
     </>
   );
 }

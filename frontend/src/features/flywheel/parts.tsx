@@ -1,6 +1,6 @@
 // Мелкие общие элементы страницы «Данные»: бейджи источника и статусов, запрет обучения
 
-import { CircleCheck, CircleDashed, CircleX, Loader2 } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, Loader2, Lock } from 'lucide-react';
 import {
   jobPhase,
   modelStatusLabel,
@@ -81,4 +81,14 @@ export function useTrainForbidden(allowTrain: boolean | undefined): string | nul
   if (reason) return reason;
   if (allowTrain === false) return 'Задачи train и deploy выключены: нужен GUARD_FLYWHEEL_ALLOW_TRAIN=1';
   return null;
+}
+
+/** Роль без flywheel.train: сборку датасетов, обучение и выкатку запускает администратор */
+export function TrainLockNote() {
+  return (
+    <p className="fw-note fw-note--lock">
+      <Lock size={14} aria-hidden="true" /> Сборку датасетов, дообучение и выкатку запускает администратор — нужно право{' '}
+      <span className="mono">flywheel.train</span>
+    </p>
+  );
 }

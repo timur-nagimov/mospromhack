@@ -101,3 +101,9 @@ export function startPath(has: (permission: Permission) => boolean): string | nu
   }
   return SECTIONS.find((s) => has(s.permission))?.path ?? null;
 }
+
+/** Куда вернуться после входа (?next=): только внутренний путь приложения */
+export function safeNextPath(value: string | null): string | null {
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/login')) return null;
+  return value;
+}

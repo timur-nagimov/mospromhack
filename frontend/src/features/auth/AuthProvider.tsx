@@ -27,10 +27,16 @@ export interface AuthControls {
 
 const AuthControlsContext = createContext<AuthControls | null>(null);
 
+/** Без AuthProvider (тестовые стенды отдельных компонентов) действия входа недоступны */
+const DETACHED: AuthControls = {
+  login: () => Promise.reject(new Error('Вход недоступен: нет AuthProvider')),
+  logout: async () => undefined,
+  switchUser: async () => false,
+  retry: () => undefined,
+};
+
 export function useAuthControls(): AuthControls {
-  const value = useContext(AuthControlsContext);
-  if (!value) throw new Error('useAuthControls: нет AuthProvider выше по дереву');
-  return value;
+  return useContext(AuthControlsContext) ?? DETACHED;
 }
 
 /** Текущий маршрут HashRouter: «#/cameras/cam-01?x=1» → «/cameras/cam-01» */

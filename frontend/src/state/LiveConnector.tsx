@@ -5,6 +5,7 @@ import { applyLiveSample } from '../api/flywheelQueries';
 import { queryKeys } from '../api/queries';
 import { isCriticalEvent } from '../domain/violations';
 import { playAlarm, playChime, unlockAudioOnGesture } from '../hooks/alarmSound';
+import { can } from './auth';
 import { liveActions, liveStore } from './live';
 import { settingsStore } from './settings';
 
@@ -14,6 +15,8 @@ const METRICS_POLL_MS = 5_000;
 /**
  * Единственная точка подключения к WS /ws/events: наполняет liveStore,
  * синхронизирует кэш запросов, играет звук для критических тревог.
+ * Монтируется после входа и пересоздаётся при смене пользователя (App.tsx),
+ * поэтому WS всегда открыт с cookie текущей сессии.
  */
 export function LiveConnector() {
   const qc = useQueryClient();
@@ -37,6 +40,7 @@ export function LiveConnector() {
     };
 
     const loadInitial = async () => {
+      if (!can('events.view')) return;
       try {
         const [latest, unreviewed] = await Promise.all([
           api().listEvents({ limit: 60 }),
@@ -51,6 +55,7 @@ export function LiveConnector() {
     };
 
     const resyncUnreviewed = async () => {
+      if (!can('events.view')) return;
       try {
         const page = await api().listEvents({ status: 'new', limit: 1 });
         if (!cancelled) liveActions.setUnreviewed(page.total);
@@ -112,9 +117,9 @@ export function LiveConnector() {
 
     const resync = window.setInterval(() => void resyncUnreviewed(), RESYNC_MS);
 
-    // Если WS недоступен, метрики берём опросом /api/metrics
+    // Если WS недоступен, метрики берём опросом /api/metrics (право system.view)
     const metricsPoll = window.setInterval(async () => {
-      if (liveStore.get().connection === 'open') return;
+      if (liveStore.get().connection === 'open' || !can('system.view')) return;
       try {
         const m = await api().getMetrics();
         if (!cancelled) liveActions.setMetrics(m);

@@ -24,6 +24,21 @@
   gap: 4px;
 }
 
+/* административные разделы — отдельной группой под чертой */
+.rail__nav--admin {
+  position: relative;
+  padding-top: 14px;
+}
+.rail__nav--admin::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  right: 20px;
+  height: 1px;
+  background: var(--line-2);
+}
+
 .rail__link {
   position: relative;
   display: grid;

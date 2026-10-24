@@ -1,0 +1,625 @@
+/* Ролевая модель: вход, меню пользователя, «Нет доступа».
+   Тот же язык, что у пульта: нейтральный хром, жёлто-чёрная штриховка —
+   знак «закрытой зоны», цвет только как сигнал. */
+
+/* ---------- аватар и уровень допуска ---------- */
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--bg-5);
+  border: 1px solid var(--line-3);
+  color: var(--text-1);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+.avatar--sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+.avatar--lg {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  font-size: 16px;
+}
+
+.access-level {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.access-level__bars {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+.access-level__bars i {
+  display: block;
+  width: 3px;
+  border-radius: 1px;
+  background: var(--bg-5);
+}
+.access-level__bars i:nth-child(1) {
+  height: 5px;
+}
+.access-level__bars i:nth-child(2) {
+  height: 7px;
+}
+.access-level__bars i:nth-child(3) {
+  height: 9px;
+}
+.access-level__bars i:nth-child(4) {
+  height: 11px;
+}
+.access-level__bars i.is-on {
+  background: var(--text-1);
+}
+.access-level__text {
+  font-size: 10.5px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+}
+
+.role-badge {
+  --c: var(--text-3);
+  gap: 7px;
+  font-weight: 550;
+}
+
+.perm-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 12px 6px 6px;
+  border-radius: var(--r-m);
+  border: 1px solid var(--line-3);
+  background: var(--bg-1);
+  font-weight: 600;
+}
+.perm-tag code {
+  padding: 3px 8px;
+  border-radius: 5px;
+  background: rgba(245, 196, 0, 0.12);
+  border: 1px solid rgba(245, 196, 0, 0.35);
+  color: var(--brand);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.toast--lock svg {
+  color: var(--warn);
+}
+
+/* ---------- экран загрузки ---------- */
+
+.boot {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 22px;
+  min-height: 100vh;
+  padding: 24px;
+}
+.boot__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  max-width: 560px;
+  padding: 14px 16px;
+  border-radius: var(--r-l);
+  border: 1px solid rgba(229, 72, 77, 0.35);
+  background: rgba(229, 72, 77, 0.06);
+}
+.boot__error > svg {
+  color: var(--bad);
+  flex: none;
+  margin-top: 2px;
+}
+.boot__error p {
+  margin: 4px 0 0;
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* ---------- страница входа ---------- */
+
+.login {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 24px;
+  overflow: auto;
+}
+
+.login__frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px);
+  gap: 0;
+  width: min(1120px, 100%);
+  border-radius: 16px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-1);
+  box-shadow: var(--shadow-pop);
+  overflow: hidden;
+}
+
+.login__brand {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: 40px 40px 36px;
+  background:
+    radial-gradient(120% 80% at 0% 0%, rgba(245, 196, 0, 0.06), transparent 60%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 160px),
+    var(--bg-2);
+  border-right: 1px solid var(--line-1);
+}
+.login__mark {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.login__mark h1 {
+  margin-top: 4px;
+  font-size: 34px;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.login__tagline {
+  margin: 0;
+  max-width: 460px;
+  color: var(--text-2);
+  font-size: 14.5px;
+  line-height: 1.55;
+}
+.login__principles {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 14px;
+}
+.login__principles li {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.login__principles svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-2);
+}
+.login__principles b {
+  display: block;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.login__principles span {
+  display: block;
+  color: var(--text-3);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.login__mock {
+  align-self: flex-start;
+  margin-top: auto;
+}
+
+.login__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 40px 36px 30px;
+}
+.login__tape {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+}
+.login__head h2 {
+  margin-top: 6px;
+  font-size: 24px;
+  letter-spacing: 0.02em;
+}
+.login__note {
+  margin: 0;
+  padding: 9px 12px;
+  border-radius: var(--r-m);
+  border: 1px solid rgba(233, 178, 43, 0.4);
+  background: rgba(233, 178, 43, 0.08);
+  color: var(--text-1);
+  font-size: 13px;
+}
+.login__form {
+  display: grid;
+  gap: 14px;
+}
+.login__form .input {
+  height: 40px;
+  font-size: 14.5px;
+}
+.login__submit {
+  height: 42px;
+  font-size: 14.5px;
+}
+
+.pwd-field {
+  position: relative;
+  display: block;
+}
+.pwd-field .input {
+  padding-right: 40px;
+}
+.pwd-field .btn {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+}
+
+.login__demo {
+  display: grid;
+  gap: 10px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line-2);
+}
+.login__demo-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.role-passes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.role-pass {
+  display: grid;
+  gap: 5px;
+  padding: 11px 12px 12px;
+  text-align: left;
+  border-radius: var(--r-m);
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--text-1);
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    transform 0.1s;
+}
+.role-pass:hover:not(:disabled) {
+  border-color: var(--line-3);
+  background: var(--bg-3);
+}
+.role-pass:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.role-pass:disabled {
+  opacity: 0.55;
+  cursor: progress;
+}
+.role-pass__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-3);
+}
+.role-pass strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.role-pass small {
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.login__warn {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 2px 0 0;
+  color: var(--text-3);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.login__warn svg {
+  flex: none;
+  margin-top: 1px;
+  color: var(--warn);
+}
+
+@media (max-width: 900px) {
+  .login__frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .login__brand {
+    border-right: 0;
+    border-bottom: 1px solid var(--line-1);
+  }
+}
+
+/* ---------- меню пользователя ---------- */
+
+.user-menu {
+  position: relative;
+  margin-left: 4px;
+}
+.user-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  height: 40px;
+  max-width: 220px;
+  padding: 0 8px 0 5px;
+  border-radius: 10px;
+  border: 1px solid var(--line-2);
+  background: var(--bg-2);
+  color: var(--text-1);
+  text-align: left;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.user-chip:hover,
+.user-chip.is-open {
+  background: var(--bg-3);
+  border-color: var(--line-3);
+}
+.user-chip__text {
+  display: grid;
+  min-width: 0;
+  line-height: 1.15;
+}
+.user-chip__text strong,
+.user-chip__text small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-chip__text strong {
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.user-chip__text small {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.user-chip__chevron {
+  flex: none;
+  color: var(--text-3);
+}
+
+.user-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 150;
+  width: 290px;
+  padding: 8px;
+  border-radius: 12px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  box-shadow: var(--shadow-pop);
+  animation: rise 0.18s var(--ease-out);
+}
+.user-pop__head {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 8px 8px 10px;
+}
+.user-pop__who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.user-pop__who strong {
+  font-size: 14px;
+}
+.user-pop__who .mono {
+  font-size: 11.5px;
+}
+.user-pop__role {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.user-pop__perms {
+  margin: 0 8px 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line-1);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.user-pop__perms b {
+  color: var(--text-1);
+}
+.user-pop__section {
+  display: grid;
+  gap: 4px;
+  padding: 8px 0 6px;
+  border-top: 1px solid var(--line-1);
+}
+.user-pop__section .eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px 4px;
+  font-size: 10.5px;
+}
+.user-pop__section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 2px;
+}
+.user-pop__item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-1);
+  text-align: left;
+  font-size: 13px;
+}
+.user-pop__item:hover:not(:disabled) {
+  background: var(--bg-3);
+}
+.user-pop__item:disabled {
+  cursor: default;
+}
+.user-pop__item.is-current {
+  background: var(--bg-3);
+}
+.user-pop__item-text {
+  display: grid;
+  flex: 1;
+  line-height: 1.2;
+}
+.user-pop__item-text small {
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+.user-pop__logout {
+  margin-top: 2px;
+  border-top: 1px solid var(--line-1);
+  border-radius: 0 0 8px 8px;
+  color: var(--text-2);
+}
+.user-pop__logout:hover:not(:disabled) {
+  color: var(--text-1);
+}
+
+/* ---------- «Нет доступа» ---------- */
+
+.no-access-page {
+  display: grid;
+  place-items: center;
+  align-content: center;
+}
+.no-access {
+  position: relative;
+  width: min(640px, 100%);
+  border-radius: var(--r-l);
+  border: 1px solid var(--line-2);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 140px), var(--bg-2);
+  overflow: hidden;
+}
+.no-access__tape {
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 10px;
+  animation: stripes-move 2.4s linear infinite;
+  background-size: 32px 100%;
+}
+.no-access__body {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  padding: 34px 32px 28px;
+}
+.no-access__icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  border: 1px solid rgba(245, 196, 0, 0.4);
+  background: rgba(245, 196, 0, 0.08);
+  color: var(--brand);
+}
+.no-access h2 {
+  font-size: 28px;
+  letter-spacing: 0.02em;
+}
+.no-access__lead {
+  margin: 0;
+  color: var(--text-2);
+}
+.no-access__desc {
+  margin: 0;
+  font-size: 13px;
+}
+.no-access__facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  width: 100%;
+  margin: 8px 0 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line-1);
+}
+.no-access__facts dt {
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+.no-access__facts dd {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 3px 0 0;
+  font-weight: 550;
+}
+.no-access__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ---------- права в экранах: только просмотр ---------- */
+
+/* fieldset disabled выключает все поля и кнопки внутри разом */
+.lock-fieldset {
+  min-width: 0;
+  margin: 0;
+}
+fieldset.rules-list {
+  padding: 0;
+  border: 0;
+}
+
+.readonly-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+
+.rules-editor__readonly {
+  margin: 0 0 12px;
+  font-size: 12.5px;
+}
