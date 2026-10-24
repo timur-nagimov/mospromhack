@@ -8,6 +8,7 @@ import type {
   Health,
   MetricsSnapshot,
   RuleTypeInfo,
+  SourceProbeResult,
   StatsResponse,
 } from '../domain/types';
 import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
@@ -191,6 +192,14 @@ export function createHttpApi(): GuardApi {
     createCamera: (camera) => request<CameraConfig>('/api/cameras', { method: 'POST', json: cameraPayload(camera) }),
     updateCamera: (id, camera) => request<CameraConfig>(`/api/cameras/${enc(id)}`, { method: 'PUT', json: cameraPayload(camera) }),
     deleteCamera: (id) => request<void>(`/api/cameras/${enc(id)}`, { method: 'DELETE' }),
+    probeSource: (source, timeoutS) =>
+      request<SourceProbeResult>('/api/cameras/probe', {
+        method: 'POST',
+        json: {
+          source: { type: source.type, uri: source.uri.trim(), loop: source.loop, realtime: source.realtime },
+          ...(timeoutS ? { timeout_s: timeoutS } : {}),
+        },
+      }),
     listRuleTypes: () => request<RuleTypeInfo[]>('/api/rules/types'),
     listEvents: (q: EventQuery, signal?: AbortSignal) =>
       request<EventPage>(

@@ -292,6 +292,23 @@ export function createMockApi(): GuardApi {
       cameras = cameras.filter((c) => c.camera_id !== id);
       return respond(undefined as void, 150, 300);
     },
+    probeSource: (source) => {
+      // мок проверки потока: адрес со словами fail/404 — ошибка, иначе 1280×720, 25 к/с, H.264
+      const uri = source.uri.trim();
+      const base = { width: null, height: null, fps: null, codec: null, first_frame_ms: null, preview_jpeg_b64: null };
+      if (!uri) return respond({ ...base, ok: false, error: 'адрес источника пуст', error_code: 'bad_uri' }, 100, 200);
+      if (/fail|404/i.test(uri)) {
+        const error = 'поток не открылся: поток не найден (RTSP 404): проверьте путь после адреса камеры';
+        return respond({ ...base, ok: false, error, error_code: 'open_failed' }, 600, 900);
+      }
+      const hls = /\.m3u8/i.test(uri);
+      return respond(
+        { ...base, ok: true, error: null, width: 1280, height: 720, fps: 25, codec: 'h264', first_frame_ms: hls ? 2400 : 640,
+          stream: hls ? 'hls' : source.type, hints: hls ? ['HLS идёт с задержкой в 1–3 сегмента (обычно 5–30 с)'] : [] },
+        500,
+        900,
+      );
+    },
     listRuleTypes: () => respond(RULE_TYPES),
     listEvents: (q) => {
       const filtered = filterEvents(q);

@@ -48,9 +48,15 @@ export const ZONE_KIND_COLORS: Record<ZoneKind, string> = {
 
 export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   file: 'Видеофайл',
-  rtsp: 'RTSP-поток',
+  rtsp: 'Сетевой поток',
   images: 'Папка изображений',
   webcam: 'Веб-камера',
+};
+
+/** Подписи в списке «Тип источника»: тип rtsp принимает RTSP, HTTP MJPEG, HLS и ссылки YouTube */
+export const SOURCE_TYPE_OPTION_LABELS: Record<SourceType, string> = {
+  ...SOURCE_TYPE_LABELS,
+  rtsp: 'Сетевой поток (RTSP / HTTP / HLS)',
 };
 
 export const STAGE_KEYS: StageKey[] = [
