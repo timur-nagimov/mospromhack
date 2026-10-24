@@ -143,16 +143,18 @@ def test_after_closure_and_cooldown_a_new_event_can_confirm(next_track_id):
     assert len(first) == len(closed) == 1
     assert closed[0].ended_at == pytest.approx(0.4)
 
+    # политика CX-017: для другого ID ждём также истечения reid_gap_s=5.
     second, _ = _feed(
         manager,
         camera,
-        range(11, 14),
+        range(31, 34),
         lambda _: [_violation(track_id=next_track_id)],
     )
     assert len(second) == 1
     assert second[0].id != first[0].id
-    assert second[0].started_at == pytest.approx(2.2)
-    assert second[0].confirmed_at == pytest.approx(2.6)
+    # политика CX-017: новый интервал начинается после обоих окон.
+    assert second[0].started_at == pytest.approx(6.2)
+    assert second[0].confirmed_at == pytest.approx(6.6)
 
 
 def test_recently_closed_event_reopens_without_new_notification():
@@ -161,7 +163,8 @@ def test_recently_closed_event_reopens_without_new_notification():
     first, _ = _feed(manager, camera, range(3), lambda _: [_violation()])
     _, closed = _feed(manager, camera, range(3, 6), lambda _: [])
 
-    # Closed at 1.0, with ended_at=0.4: cooldown runs from closure.
+    # политика CX-017: другой ID возвращается через 2.4 с от ended_at,
+    # внутри reid_gap_s=5; cooldown другого трека не ограничивает.
     assert manager.process(camera, 2.8, [_violation(track_id=2)]) == ([], [])
     reopened = manager.open_events()[0]
     assert reopened.id == first[0].id
@@ -545,16 +548,18 @@ def test_trackless_event_confirms_again_after_closure_and_cooldown():
     assert closed[0].ended_at == pytest.approx(0.4)
     assert manager.open_events() == []
 
+    # политика CX-017: без трека новое событие ждёт истечения reid_gap_s=5.
     second, closed_again = _feed(
         manager,
         camera,
-        range(11, 14),
+        range(31, 34),
         lambda _: [_violation(track_id=None, bbox=bbox)],
     )
     assert len(second) == 1
     assert second[0].id != first[0].id
-    assert second[0].started_at == pytest.approx(2.2)
-    assert second[0].confirmed_at == pytest.approx(2.6)
+    # политика CX-017: ожидания соответствуют интервалу после reid_gap_s.
+    assert second[0].started_at == pytest.approx(6.2)
+    assert second[0].confirmed_at == pytest.approx(6.6)
     assert closed_again == []
     assert [event.id for event in manager.open_events()] == [second[0].id]
 
@@ -680,3 +685,349 @@ def test_trackless_event_reopens_during_cooldown_after_box_moves():
     assert opened[0].ended_at is None
     assert opened[0].bbox == moved
     assert closed[0].ended_at == pytest.approx(0.4)
+
+
+def test_s1_01_three_visits_at_same_place_produce_three_events():
+    manager = EventManager()
+    camera = _camera(
+        min_duration_s=0.4,
+        min_ratio=1,
+        close_after_s=0.4,
+        cooldown_s=30,
+    )
+    intervals = [(77, 133, 1), (181, 198, 2), (251, 259, 3)]
+
+    def violations_at(index):
+        for start, end, track_id in intervals:
+            if start <= index <= end:
+                return [_violation(track_id=track_id)]
+        return []
+
+    created, closed = _feed(manager, camera, range(266), violations_at)
+    assert len(created) == len(closed) == 3
+    assert len({event.id for event in created}) == 3
+    assert [event.track_id for event in created] == [1, 2, 3]
+    assert [event.started_at for event in created] == pytest.approx(
+        [15.4, 36.2, 50.2]
+    )
+    assert [event.ended_at for event in closed] == pytest.approx(
+        [26.6, 39.6, 51.8]
+    )
+    assert [event.ended_at - event.started_at for event in closed] == (
+        pytest.approx([11.2, 3.4, 1.6])
+    )
+    assert all(event.details.get("reopened_count", 0) == 0 for event in closed)
+    assert manager.open_events() == []
+
+
+def test_same_track_returns_after_eight_seconds_without_counting_the_pause():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0.4, close_after_s=0.4, cooldown_s=30)
+    first, _ = _feed(manager, camera, range(3), lambda _: [_violation()])
+    _, closed = _feed(manager, camera, range(3, 6), lambda _: [])
+    assert len(first) == len(closed) == 1
+
+    moved = (200.0, 8.0, 232.0, 80.0)
+    assert manager.process(camera, 8.4, [_violation(bbox=moved)]) == ([], [])
+    reopened = manager.open_events()[0]
+    assert reopened.id == first[0].id
+    assert reopened.started_at == first[0].started_at
+    assert reopened.confirmed_at == first[0].confirmed_at
+    assert reopened.details["reopened_count"] == 1
+    assert reopened.details["active_duration_s"] == pytest.approx(0.4)
+    assert reopened.ended_at is None
+
+    assert manager.process(camera, 8.6, [_violation(bbox=moved)]) == ([], [])
+    new, closed_again = manager.process(camera, 9.2, [])
+    assert new == []
+    assert len(closed_again) == 1
+    assert closed_again[0].id == first[0].id
+    assert closed_again[0].ended_at == pytest.approx(8.6)
+    assert closed_again[0].details["reopened_count"] == 1
+    assert closed_again[0].details["active_duration_s"] == pytest.approx(0.6)
+    assert "reopened_count" not in first[0].details
+    assert "reopened_count" not in closed[0].details
+    assert reopened.details["active_duration_s"] == pytest.approx(0.4)
+
+    assert manager.process(camera, 16.6, [_violation()]) == ([], [])
+    twice = manager.open_events()[0]
+    assert twice.id == first[0].id
+    assert twice.details["reopened_count"] == 2
+    assert twice.details["active_duration_s"] == pytest.approx(0.6)
+
+
+@pytest.mark.parametrize("gap, expected_events", [(1.0, 1), (7.0, 2)])
+def test_changed_track_uses_reid_gap_and_normal_confirmation(gap, expected_events):
+    manager = EventManager()
+    camera = _camera(
+        min_duration_s=0.4,
+        min_ratio=1,
+        close_after_s=0.4,
+        cooldown_s=30,
+    )
+    first, _ = _feed(manager, camera, range(3), lambda _: [_violation()])
+    _, closed = _feed(manager, camera, range(3, 6), lambda _: [])
+    assert len(first) == len(closed) == 1
+
+    # Intersection width 24, union width 40: IoU is exactly 0.6.
+    changed = _violation(track_id=2, bbox=(16.0, 8.0, 48.0, 80.0))
+    start = 0.4 + gap
+    assert manager.process(camera, start, [changed]) == ([], [])
+    if expected_events == 1:
+        opened = manager.open_events()[0]
+        assert opened.id == first[0].id
+        assert opened.details["reopened_count"] == 1
+        assert opened.details["active_duration_s"] == pytest.approx(0.4)
+    else:
+        # A rejected reassociation starts a candidate, not an immediate alert.
+        assert manager.open_events() == []
+
+    assert manager.process(camera, start + 0.2, [changed]) == ([], [])
+    second, ended = manager.process(camera, start + 0.4, [changed])
+    assert ended == []
+    assert len(first) + len(second) == expected_events
+    if expected_events == 2:
+        assert second[0].id != first[0].id
+        assert second[0].started_at == pytest.approx(start)
+        assert second[0].confirmed_at == pytest.approx(start + 0.4)
+
+
+@pytest.mark.parametrize("gap, reopens", [(1.999, True), (2.0, False), (2.001, False)])
+def test_same_track_cooldown_is_strict_and_measured_from_ended_at(gap, reopens):
+    manager = EventManager(reid_gap_s=5)
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=2)
+    first, _ = manager.process(camera, 0, [_violation()])
+    _, closed = manager.process(camera, 0.6, [])
+    assert closed[0].ended_at == 0
+
+    second, ended = manager.process(camera, gap, [_violation()])
+    assert ended == []
+    assert len(second) == (0 if reopens else 1)
+    opened = manager.open_events()[0]
+    assert (opened.id == first[0].id) is reopens
+    if reopens:
+        assert opened.details["reopened_count"] == 1
+
+
+@pytest.mark.parametrize("track_id", [2, None])
+@pytest.mark.parametrize("gap, reopens", [(5.0, True), (5.001, False)])
+def test_spatial_reid_boundary_is_inclusive_from_ended_at(track_id, gap, reopens):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=30)
+    initial_track = None if track_id is None else 1
+    first, _ = manager.process(camera, 0, [_violation(track_id=initial_track)])
+    _, closed = manager.process(camera, 0.6, [])
+    assert closed[0].ended_at == 0
+
+    second, ended = manager.process(camera, gap, [_violation(track_id=track_id)])
+    assert ended == []
+    assert len(second) == (0 if reopens else 1)
+    opened = manager.open_events()[0]
+    assert (opened.id == first[0].id) is reopens
+
+
+@pytest.mark.parametrize("track_id", [2, None])
+@pytest.mark.parametrize(
+    "manager_gap, rule_gap, reopens",
+    [
+        (2.0, None, False),
+        (9.0, None, True),
+        (9.0, 1.0, False),
+        (2.0, 8.0, True),
+    ],
+)
+def test_rule_reid_gap_overrides_manager_default(
+    track_id, manager_gap, rule_gap, reopens
+):
+    manager = EventManager(reid_gap_s=manager_gap)
+    params = {} if rule_gap is None else {"reid_gap_s": rule_gap}
+    camera = _camera(
+        min_duration_s=0,
+        close_after_s=0.4,
+        cooldown_s=30,
+        params=params,
+    )
+    initial_track = None if track_id is None else 1
+    first, _ = manager.process(camera, 0, [_violation(track_id=initial_track)])
+    manager.process(camera, 0.6, [])
+
+    second, closed = manager.process(camera, 7, [_violation(track_id=track_id)])
+    assert closed == []
+    assert len(second) == (0 if reopens else 1)
+    assert (manager.open_events()[0].id == first[0].id) is reopens
+
+
+@pytest.mark.parametrize("track_id", [2, None])
+def test_reid_can_outlive_a_shorter_cooldown(track_id):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=0.5)
+    initial_track = None if track_id is None else 1
+    first, _ = manager.process(camera, 0, [_violation(track_id=initial_track)])
+    manager.process(camera, 0.6, [])
+
+    assert manager.process(camera, 2, [_violation(track_id=track_id)]) == ([], [])
+    opened = manager.open_events()[0]
+    assert opened.id == first[0].id
+    assert opened.details["reopened_count"] == 1
+
+
+def test_reidentified_track_keeps_same_track_cooldown_after_closure():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=30)
+    first, _ = manager.process(camera, 0, [_violation()])
+    assert manager.process(camera, 0.2, [_violation(track_id=2)]) == ([], [])
+    manager.process(camera, 0.8, [])
+
+    moved = (200.0, 8.0, 232.0, 80.0)
+    assert manager.process(
+        camera, 8.2, [_violation(track_id=2, bbox=moved)]
+    ) == ([], [])
+    opened = manager.open_events()[0]
+    assert opened.id == first[0].id
+    assert opened.track_id == 1
+    assert opened.bbox == moved
+    assert opened.details["reopened_count"] == 1
+    assert opened.details["active_duration_s"] == pytest.approx(0.2)
+
+
+@pytest.mark.parametrize("gap, reopens", [(1.0, True), (7.0, False)])
+def test_trackless_center_matching_reopens_only_within_reid_gap(gap, reopens):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=30)
+    camera.rules[0].type = "smoking_fire"
+    first, _ = manager.process(
+        camera,
+        0,
+        [_violation(
+            track_id=None,
+            bbox=(0.0, 0.0, 4.0, 80.0),
+            kind="smoking_fire",
+        )],
+    )
+    manager.process(camera, 0.6, [])
+
+    # Zero IoU; center distance 20 is below half the box height.
+    second, closed = manager.process(
+        camera,
+        gap,
+        [_violation(
+            track_id=None,
+            bbox=(20.0, 0.0, 24.0, 80.0),
+            kind="smoking_fire",
+        )],
+    )
+    assert closed == []
+    assert len(second) == (0 if reopens else 1)
+    assert (manager.open_events()[0].id == first[0].id) is reopens
+
+
+@pytest.mark.parametrize("next_track_id, reopens", [(1, True), (2, False), (None, False)])
+def test_sparse_frames_close_before_matching(next_track_id, reopens):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=30)
+    first, _ = manager.process(camera, 0, [_violation()])
+
+    second, closed = manager.process(
+        camera, 8, [_violation(track_id=next_track_id)]
+    )
+    assert len(closed) == 1
+    assert closed[0].id == first[0].id
+    assert closed[0].ended_at == 0
+    assert "reopened_count" not in closed[0].details
+    assert len(second) == (0 if reopens else 1)
+    opened = manager.open_events()[0]
+    assert (opened.id == first[0].id) is reopens
+    if reopens:
+        assert opened.details["reopened_count"] == 1
+        assert opened.details["active_duration_s"] == 0
+
+
+@pytest.mark.parametrize("next_track_id", [2, None])
+def test_open_event_can_survive_id_change_beyond_reid_gap(next_track_id):
+    manager = EventManager(reid_gap_s=1)
+    camera = _camera(min_duration_s=0, close_after_s=3, cooldown_s=30)
+    first, _ = manager.process(camera, 0, [_violation()])
+    assert manager.process(
+        camera, 2, [_violation(track_id=next_track_id)]
+    ) == ([], [])
+    opened = manager.open_events()[0]
+    assert opened.id == first[0].id
+    assert "reopened_count" not in opened.details
+
+
+def test_temporarily_missing_track_id_then_new_id_keeps_one_event():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    first, _ = manager.process(camera, 0, [_violation()])
+    assert manager.process(camera, 0.2, [_violation(track_id=None)]) == ([], [])
+    assert manager.process(camera, 0.4, [_violation(track_id=2)]) == ([], [])
+    assert [event.id for event in manager.open_events()] == [first[0].id]
+
+
+def test_trackless_observation_cannot_steal_present_tracks_event():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    first, _ = manager.process(camera, 0, [_violation()])
+    second, closed = manager.process(
+        camera, 0.2, [_violation(track_id=None), _violation()]
+    )
+    assert closed == []
+    assert len(second) == 1
+    assert second[0].id != first[0].id
+    assert second[0].track_id is None
+    assert len(manager.open_events()) == 2
+
+
+def test_two_trackless_observations_cannot_share_a_tracked_event():
+    manager = EventManager()
+    camera = _camera(min_duration_s=0)
+    first, _ = manager.process(camera, 0, [_violation()])
+    second, closed = manager.process(
+        camera,
+        0.2,
+        [
+            _violation(track_id=None),
+            _violation(track_id=None, bbox=(12.0, 8.0, 44.0, 80.0)),
+        ],
+    )
+    assert closed == []
+    assert len(second) == 1
+    assert second[0].id != first[0].id
+    assert len(manager.open_events()) == 2
+
+
+@pytest.mark.parametrize("track_id", [2, None])
+def test_reid_of_tracked_event_requires_iou_not_only_center(track_id):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, close_after_s=0.4, cooldown_s=30)
+    first, _ = manager.process(
+        camera, 0, [_violation(bbox=(0.0, 0.0, 4.0, 80.0))]
+    )
+    manager.process(camera, 0.6, [])
+    second, closed = manager.process(
+        camera,
+        1,
+        [_violation(track_id=track_id, bbox=(20.0, 0.0, 24.0, 80.0))],
+    )
+    assert closed == []
+    assert len(second) == 1
+    assert second[0].id != first[0].id
+
+
+@pytest.mark.parametrize("value", [-1, float("nan"), float("inf"), None, "bad"])
+def test_invalid_manager_reid_gap_is_rejected(value):
+    with pytest.raises(ValueError, match="reid_gap_s"):
+        EventManager(reid_gap_s=value)
+
+
+@pytest.mark.parametrize("value", [-1, float("nan"), float("inf"), None, "bad"])
+def test_invalid_rule_reid_gap_does_not_advance_camera_time(value):
+    manager = EventManager()
+    camera = _camera(min_duration_s=0, params={"reid_gap_s": value})
+    with pytest.raises(ValueError, match="reid_gap_s"):
+        manager.process(camera, 10, [_violation()])
+
+    camera.rules[0].params = {}
+    created, closed = manager.process(camera, 0, [_violation()])
+    assert len(created) == 1
+    assert closed == []
