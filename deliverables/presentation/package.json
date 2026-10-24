@@ -1,0 +1,15 @@
+{
+  "name": "zazerkalye-presentation",
+  "private": true,
+  "description": "Сборка презентации: PDF (render.mjs) и редактируемый PPTX (to_pptx.mjs) из index.html",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "pdf": "node render.mjs",
+    "pptx": "node to_pptx.mjs"
+  },
+  "dependencies": {
+    "pptxgenjs": "4.0.1"
+  }
+}
