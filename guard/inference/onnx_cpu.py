@@ -51,7 +51,7 @@ class OnnxCpuBackend(InferenceBackend):
     ) -> None:
         self.models_dir = Path(models_dir).expanduser() if models_dir else None
         env_threads = os.environ.get("GUARD_ORT_THREADS")
-        self.intra_op_threads = intra_op_threads or (int(env_threads) if env_threads else 4)
+        self.intra_op_threads = intra_op_threads or (int(env_threads) if env_threads else 2)
         self.max_batch = max(1, int(max_batch))
         self._models: dict[str, _LoadedModel] = {}
         self._lock = threading.Lock()
@@ -73,6 +73,10 @@ class OnnxCpuBackend(InferenceBackend):
         so.intra_op_num_threads = self.intra_op_threads
         so.inter_op_num_threads = 1
         so.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
+        # Несколько камер зовут сессии параллельно: активное ожидание потоков ORT
+        # только жжёт ядра (load average > числа ядер), поэтому выключаем spinning.
+        so.add_session_config_entry("session.intra_op.allow_spinning", "0")
+        so.add_session_config_entry("session.inter_op.allow_spinning", "0")
         t0 = time.perf_counter()
         session = ort.InferenceSession(str(path), sess_options=so, providers=["CPUExecutionProvider"])
         inp = session.get_inputs()[0]

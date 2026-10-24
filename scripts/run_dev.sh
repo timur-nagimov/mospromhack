@@ -18,5 +18,7 @@ if [ -x tools/memguard.sh ] && ! tools/memguard.sh "${GUARD_MIN_FREE:-35}"; then
   exit 1
 fi
 
-export PYTHONPATH="$PWD${PYTHONPATH:+:$PYTHONPATH}"
+# Унаследованный PYTHONPATH не берём: на этом маке там FUSE-монтирование arcadia, оно иногда отвечает
+# «Device not configured», и интерпретатор падает на старте.
+export PYTHONPATH="$PWD"
 exec "$PY" -m uvicorn guard.api.app:app --host "${HOST:-127.0.0.1}" --port "${PORT:-8000}" --log-level info "$@"
