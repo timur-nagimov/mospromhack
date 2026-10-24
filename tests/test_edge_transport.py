@@ -141,6 +141,8 @@ def test_probe_summary_clock_latency_and_loss():
     d = 3.5
     rec = Recorder()
     rec.consume_started = 1000.0 + d
+    # метрика прошлого запуска edge, пролежавшая в очереди: в FPS и потери не входит
+    rec.add(_metrics(990.0, processed=5000, sent=5000), recv=1000.0 + d + 0.05, size=500)
     for i, ts in enumerate((1000.0, 1002.0, 1004.0)):
         rec.add(_metrics(ts, processed=10 * i, sent=10 * i), recv=ts + d + 0.12, size=500)
     # 18 из 20 frame_meta за окно 1000..1004
@@ -169,6 +171,7 @@ def test_probe_summary_clock_latency_and_loss():
     assert cam["loss_vs_processed_pct"] == pytest.approx(10.0)
     assert out["frame_meta"]["latency_s"]["p50"] == pytest.approx(0.3, abs=1e-3)
     assert out["cpu"]["container_cores"]["mean"] == pytest.approx(1.0)
+    assert out["probe"]["metrics_backlog_excluded"] == 1
 
 
 def test_stats_helper():

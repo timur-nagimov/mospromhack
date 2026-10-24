@@ -223,6 +223,12 @@ def summarize(rec: Recorder, laptop_ntp: dict[str, Any] | None, rtt: dict[str, A
     # --- события
     all_events = sorted(rec.events.values(), key=lambda e: e["recv"])
     start_stand = (rec.consume_started or rec.t_start) - d
+    # метрики из очереди до начала приёма могут быть от прошлого запуска edge — FPS, CPU и потери только по свежим
+    current = [m for m in rec.metrics if (_edge(m[1]).get("ts") or 0) >= start_stand]
+    metrics_backlog = len(rec.metrics) - len(current)
+    if len(current) >= 2:
+        metrics = current
+        edge_last = _edge(metrics[-1][1])
     for e in all_events:
         # событие ушло с edge до подключения подписчика — ждало в очереди, в задержку не входит
         e["backlog"] = bool(e.get("sent_at") and e["sent_at"] < start_stand)
@@ -257,7 +263,8 @@ def summarize(rec: Recorder, laptop_ntp: dict[str, Any] | None, rtt: dict[str, A
     m_last = metrics[-1] if metrics else None
     all_lat: list[float] = []
     for cid, items in sorted(rec.frame_meta.items()):
-        lat = [recv - d - ts for ts, recv in items]
+        # кадры, снятые до начала приёма, ждали в очереди — в задержку не входят (как backlog событий)
+        lat = [recv - d - ts for ts, recv in items if ts >= start_stand]
         all_lat.extend(lat)
         entry: dict[str, Any] = {"received": len(items), "latency_s": stats(lat, digits=3)}
         if m_first and m_last and m_last is not m_first:
@@ -337,6 +344,7 @@ def summarize(rec: Recorder, laptop_ntp: dict[str, Any] | None, rtt: dict[str, A
             "ack_every": args.ack_every,
             "broker": rtt,
             "decode_errors": rec.decode_errors,
+            "metrics_backlog_excluded": metrics_backlog,
         },
         "edge": {
             "node_id": edge_last.get("node_id"),

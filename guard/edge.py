@@ -253,6 +253,7 @@ class GatewayQueueGuard:
         import pika
 
         connection = None
+        channel = None
         while not self._stop.is_set():
             try:
                 if connection is None or not connection.is_open:
@@ -262,25 +263,24 @@ class GatewayQueueGuard:
                     params.blocked_connection_timeout = 3.0
                     params.heartbeat = 30
                     connection = pika.BlockingConnection(params)
-                channel = connection.channel()
-                try:
-                    res = channel.queue_declare(queue=self.queue, passive=True)
-                    self.update(res.method.consumer_count, res.method.message_count)
-                finally:
-                    if channel.is_open:
-                        channel.close()
+                    channel = None
+                if channel is None or not channel.is_open:  # канал один на всё время: без шума в логе
+                    channel = connection.channel()
+                res = channel.queue_declare(queue=self.queue, passive=True)
+                self.update(res.method.consumer_count, res.method.message_count)
             except Exception as exc:  # noqa: BLE001 — без сведений об очереди ничего не блокируем
+                channel = None
                 if "NOT_FOUND" in str(exc) or "404" in str(exc):
-                    self.update(0, 0)  # очередь ещё не объявлена: шлюза точно нет
+                    self.update(0, 0)  # очередь ещё не объявлена: шлюза точно нет (брокер закрыл канал)
                 else:
                     self.error = type(exc).__name__
                     self.consumers = self.messages = None
-                try:
-                    if connection is not None:
-                        connection.close()
-                except Exception:  # noqa: BLE001
-                    pass
-                connection = None
+                    try:
+                        if connection is not None:
+                            connection.close()
+                    except Exception:  # noqa: BLE001
+                        pass
+                    connection = None
             self._stop.wait(self.period_s)
         try:
             if connection is not None and connection.is_open:
@@ -602,6 +602,7 @@ def run(args: argparse.Namespace) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    logging.getLogger("pika").setLevel(logging.WARNING)  # INFO pika — по строке на каждое соединение и канал
     return run(parse_args(argv))
 
 
