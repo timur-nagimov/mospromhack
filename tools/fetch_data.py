@@ -35,7 +35,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST = Path(__file__).resolve().parent / "data_manifest.json"
 UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
-STEPS = ("download", "encode", "labels", "frames", "checks")
+STEPS = ("download", "encode", "labels", "frames", "checks", "images")
 EVENT_KEYS = ("type", "t_start", "t_end", "uncertain", "note")  # ровно то, что принимает LabelEvent
 
 
@@ -237,6 +237,57 @@ def checks(data: Path, videos: list[dict]) -> None:
         log(f"  data_checks: {n} кадров из {v['name']}")
 
 
+def fetch_url(url: str, dest: Path, attempts: int = 3) -> Path:
+    """Скачать маленький файл с повторами (CDN Hugging Face иногда не резолвится с первого раза)."""
+    for attempt in range(1, attempts + 1):
+        if dest.exists() and dest.stat().st_size > 0:
+            break
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=60) as r:
+                dest.write_bytes(r.read())
+        except Exception as e:  # noqa: BLE001
+            log(f"  ! {dest.name}: попытка {attempt}: {e}")
+            if attempt == attempts:
+                raise
+            time.sleep(5 * attempt)
+    return dest
+
+
+def image_sets(data: Path, sets: list[dict]) -> None:
+    """Наборы картинок из открытых датасетов (формат YOLO):
+    <data>/images/<name>/*.jpg и рамки <data>/image_labels/<name>.json."""
+    import cv2
+
+    for s in sets:
+        raw = data / "raw" / "image_sets" / s["name"]
+        out = data / "images" / s["name"]
+        raw.mkdir(parents=True, exist_ok=True)
+        out.mkdir(parents=True, exist_ok=True)
+        labels = {}
+        for rel in s["files"]:
+            img = fetch_url(s["base_url"] + rel, raw / Path(rel).name)
+            lab_rel = rel.replace("/images/", "/labels/").rsplit(".", 1)[0] + ".txt"
+            lab = fetch_url(s["base_url"] + lab_rel, raw / Path(lab_rel).name)
+            short = Path(rel).stem.split("_jpg")[0] + ".jpg"  # ppe_0123_jpg.rf.<hash> -> ppe_0123.jpg
+            name = short if short not in labels else Path(rel).stem + ".jpg"
+            cv2.imwrite(str(out / name), cv2.imread(str(img)), [cv2.IMWRITE_JPEG_QUALITY, 92])
+            boxes: dict[str, list] = {c: [] for c in s["classes"]}
+            for line in lab.read_text().splitlines():
+                if line.strip():
+                    c, x, y, w, h = line.split()[:5]
+                    x, y, w, h = map(float, (x, y, w, h))
+                    boxes[s["classes"][int(c)]].append([round(x - w / 2, 4), round(y - h / 2, 4), round(w, 4), round(h, 4)])
+            labels[name] = boxes
+        (data / "image_labels").mkdir(exist_ok=True)
+        doc = {"set": s["name"], "scenario": s["scenario"], "license": s["license"], "source": s["page"],
+               "origin": s.get("origin", ""), "bbox_format": "x, y, w, h — нормированные, левый верхний угол",
+               "images": labels}
+        (data / "image_labels" / f"{s['name']}.json").write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n")
+        counts = {c: sum(len(v[c]) for v in labels.values()) for c in s["classes"]}
+        log(f"  images/{s['name']}/: {len(labels)} картинок, рамки: {counts}")
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--manifest", type=Path, default=MANIFEST)
@@ -281,6 +332,9 @@ def main(argv: list[str] | None = None) -> int:
     if "checks" in args.steps:
         log("== checks")
         checks(data, videos)
+    if "images" in args.steps and not args.only:
+        log("== images (наборы картинок из датасетов)")
+        image_sets(data, manifest.get("image_sets", []))
     return 0
 
 

@@ -13,121 +13,161 @@
       "url": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/worker-zone-detection.mp4",
       "page": "https://github.com/intel-iot-devkit/sample-videos",
       "license": "CC BY 4.0",
-      "author": "Intel Corporation (intel-iot-devkit/sample-videos)"
+      "author": "Intel Corporation (intel-iot-devkit/sample-videos)",
+      "sha256": "b8b58b8100a81600bc42ee7ee082ced777b12a32a3619139ef289d27cbdcd284",
+      "bytes": 12596893
     },
     "intel_store_aisle": {
       "url": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/store-aisle-detection.mp4",
       "page": "https://github.com/intel-iot-devkit/sample-videos",
       "license": "CC BY 4.0",
-      "author": "Intel Corporation (intel-iot-devkit/sample-videos)"
+      "author": "Intel Corporation (intel-iot-devkit/sample-videos)",
+      "sha256": "3526fee39cac70d6366471e4324a6d63b337c8f8ab99c015521bee0d60ed6e04",
+      "bytes": 9214573
     },
     "intel_safety_gear": {
       "url": "https://raw.githubusercontent.com/intel-iot-devkit/safety-gear-detector-python/master/resources/Safety_Full_Hat_and_Vest.mp4",
       "page": "https://github.com/intel-iot-devkit/safety-gear-detector-python",
       "license": "BSD-3-Clause (лицензия репозитория, видео лежит в resources/)",
-      "author": "Intel Corporation"
+      "author": "Intel Corporation",
+      "sha256": "a0ba636766524dd0bdfa52a2a62108aafb585acd138cb0e08226d12ae35b64c5",
+      "bytes": 27534166
     },
     "mixkit_23237": {
       "url": "https://assets.mixkit.co/videos/23237/23237-720.mp4",
       "page": "https://mixkit.co/free-stock-video/business-people-walking-in-the-warehouse-23237/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "e72baa23fb899ff9cfb5feeef01af167e68f3696af7b89b6fea2a28dabadcff2",
+      "bytes": 6721285
     },
     "mixkit_24049": {
       "url": "https://assets.mixkit.co/videos/24049/24049-720.mp4",
       "page": "https://mixkit.co/free-stock-video/quality-control-check-at-construction-site-24049/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "36172448072224fef3db87b8ecf668e75a7613c2dcae13ec3298e97b47dbbb71",
+      "bytes": 5261599
     },
     "mixkit_23814": {
       "url": "https://assets.mixkit.co/videos/23814/23814-720.mp4",
       "page": "https://mixkit.co/free-stock-video/tired-man-falls-in-the-snow-23814/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "d81f33ab76ef445b07544bd82a695c33b9b6b86ab32aacd65a5d2620ac7dadad",
+      "bytes": 8265807
     },
     "gmdcsa_s3_07": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/07.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "86a20851a1d3bfacbe11d8977972f95a256893b80cd4de66dc7bb224a4dca55b",
+      "bytes": 9262980
     },
     "gmdcsa_s2_10": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/10.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "c6821089a5b26053216925ce9c83bb94cb50ed5affd0d31a5ce742aa79318f73",
+      "bytes": 6007745
     },
     "gmdcsa_s3_05": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/05.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "efbb2c6c4721df503426918056b5ed3f233f77b55595b70dce9f9d68c48e650f",
+      "bytes": 10206712
     },
     "gmdcsa_s2_04": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/04.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "f249125e2c270bcdc71b09c34dfa4d398ae027fd00e9304bc6f41d1e5cd2663b",
+      "bytes": 10581582
     },
     "gmdcsa_s3_18": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/18.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "abaced84cd40b09fa0a31dddad8d947247bf3a717878fb423c1cc4de782a6a86",
+      "bytes": 6314610
     },
     "gmdcsa_s2_13": {
       "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/13.mp4",
       "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
       "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
-      "author": "E. Alam et al."
+      "author": "E. Alam et al.",
+      "sha256": "1d98ea500dd2d74e281d4e60f23d882d122dad868d7a8db5113b24c01c99ef7e",
+      "bytes": 1617503
     },
     "mixkit_25444": {
       "url": "https://assets.mixkit.co/videos/25444/25444-720.mp4",
       "page": "https://mixkit.co/free-stock-video/excavator-loading-up-a-truck-25444/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "5c784b1b802eb78126b03a3dd3827ebf48fd0eb8dd56519d99771ff1f7e01f80",
+      "bytes": 21355040
     },
     "mixkit_23174": {
       "url": "https://assets.mixkit.co/videos/23174/23174-720.mp4",
       "page": "https://mixkit.co/free-stock-video/worker-leading-a-freight-truck-in-the-parking-23174/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "2a12723b072bcbcacfab9fbc9960eb7f4383f01432d7155a78416a6a89048455",
+      "bytes": 5660123
     },
     "mixkit_22983": {
       "url": "https://assets.mixkit.co/videos/22983/22983-720.mp4",
       "page": "https://mixkit.co/free-stock-video/loading-a-cargo-truck-22983/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "0f8ff9e6ecd3abdf5aaa0ae06c254f441d0c5327957fbb19b0185b2e7ac2eb63",
+      "bytes": 5220362
     },
     "mixkit_23852": {
       "url": "https://assets.mixkit.co/videos/23852/23852-720.mp4",
       "page": "https://mixkit.co/free-stock-video/working-giving-directions-to-freight-truck-23852/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "ff64a4bbcdf45991e7a23cc80f2b929ad2feff779e3c5641d4313e3b011d1c50",
+      "bytes": 6262095
     },
     "mixkit_23107": {
       "url": "https://assets.mixkit.co/videos/23107/23107-720.mp4",
       "page": "https://mixkit.co/free-stock-video/group-of-workers-in-an-electrical-plant-23107/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "09bcf24f9dcc4156e6232a66db0262ba30c44ad32b13f35f07f3ce02aea449ac",
+      "bytes": 10382381
     },
     "mixkit_23224": {
       "url": "https://assets.mixkit.co/videos/23224/23224-720.mp4",
       "page": "https://mixkit.co/free-stock-video/workers-conversation-on-a-construction-site-23224/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "d95a5150cd66389978c3f9353ad53f07f2f1f1b8bc6177f9ae863cf3d7eefef3",
+      "bytes": 10761089
     },
     "mixkit_24078": {
       "url": "https://assets.mixkit.co/videos/24078/24078-720.mp4",
       "page": "https://mixkit.co/free-stock-video/young-construction-worker-talking-on-the-phone-24078/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "c89e92eabcc8beb156af83d4cd04edeeca3f2c53eabed590dffc458c801904e7",
+      "bytes": 6955763
     },
     "mixkit_414": {
       "url": "https://assets.mixkit.co/videos/414/414-720.mp4",
       "page": "https://mixkit.co/free-stock-video/man-smoking-in-an-abandoned-building-414/",
       "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
-      "author": "Mixkit"
+      "author": "Mixkit",
+      "sha256": "5128ec4868fb64792c9e52718a68e073d2d734bf3c07e7033df98a9229f805e3",
+      "bytes": 9977076
     }
   },
   "videos": [
@@ -731,6 +771,68 @@
           "uncertain": false,
           "note": "Курит весь ролик: рука с сигаретой у рта, дым на 19–25 с"
         }
+      ]
+    }
+  ],
+  "image_sets": [
+    {
+      "name": "s2_ppe",
+      "scenario": "S2",
+      "format": "yolo",
+      "title": "40 фото со стройки: в каждом кадре есть люди в касках и без касок",
+      "page": "https://huggingface.co/datasets/LibreYOLO/construction-safety-gsnvb",
+      "origin": "Roboflow 100: construction-safety-gsnvb (https://universe.roboflow.com/roboflow-100/construction-safety-gsnvb/dataset/1)",
+      "license": "CC BY 4.0",
+      "classes": [
+        "helmet",
+        "no-helmet",
+        "no-vest",
+        "person",
+        "vest"
+      ],
+      "base_url": "https://huggingface.co/datasets/LibreYOLO/construction-safety-gsnvb/resolve/main/",
+      "selection": "train+test, где есть и helmet, и no-helmet (43 шт.), 40 с самыми крупными рамками голов",
+      "files": [
+        "test/images/ppe_0357_jpg.rf.050090d9456aba1025eed0758342caba.jpg",
+        "test/images/ppe_0517_jpg.rf.31dec7e07babdce093ed10be6e32c947.jpg",
+        "test/images/ppe_0576_jpg.rf.ca9c0a8ef15232d96d27a04d770f590a.jpg",
+        "test/images/ppe_0633_jpg.rf.f8e000ed591c46262c050a12e1bb4b90.jpg",
+        "test/images/ppe_0637_jpg.rf.97f0db95f18516da611dd79640c16ec2.jpg",
+        "test/images/ppe_0745_jpg.rf.cc01d794f1d65ff92ba4e06d7c2aa182.jpg",
+        "test/images/ppe_0828_jpg.rf.a09bcee628512d6bb9a44fe2afd8b19f.jpg",
+        "train/images/ppe_0033_jpg.rf.8c43571990c9f1f32f8673f4c7b2d455.jpg",
+        "train/images/ppe_0035_jpg.rf.c5b56dd61b27cc1c7dac51cf1be6323a.jpg",
+        "train/images/ppe_0130_jpg.rf.765e95c8ceb97bd7442803fb69b70bcc.jpg",
+        "train/images/ppe_0131_jpg.rf.af6fbac6ddfcb5d28d7404c9a5facedf.jpg",
+        "train/images/ppe_0159_jpg.rf.b72f452a9e8b9570ab92c2c4d0607fb0.jpg",
+        "train/images/ppe_0248_jpg.rf.5aa89905a93edb145f23320d16f893cc.jpg",
+        "train/images/ppe_0325_jpg.rf.12af025d51b7bc8ff8bd791a63989276.jpg",
+        "train/images/ppe_0352_jpg.rf.e6f9d16eee98e599413b3f4c57813c6a.jpg",
+        "train/images/ppe_0375_jpg.rf.8f06253046a66636a66e042b9a85af52.jpg",
+        "train/images/ppe_0395_jpg.rf.66495457dd8e9db842c376bce651fa59.jpg",
+        "train/images/ppe_0502_jpg.rf.6d13d064bc888aff0d3d21b23ca251a0.jpg",
+        "train/images/ppe_0572_jpg.rf.3740c68f5b4eae628f9cce7e5baae114.jpg",
+        "train/images/ppe_0604_jpg.rf.7e045826eabb305dccb38e5248977bc3.jpg",
+        "train/images/ppe_0610_jpg.rf.dc82749e3385084fa824d4fc5b01c163.jpg",
+        "train/images/ppe_0640_jpg.rf.d718eb0359c68eb5e0b257ea05738a6a.jpg",
+        "train/images/ppe_0641_jpg.rf.64d8fa8c0042a0450c56c3fe2e1c8dd0.jpg",
+        "train/images/ppe_0665_jpg.rf.0294ebe8dafa5e89cd778c50ed91214b.jpg",
+        "train/images/ppe_0666_jpg.rf.0e4ce1f3cd91f9438f25c868ae103a2d.jpg",
+        "train/images/ppe_0729_jpg.rf.83bef73e8c17a35cbde416e7f74b66a5.jpg",
+        "train/images/ppe_0733_jpg.rf.587ec6419ced2535320fce2e4eb1fc2c.jpg",
+        "train/images/ppe_0735_jpg.rf.3f9886dea9a981a5c2daf2f0dd6d085f.jpg",
+        "train/images/ppe_0741_jpg.rf.559ab6759fb37f1a14b85064dfa34416.jpg",
+        "train/images/ppe_0742_jpg.rf.96efa6b1e32cca9cb3d7610557d3d7e5.jpg",
+        "train/images/ppe_0747_jpg.rf.d7d2539bfc29597e3d04ccb628cc1a5e.jpg",
+        "train/images/ppe_0750_jpg.rf.5ad01501df28a9bbfc3edf6d9986b4ab.jpg",
+        "train/images/ppe_0761_jpg.rf.bc7b0abeca1f431b1a178e33a755cee8.jpg",
+        "train/images/ppe_0998_jpg.rf.058f2c60c00d0ee023ad3c67d82684e6.jpg",
+        "train/images/ppe_1070_jpg.rf.654ae247796a3ac1b5915cb72b229e5e.jpg",
+        "train/images/ppe_1102_jpg.rf.9d6b291c7dd84e931066f41b49683252.jpg",
+        "train/images/ppe_1173_jpg.rf.8da590e7d44e36435bfd58320086f77a.jpg",
+        "train/images/ppe_1212_jpg.rf.567d4a3a34db38a2373a4b56cd28865b.jpg",
+        "train/images/ppe_1274_jpg.rf.82e2a938983a42cc06bd4920202bcb38.jpg",
+        "train/images/ppe_1291_jpg.rf.adb58f08f454a74fb45e56320138e618.jpg"
       ]
     }
   ]
