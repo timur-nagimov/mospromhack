@@ -1,11 +1,10 @@
 """Выбор бэкенда инференса по имени; модули реализаций импортируются лениво.
 
-    backend = get_backend()            # имя из GUARD_BACKEND, по умолчанию "onnx-cpu"
-    backend = get_backend("linq-tpu")  # guard.inference.linq_tpu (A1)
+    backend = get_backend()           # GUARD_BACKEND, по умолчанию "onnx-cpu"
+    backend = get_backend("linq-tpu") # TPU с автоматическим откатом на CPU
 
-Модуль реализации может предоставить фабрику create_backend(**kwargs); иначе берётся
-подкласс InferenceBackend с подходящим name. Лишние kwargs, которых конструктор
-не принимает, отбрасываются.
+GUARD_BACKEND_FALLBACK=none отключает откат; по умолчанию для TPU — onnx-cpu.
+Лишние kwargs, которых конструктор не принимает, отбрасываются.
 """
 
 from __future__ import annotations
@@ -52,10 +51,17 @@ def _filter_kwargs(fn: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
 def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
     """Создать бэкенд по имени (или из GUARD_BACKEND)."""
     resolved = normalize_backend_name(name) if name else backend_name_from_env()
+    fallback_name = "none"
+    if resolved == "linq-tpu":
+        fallback_name = normalize_backend_name(
+            os.environ.get("GUARD_BACKEND_FALLBACK") or "onnx-cpu"
+        )
+        if fallback_name not in {"none", "onnx-cpu"}:
+            raise ValueError("GUARD_BACKEND_FALLBACK must be 'onnx-cpu' or 'none'")
     module_name = _MODULES.get(resolved)
     if module_name is None:
         raise ValueError(f"unknown inference backend {resolved!r}; available: {available_backends()}")
-    module = importlib.import_module(module_name)  # ImportError пробрасывается: бэкенда нет в сборке
+    module = importlib.import_module(module_name)
     candidates = [
         obj
         for obj in vars(module).values()
@@ -66,7 +72,6 @@ def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
     ]
     cls = candidates[0] if candidates else None
     factory = getattr(module, "create_backend", None)
-    # общие kwargs (models_dir, intra_op_threads, max_batch) — только те, что понимает реализация
     accepted = _filter_kwargs(cls, kwargs) if cls is not None else kwargs
     if callable(factory):
         backend = factory(**_filter_kwargs(factory, accepted))
@@ -76,6 +81,15 @@ def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
         raise ImportError(f"{module_name} has no InferenceBackend with name {resolved!r}")
     if not isinstance(backend, InferenceBackend):
         raise TypeError(f"{module_name} returned {type(backend).__name__}, expected InferenceBackend")
+    if resolved == "linq-tpu" and fallback_name != "none":
+        from guard.inference.fallback import FallbackBackend
+
+        try:
+            secondary = get_backend(fallback_name, **kwargs)
+            return FallbackBackend(backend, secondary)
+        except Exception:
+            backend.close()
+            raise
     return backend
 
 

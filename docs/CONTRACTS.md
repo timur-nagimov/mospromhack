@@ -127,3 +127,12 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
 - Ключи `Event.details`, которые понимает UI: `missing`, `vehicle`, `distance_bh`, `distance_m`, `immobile_s`, `speed_bh`, `pose_state`, `source`, `cls`, `conf`.
 - Оверлеи MJPEG компактные: ID трека, а у нарушителя — короткая метка нарушения. Неизвестные атрибуты («?») не выводить.
 - Режимы запуска (D-005): `local`, `edge` (сервер стенда) и `gateway` (ноутбук). Сообщения транспорта edge → gateway: `event`, `frame_meta`, `metrics`.
+
+## Уточнения (24.10, по итогам A3: local, edge, gateway)
+- `from` и `to` в `/api/events` и `/api/stats` принимают epoch-секунды или ISO 8601.
+- `GET /health` → `{status: ok | degraded | error, mode: local | edge | gateway, backend, cameras_running, cameras_total, uptime_s, fallbacks, inference?}`; в gateway — ещё `edge: {connected, last_seen_s}`.
+- `GET /api/metrics`: необязательные блоки `mode`, `media` (буферы и клипы), `edge` (в gateway).
+- Режим задаётся `GUARD_MODE=local|edge|gateway`, транспорт — `GUARD_TRANSPORT=memory|rabbit` (`GUARD_TRANSPORT_URL`).
+- В gateway CRUD камер меняет только локальную конфигурацию; на edge изменения пока не передаются.
+- Правило, для которого нет модели в реестре, отвергается кодом 422 — не тихим выключением.
+- Важность правила по умолчанию — `default_severity` плагина (`with_default_severity`).

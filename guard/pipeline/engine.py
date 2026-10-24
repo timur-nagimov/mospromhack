@@ -118,6 +118,9 @@ class PipelineEngine:
         close = getattr(self.journal, "close", None)
         if callable(close):
             close()
+        close = getattr(self.backend, 'close', None)
+        if callable(close):
+            close()
 
     # ---------- модели ----------
 
@@ -380,7 +383,7 @@ class PipelineEngine:
 
     # ---------- сводки ----------
 
-    def health(self) -> dict[str, Any]:
+    def _health_base(self) -> dict[str, Any]:
         running = sum(1 for w in self.workers.values() if w.running)
         return {
             "status": "ok",
@@ -391,6 +394,61 @@ class PipelineEngine:
             "uptime_s": round(time.time() - self.started_at, 1),
             "fallbacks": {k: v for k, v in compat.FALLBACKS.items() if v},
         }
+
+    def health(self) -> dict[str, Any]:
+        with self._lock:
+            result = self._health_base()
+            workers = [w for w in self.workers.values() if w.running]
+            camera_errors = [
+                (dict(w.errors), getattr(w, "last", None), bool(getattr(w, "detectors", {})))
+                for w in workers
+            ]
+        stats_error = None
+        try:
+            stats = dict(self.backend.stats())
+        except Exception as exc:  # noqa: BLE001
+            stats = {}
+            stats_error = f"{type(exc).__name__}: {exc}"[:300]
+        active = stats.get("active") or self.backend.name
+        fallback = bool(stats.get("fallback", active != self.backend.name))
+        circuit_open = bool(stats.get("circuit_open", False))
+        last_error = stats.get("last_error") or stats_error
+        now = time.monotonic()
+        recent_errors = []
+        missing_models = []
+        for errors, last, has_detectors in camera_errors:
+            # worker.errors хранит текущие ошибки, а не их историю.
+            # done_mono позволяет исключить старые ошибки при остановившемся источнике.
+            done_mono = getattr(last, "done_mono", None)
+            recent = done_mono is None or now - done_mono <= 30.0
+            infer_errors = [value for key, value in errors.items() if key.startswith("infer:")]
+            recent_errors.append(bool(infer_errors) and recent)
+            missing_models.append(
+                not has_detectors and any(key.startswith("model:") for key in errors)
+            )
+            if last_error is None:
+                if recent and infer_errors:
+                    last_error = infer_errors[0]
+                elif missing_models[-1]:
+                    last_error = next(value for key, value in errors.items() if key.startswith("model:"))
+        unavailable = (
+            stats.get("available") is False
+            or bool(stats.get("closed", False))
+            or (circuit_open and not fallback)
+            or (bool(missing_models) and all(missing_models))
+        )
+        degraded = (
+            fallback
+            or stats_error is not None
+            or (bool(recent_errors) and all(recent_errors))
+        )
+        result["status"] = "error" if unavailable else "degraded" if degraded else "ok"
+        result["inference"] = {
+            "active": active,
+            "circuit_open": circuit_open,
+            "last_error": last_error,
+        }
+        return result
 
     def metrics_snapshot(self) -> dict[str, Any]:
         cams = self.metrics.snapshot()
