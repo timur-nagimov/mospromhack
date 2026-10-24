@@ -6,7 +6,7 @@ TPU допустим. Проверка ONNX на CPU не подтверждае
 
 Машиночитаемый отчёт с SHA256 артефактов:
 `.orchestra/metrics/heavy-model-research-20261024.json`. Все замеры ниже сделаны
-**до объединения upstream e23ff4f**, на указанных в отчёте commit/config/data.
+**до объединения upstream 71302c7**, на указанных в отчёте commit/config/data.
 Обновлённые temporal/lifecycle правила требуют новых парных прогонов.
 
 ## Завершённое сравнение
