@@ -60,6 +60,16 @@ class Settings:
     frontend_dist: Path
     backend: str = "onnx-cpu"
     autostart: bool = True
+    # режим запуска (D-005): local — всё в одном процессе; edge — конвейер у TPU, публикует
+    # event/frame_meta/metrics в транспорт; gateway — API/UI/журнал/клипы на ноутбуке
+    mode: str = "local"
+    transport: str = "rabbit"  # memory | rabbit | log
+    rabbit_url: str | None = None
+    publish_frame_meta: bool = True
+    clips_enabled: bool = True  # на edge выключено: клипы собирает gateway из своего буфера
+    edge_snapshot_width: int = 640
+    edge_snapshot_quality: int = 70
+    edge_snapshot_max_kb: int = 60
     # батчинг между камерами: включается, если бэкенд принимает batch > 1
     batching: bool = True
     max_batch: int = 8
@@ -105,6 +115,11 @@ class Settings:
             frontend_dist=Path(os.environ.get("GUARD_FRONTEND_DIST") or CODE_ROOT / "frontend" / "dist"),
             backend=backend_name_from_env(),
             autostart=_env_bool("GUARD_AUTOSTART", True),
+            mode=(os.environ.get("GUARD_MODE") or "local").strip().lower(),
+            transport=(os.environ.get("GUARD_TRANSPORT") or "rabbit").strip().lower(),
+            rabbit_url=os.environ.get("GUARD_RABBIT_URL") or None,
+            publish_frame_meta=_env_bool("GUARD_FRAME_META", True),
+            clips_enabled=_env_bool("GUARD_CLIPS", (os.environ.get("GUARD_MODE") or "local").strip().lower() != "edge"),
             batching=_env_bool("GUARD_BATCHING", True),
             max_batch=_env_int("GUARD_MAX_BATCH", 8),
             batch_timeout_ms=_env_float("GUARD_BATCH_TIMEOUT_MS", 4.0),
