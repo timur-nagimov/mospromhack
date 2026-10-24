@@ -355,6 +355,8 @@ def test_get_backend_default_opt_out_and_kwargs(monkeypatch):
 
 def make_engine(backend, errors=(), *, age=0.0):
     engine = PipelineEngine.__new__(PipelineEngine)
+    # _health_base читает settings.mode (режимы local/edge/gateway, A3).
+    engine.settings = SimpleNamespace(mode="local")
     engine.backend = backend
     engine._lock = threading.RLock()
     engine.started_at = time.time()
