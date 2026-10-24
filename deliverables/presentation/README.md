@@ -65,7 +65,7 @@ tools/heavy.sh node deliverables/presentation/render.mjs --png /tmp/zz-preview
 | 3 Для кого | `docs/ANALYTICS.md` §1.1–1.2 |
 | 4 Как это работает | `docs/ARCHITECTURE.md` §1–3, `docs/BENCHMARKS.md` §4.3 |
 | 5 Демо | `deliverables/screens/real-*.jpg`, `docs/BENCHMARKS.md` §5 |
-| 6 Надёжность | `docs/ARCHITECTURE.md` §5; eval — плейсхолдер |
+| 6 Надёжность | `docs/ARCHITECTURE.md` §5; набор роликов — `docs/DATA.md`; метрики eval — плейсхолдер |
 | 7 LinQ TPU | `docs/BENCHMARKS.md` §1–3 |
 | 8 Edge и камеры | `docs/BENCHMARKS.md` §4–5 |
 | 9 Без кода | `README.md` «Как добавить новый тип нарушения»; скриншот `05b-zone-drawing.jpg` — **мок-режим**, на слайде так и подписан |

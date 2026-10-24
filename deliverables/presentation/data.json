@@ -23,7 +23,7 @@
     "eval": {
       "status": "pending",
       "title": "Качество на размеченных роликах",
-      "dataset": "13 роликов с разметкой событий: S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2",
+      "dataset": "13 роликов, 535 с: 23 достоверных события и 10 спорных (S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2 — 68.9 с)",
       "source": "ml/eval/events_eval.py → metrics/eval-*.json",
       "measured_at": null,
       "metrics": [
