@@ -213,6 +213,9 @@ UI обновляет по нему счётчики. Если UI его не о
 
 ## UI: страница «Данные» (`frontend/src/features/flywheel/`, маршрут `/data`)
 
+Реализация: клиент API — `frontend/src/api/http.ts` (`flywheel`), запросы — `frontend/src/api/flywheelQueries.ts`, мок —
+`frontend/src/api/mock/flywheel.ts`, проверка на моках — `frontend/scripts/flywheel.mjs` (см. `frontend/README.md`).
+
 1. **Полоса цикла.** Шесть шагов: сбор → авторазметка → проверка → датасет → дообучение и сборка под LinQ → гейт
    и выкатка. На каждом шаге — число или статус последнего запуска.
 2. **Счётчики:**

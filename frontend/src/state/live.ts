@@ -1,6 +1,7 @@
 // Живое состояние: лента событий из WS, счётчик неразобранных, метрики и их история
 
 import type { ConnectionStatus } from '../api/types';
+import type { FlywheelSampleBrief } from '../domain/flywheel';
 import type { GuardEvent, MetricsSnapshot } from '../domain/types';
 import { isCriticalEvent } from '../domain/violations';
 import { createStore, useStore } from './createStore';
@@ -8,6 +9,7 @@ import { createStore, useStore } from './createStore';
 const FEED_LIMIT = 200;
 const HISTORY_LIMIT = 90; // 3 минуты при снимке раз в 2 с
 const ALARM_FALLBACK_S = 600; // после разбора тревоги баннер переходит на другую критическую не старше 10 мин
+const FLYWHEEL_FRESH_LIMIT = 300;
 
 export interface MetricsPoint {
   /** epoch, мс */
@@ -27,6 +29,11 @@ export interface LiveState {
   alarm: GuardEvent | null;
   /** id событий, пришедших в этой сессии, — для анимации появления */
   freshIds: ReadonlySet<string>;
+  /** Сэмплы маховика из WS flywheel_sample в этой сессии — подсветка в очереди проверки */
+  flywheelFresh: ReadonlySet<string>;
+  flywheelLast: FlywheelSampleBrief | null;
+  /** epoch, мс: когда пришёл последний сэмпл */
+  flywheelLastAt: number | null;
 }
 
 export const liveStore = createStore<LiveState>({
@@ -38,6 +45,9 @@ export const liveStore = createStore<LiveState>({
   history: [],
   alarm: null,
   freshIds: new Set(),
+  flywheelFresh: new Set(),
+  flywheelLast: null,
+  flywheelLastAt: null,
 });
 
 export const useLive = <T>(selector: (s: LiveState) => T): T => useStore(liveStore, selector);
@@ -107,6 +117,18 @@ export const liveActions = {
       return { ...s, feed, unreviewed, alarm };
     });
     return known;
+  },
+
+  /** true — сэмпл новый (не повторная доставка WS) */
+  addFlywheelSample(sample: FlywheelSampleBrief): boolean {
+    if (liveStore.get().flywheelFresh.has(sample.id)) return false;
+    liveStore.set((s) => {
+      const fresh = new Set(s.flywheelFresh);
+      fresh.add(sample.id);
+      if (fresh.size > FLYWHEEL_FRESH_LIMIT) fresh.delete(fresh.values().next().value as string);
+      return { ...s, flywheelFresh: fresh, flywheelLast: sample, flywheelLastAt: Date.now() };
+    });
+    return true;
   },
 
   dismissAlarm() {

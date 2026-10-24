@@ -1,6 +1,8 @@
 // TS-зеркало контрактов guard/contracts.py и docs/CONTRACTS.md (раздел «HTTP API»).
 // Меняется синхронно с контрактом; всё, что сверх контракта, помечено как опциональное.
 
+import type { FlywheelSampleBrief } from './flywheel';
+
 export type Severity = 'critical' | 'high' | 'medium' | 'low';
 export type EventStatus = 'new' | 'confirmed' | 'false' | 'forwarded';
 
@@ -196,7 +198,9 @@ export interface Health {
 export type WsMessage =
   | { kind: 'event'; event: GuardEvent }
   | { kind: 'event_update'; event: GuardEvent }
-  | { kind: 'metrics'; data: MetricsSnapshot };
+  | { kind: 'metrics'; data: MetricsSnapshot }
+  /** Новый сэмпл маховика (docs/FLYWHEEL.md); бэкенд может прислать его с ключом type вместо kind */
+  | { kind: 'flywheel_sample'; sample: FlywheelSampleBrief };
 
 /** Подмножество JSON Schema, которое понимает генератор форм */
 export interface JsonSchema {

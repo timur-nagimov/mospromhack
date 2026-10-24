@@ -1,13 +1,25 @@
+import type { FlywheelSampleBrief } from '../domain/flywheel';
 import type { WsMessage } from '../domain/types';
 import type { ConnectionStatus, Subscription } from './types';
 
 const MIN_DELAY_MS = 1000;
 const MAX_DELAY_MS = 15000;
 
-function isWsMessage(value: unknown): value is WsMessage {
-  if (!value || typeof value !== 'object') return false;
-  const kind = (value as { kind?: unknown }).kind;
-  return kind === 'event' || kind === 'event_update' || kind === 'metrics';
+/**
+ * Проверка и нормализация сообщения. Сообщение маховика по контракту приходит
+ * как {type: "flywheel_sample", sample}, остальные — с ключом kind; приводим к kind.
+ * Неизвестные сообщения отбрасываются: подписчики их не видят.
+ */
+export function parseWsMessage(value: unknown): WsMessage | null {
+  if (!value || typeof value !== 'object') return null;
+  const msg = value as { kind?: unknown; type?: unknown; sample?: unknown };
+  if (msg.kind === 'event' || msg.kind === 'event_update' || msg.kind === 'metrics') return value as WsMessage;
+  if (msg.kind === 'flywheel_sample' || msg.type === 'flywheel_sample') {
+    const sample = msg.sample as { id?: unknown } | null | undefined;
+    if (!sample || typeof sample !== 'object' || typeof sample.id !== 'string') return null;
+    return { kind: 'flywheel_sample', sample: sample as FlywheelSampleBrief };
+  }
+  return null;
 }
 
 /**
@@ -62,8 +74,9 @@ export class EventSocket {
       } catch {
         return;
       }
-      if (!isWsMessage(parsed)) return;
-      for (const s of this.subscribers) s.onMessage(parsed);
+      const message = parseWsMessage(parsed);
+      if (!message) return;
+      for (const s of this.subscribers) s.onMessage(message);
     };
     socket.onclose = () => {
       if (this.socket !== socket) return;

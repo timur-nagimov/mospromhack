@@ -15,6 +15,11 @@ const KIND_BY_CAMERA: Record<string, SceneKind> = {
   'cam-04': 'dock',
   'cam-05': 'scaffold',
   'cam-06': 'perimeter',
+  // мок маховика: ролик отложенной выборки и кадры открытых наборов
+  cam_s4: 'dock',
+  'forklift-rf': 'racks',
+  sh17: 'line',
+  'construction-ppe': 'scaffold',
 };
 
 const KINDS: SceneKind[] = ['racks', 'line', 'weld', 'dock', 'scaffold', 'perimeter'];
@@ -31,6 +36,8 @@ export interface SceneHighlight {
   bbox: BBox;
   label: string;
   type: string;
+  /** false — нарушитель без красной рамки и подписи (сырой кадр для маховика) */
+  frame?: boolean;
 }
 
 export interface SceneOptions {
@@ -554,10 +561,12 @@ export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: 
       smoking: type === 'smoking_fire',
       carry: type === 'unsafe_carry',
     });
-    ctx.strokeStyle = '#ff3b3b';
-    ctx.lineWidth = 5;
-    ctx.strokeRect(x1, y1, w, h);
-    drawLabel(ctx, o.highlight.label, x1 - 2.5, y1 - 2, '#e5484d', '#fff', 17);
+    if (o.highlight.frame !== false) {
+      ctx.strokeStyle = '#ff3b3b';
+      ctx.lineWidth = 5;
+      ctx.strokeRect(x1, y1, w, h);
+      drawLabel(ctx, o.highlight.label, x1 - 2.5, y1 - 2, '#e5484d', '#fff', 17);
+    }
   }
 
   // зерно, сканлайны и виньетка — «картинка с камеры»
@@ -597,6 +606,41 @@ export function drawScene(ctx: CanvasRenderingContext2D, width: number, height: 
     ctx.fillText('REC', 50, FRAME_H - 28);
   }
   ctx.restore();
+}
+
+export interface SceneObject {
+  cls: 'person' | 'forklift';
+  /** x1, y1, x2, y2 в координатах FRAME_W×FRAME_H */
+  bbox: BBox;
+  track: number;
+  helmet?: boolean;
+  vest?: boolean;
+}
+
+/**
+ * Люди и техника на кадре в момент t — те же позиции, что рисует drawScene.
+ * Нужны мок-маховику: детекции и разметка совпадают с картинкой.
+ */
+export function sceneObjects(cameraId: string, t: number): SceneObject[] {
+  const kind = sceneKind(cameraId);
+  const out: SceneObject[] = [];
+  if (kind === 'dock' || kind === 'racks') {
+    const p = ((t % 22) + 22) % 22 / 22;
+    const x = kind === 'dock' ? 200 + Math.sin(p * Math.PI * 2) * 360 + 360 : 980 + Math.sin(p * Math.PI * 2) * 140;
+    const y = kind === 'dock' ? 520 : 640;
+    const scale = kind === 'dock' ? 1.15 : 1.35;
+    const facing = Math.cos(p * Math.PI * 2) > 0 ? 1 : -1;
+    // drawForklift: корпус от −60 до +110 по x (вилы), от −130 до +3 по y
+    const left = facing > 0 ? x - 60 * scale : x - 110 * scale;
+    const right = facing > 0 ? x + 110 * scale : x + 60 * scale;
+    out.push({ cls: 'forklift', bbox: [left, y - 130 * scale, right, y + 3 * scale], track: 7 });
+  }
+  for (const a of actors(kind, t)) {
+    const x1 = a.x - a.h * 0.24;
+    const y1 = a.y - a.h * 1.0;
+    out.push({ cls: 'person', bbox: [x1, y1, x1 + a.h * 0.48, y1 + a.h * 1.02], track: a.track, helmet: a.style.helmet, vest: a.style.vest });
+  }
+  return out;
 }
 
 /** Статичный кадр в data:URL: стоп-кадр для редактора зон и снапшоты событий */

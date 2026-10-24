@@ -1,6 +1,8 @@
-import { Ban, Check, ChevronRight, Film, Forward, Image as ImageIcon, ImageOff, X } from 'lucide-react';
+import { Ban, Check, ChevronRight, DatabaseZap, Film, Forward, Image as ImageIcon, ImageOff, X } from 'lucide-react';
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../../api';
+import { useSampleForEvent } from '../../api/flywheelQueries';
 import { useCameraMap, usePatchEvent, useEvent } from '../../api/queries';
 import { StageBar } from '../../components/charts/StageBar';
 import { SeverityBadge, StatusBadge, ViolationIcon } from '../../components/ui/badges';
@@ -71,6 +73,24 @@ function EventMedia({ event }: { event: GuardEvent }) {
           ))}
       </div>
     </div>
+  );
+}
+
+/**
+ * Кадр события попал в выборку маховика данных — ссылка на сэмпл на странице «Данные».
+ * Без API маховика (404) или без сэмпла бейджа просто нет.
+ */
+function FlywheelBadge({ eventId }: { eventId: string }) {
+  const { data: sample } = useSampleForEvent(eventId);
+  if (!sample) return null;
+  return (
+    <Link
+      className="badge ev-flywheel"
+      to={{ pathname: '/data', search: `?sample=${encodeURIComponent(sample.id)}` }}
+      title="Кадр события сохранён в обучающую выборку: открыть сэмпл на странице «Данные»"
+    >
+      <DatabaseZap size={12} aria-hidden="true" />в выборке маховика
+    </Link>
   );
 }
 
@@ -152,6 +172,7 @@ function EventCard({ event, onClose, onNext, hasNext }: { event: GuardEvent; onC
           <p>{meta.description}</p>
         </div>
         <div className="ev-head__badges">
+          <FlywheelBadge eventId={event.id} />
           <SeverityBadge severity={event.severity} />
           <StatusBadge status={event.status} />
         </div>

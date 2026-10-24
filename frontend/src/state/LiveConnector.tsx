@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
 import { api } from '../api';
+import { applyLiveSample } from '../api/flywheelQueries';
 import { queryKeys } from '../api/queries';
 import { isCriticalEvent } from '../domain/violations';
 import { playAlarm, playChime, unlockAudioOnGesture } from '../hooks/alarmSound';
@@ -88,6 +89,11 @@ export function LiveConnector() {
       onMessage: (msg) => {
         if (msg.kind === 'metrics') {
           liveActions.setMetrics(msg.data);
+          return;
+        }
+        if (msg.kind === 'flywheel_sample') {
+          // новый сэмпл маховика: счётчики и очередь страницы «Данные»
+          if (liveActions.addFlywheelSample(msg.sample)) applyLiveSample(qc, msg.sample);
           return;
         }
         if (msg.kind === 'event') {

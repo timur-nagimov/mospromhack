@@ -9,7 +9,8 @@ import type {
   RuleTypeInfo,
   StatsResponse,
 } from '../domain/types';
-import { ApiError, type GuardApi, type StatsQuery } from './types';
+import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
+import { ApiError, type FlywheelApi, type GuardApi, type StatsQuery } from './types';
 import { EventSocket } from './ws';
 
 /**
@@ -100,6 +101,85 @@ function cameraPayload(c: CameraConfig): CameraConfig {
   };
 }
 
+/** Список может прийти массивом или страницей {items} — принимаем оба вида */
+function listOf<T>(value: T[] | { items?: T[] } | null | undefined): T[] {
+  if (Array.isArray(value)) return value;
+  return value?.items ?? [];
+}
+
+/** JSON-поле сэмпла: по контракту раскрыто, но строку из SQLite тоже принимаем */
+function jsonList<T>(value: unknown): T[] {
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === 'string' && value.trim()) {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return Array.isArray(parsed) ? (parsed as T[]) : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeSample(raw: FlywheelSample): FlywheelSample {
+  return {
+    ...raw,
+    detections: jsonList(raw.detections),
+    labels: jsonList(raw.labels),
+    width: Number(raw.width) || 0,
+    height: Number(raw.height) || 0,
+    event_id: raw.event_id ?? null,
+    operator_label: raw.operator_label ?? null,
+    reason: raw.reason ?? '',
+    reviewed_at: raw.reviewed_at ?? null,
+    dataset_version: raw.dataset_version ?? null,
+  };
+}
+
+/** frame_url из ответа: абсолютный, от корня сервера или не задан */
+function sampleFrameUrl(sample: FlywheelSample): string {
+  const url = sample.frame_url;
+  if (url && /^(https?:|data:|blob:)/.test(url)) return url;
+  if (url) return API_BASE + (url.startsWith('/') ? url : `/${url}`);
+  return `${API_BASE}/api/flywheel/samples/${enc(sample.id)}/frame.jpg`;
+}
+
+function createFlywheelHttpApi(): FlywheelApi {
+  return {
+    summary: () => request('/api/flywheel/summary'),
+    listSamples: async (q: SampleQuery, signal?: AbortSignal) => {
+      const page = await request<SamplePage | FlywheelSample[]>(
+        `/api/flywheel/samples${toQuery({
+          status: q.status,
+          source: q.source,
+          camera_id: q.camera_id,
+          cls: q.cls,
+          holdout: q.holdout,
+          event_id: q.event_id,
+          limit: q.limit,
+          offset: q.offset,
+          order: q.order,
+        })}`,
+        { signal },
+      );
+      if (Array.isArray(page)) return { items: page.map(normalizeSample), total: page.length };
+      const items = (page?.items ?? []).map(normalizeSample);
+      return { items, total: page?.total ?? items.length };
+    },
+    getSample: async (id) => normalizeSample(await request<FlywheelSample>(`/api/flywheel/samples/${enc(id)}`)),
+    patchSample: async (id, patch) =>
+      normalizeSample(await request<FlywheelSample>(`/api/flywheel/samples/${enc(id)}`, { method: 'PATCH', json: patch })),
+    capture: async (cameraId) => normalizeSample(await request<FlywheelSample>(`/api/flywheel/capture/${enc(cameraId)}`, { method: 'POST' })),
+    buildDataset: (body) => request<DatasetVersion>('/api/flywheel/datasets', { method: 'POST', json: body }),
+    listDatasets: async () => listOf(await request<DatasetVersion[] | { items?: DatasetVersion[] }>('/api/flywheel/datasets')),
+    listModels: async () => listOf(await request<ModelCard[] | { items?: ModelCard[] }>('/api/flywheel/models')),
+    startJob: (kind, args = {}) => request<FlywheelJob>('/api/flywheel/jobs', { method: 'POST', json: { kind, args } }),
+    listJobs: async () => listOf(await request<FlywheelJob[] | { items?: FlywheelJob[] }>('/api/flywheel/jobs')),
+    getJob: (id) => request<FlywheelJob>(`/api/flywheel/jobs/${enc(id)}`),
+    frameUrl: (sample) => sampleFrameUrl(sample),
+  };
+}
+
 export function createHttpApi(): GuardApi {
   const socket = new EventSocket(wsUrl('/ws/events'));
 
@@ -138,5 +218,6 @@ export function createHttpApi(): GuardApi {
       snapshotUrl: (event) => `${API_BASE}/api/events/${enc(event.id)}/snapshot.jpg`,
       clipUrl: (event) => `${API_BASE}/api/events/${enc(event.id)}/clip.mp4`,
     },
+    flywheel: createFlywheelHttpApi(),
   };
 }
