@@ -17,7 +17,9 @@ edge:
   data_dir: ~/work/mosprom/data_360          # субпоток 640×360 (docs/EDGE.md): декод 0.28 ядра вместо 0.92
   rabbit_url: null                           # на стенде — amqp://…@10.0.114.30:5672/ (RTT 1 мс)
   node_id: stand-linq
-  linq: {raw: true, window: 4}               # raw-упаковка на numpy; 4 задачи в полёте
+  linq: {raw: true, window: 4, timeout_s: 5}  # raw-упаковка на numpy; 4 задачи в полёте; ответ TPU ждём 5 с:
+                                             # общий воркер стоит по 2+ с (13 откатов на CPU за час при 2 с),
+                                             # а CPU контейнера 4 камеры не тянет (docs/EDGE.md §7.2)
   gateway_guard: {backlog_limit: 300}        # без потребителя очереди шлюза телеметрию не копим
   settings: {max_batch: 8, batch_timeout_ms: 4.0}
 

@@ -93,8 +93,13 @@ def disable_ort_spinning() -> bool:
 
         def __init__(self, path_or_bytes: Any, sess_options: Any = None, *args: Any, **kwargs: Any) -> None:
             so = sess_options if sess_options is not None else ort.SessionOptions()
-            so.add_session_config_entry("session.intra_op.allow_spinning", "0")
-            so.add_session_config_entry("session.inter_op.allow_spinning", "0")
+            for key in ("session.intra_op.allow_spinning", "session.inter_op.allow_spinning"):
+                try:  # onnx_cpu уже выключает spinning сам: повторная запись даёт предупреждение ORT
+                    already = so.get_session_config_entry(key) == "0"
+                except RuntimeError:
+                    already = False
+                if not already:
+                    so.add_session_config_entry(key, "0")
             super().__init__(path_or_bytes, so, *args, **kwargs)
 
     ort.InferenceSession = NoSpinSession
