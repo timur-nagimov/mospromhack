@@ -23,31 +23,70 @@ def event_message(sequence=1):
 
 
 class Channel:
+    """Broker push model: basic_consume with per-consumer prefetch, deliveries in process_data_events."""
+
     def __init__(self):
         self.calls = []
         self.messages = defaultdict(deque)
         self.confirmed = None
+        self.prefetch = 0
+        self.consumers = []
+        self.unacked = {}
+        self.max_inflight = defaultdict(int)
+        self.next_tag = 41
 
     def __getattr__(self, name):
-        if name in {"exchange_declare", "queue_declare", "queue_bind", "confirm_delivery", "basic_qos", "basic_ack", "basic_nack", "basic_reject"}:
+        if name in {"exchange_declare", "queue_declare", "queue_bind", "confirm_delivery"}:
             return lambda **kwargs: self.calls.append((name, kwargs))
         raise AttributeError(name)
+
+    def basic_qos(self, **kwargs):
+        self.calls.append(("basic_qos", kwargs))
+        self.prefetch = kwargs["prefetch_count"]
+
+    def basic_consume(self, *, queue, on_message_callback, auto_ack=False):
+        self.calls.append(("basic_consume", {"queue": queue, "auto_ack": auto_ack}))
+        self.consumers.append((queue, on_message_callback, self.prefetch))
+
+    def _settle(self, name, kwargs):
+        self.calls.append((name, kwargs))
+        self.unacked.pop(kwargs["delivery_tag"])
+
+    def basic_ack(self, **kwargs):
+        self._settle("basic_ack", kwargs)
+
+    def basic_nack(self, **kwargs):
+        self._settle("basic_nack", kwargs)
+
+    def basic_reject(self, **kwargs):
+        self._settle("basic_reject", kwargs)
 
     def basic_publish(self, **kwargs):
         self.calls.append(("basic_publish", kwargs))
         return self.confirmed
 
     def basic_get(self, *, queue, auto_ack):
-        assert auto_ack is False
-        if not self.messages[queue]:
-            return None, None, None
-        return SimpleNamespace(delivery_tag=42), None, self.messages[queue].popleft()
+        raise AssertionError("basic_get costs a VPN round trip per message")
+
+    def deliver(self, hold_acks=False):
+        progressed = True
+        while progressed:
+            progressed = False
+            for queue, callback, prefetch in self.consumers:
+                inflight = sum(1 for owner in self.unacked.values() if owner == queue)
+                if self.messages[queue] and inflight < prefetch:
+                    self.next_tag += 1
+                    self.unacked[self.next_tag] = queue
+                    self.max_inflight[queue] = max(self.max_inflight[queue], inflight + 1)
+                    callback(self, SimpleNamespace(delivery_tag=self.next_tag), None, self.messages[queue].popleft())
+                    progressed = True
 
 
 class Connection:
     def __init__(self):
         self.is_open = True
         self.ch = Channel()
+        self.waits = []
 
     def channel(self):
         return self.ch
@@ -55,8 +94,9 @@ class Connection:
     def close(self):
         self.is_open = False
 
-    def process_data_events(self, **kwargs):
-        pass
+    def process_data_events(self, time_limit=0):
+        self.waits.append(time_limit)
+        self.ch.deliver()
 
 
 def test_event_publisher_confirms_persistence_and_separates_tpu_queues():
@@ -148,6 +188,97 @@ def test_invalid_message_is_rejected_without_requeue():
     consumer.poll(lambda env: pytest.fail("Malformed message reached handler"))
     assert ("basic_reject", {"delivery_tag": 42, "requeue": False}) in connection.ch.calls
     assert consumer.status()["rejected"] == 1
+
+
+def telemetry_message(sequence, camera="cam_s1"):
+    return event_message(sequence).model_copy(update={"kind": "metrics", "payload": {"data": {"camera": camera}}})
+
+
+def test_consumer_subscribes_with_bounded_prefetch_instead_of_polling():
+    # Through the VPN (RTT 0.3-0.4 s) basic_get delivered ~1 message/s for both
+    # queues while the edge sends ~5 telemetry messages/s: previews of all but
+    # one camera expired in the broker (metrics tpu-demo-baseline-queue-0130).
+    from guard.transport import rabbit
+
+    config = RabbitConfig("amqp://localhost/", "demo")
+    connection = Connection()
+    consumer = RabbitConsumer(config, lambda cfg: connection)
+    assert consumer.poll(lambda env: None) == 0
+    calls = [(name, args) for name, args in connection.ch.calls if name in {"basic_qos", "basic_consume"}]
+    assert calls == [
+        ("basic_qos", {"prefetch_count": rabbit.EVENT_PREFETCH}),
+        ("basic_consume", {"queue": config.event_queue, "auto_ack": False}),
+        ("basic_qos", {"prefetch_count": rabbit.TELEMETRY_PREFETCH}),
+        ("basic_consume", {"queue": config.telemetry_queue, "auto_ack": False}),
+    ]
+    # One preview per camera fits into one round trip; durable events with
+    # snapshots (~60 KB) keep a small window so telemetry is not starved.
+    assert rabbit.TELEMETRY_PREFETCH >= 4
+    assert 1 <= rabbit.EVENT_PREFETCH < rabbit.TELEMETRY_PREFETCH
+    # Re-polling an open connection must not subscribe again.
+    consumer.poll(lambda env: None)
+    assert sum(name == "basic_consume" for name, _ in connection.ch.calls) == 2
+
+
+def test_one_poll_handles_every_ready_message_from_both_queues():
+    from guard.transport.protocol import encode
+
+    config = RabbitConfig("amqp://localhost/", "demo")
+    connection = Connection()
+    for sequence in range(1, 7):
+        connection.ch.messages[config.telemetry_queue].append(encode(telemetry_message(sequence, f"cam_s{sequence % 4 + 1}")))
+    connection.ch.messages[config.event_queue].append(encode(event_message()))
+    consumer = RabbitConsumer(config, lambda cfg: connection)
+    seen = []
+    assert consumer.poll(seen.append, time_limit=0.1) == 7
+    assert connection.waits == [0.1]
+    assert sorted(envelope.kind for envelope in seen) == ["event"] + ["metrics"] * 6
+    assert consumer.status()["received"] == 7
+    assert sum(name == "basic_ack" for name, _ in connection.ch.calls) == 7
+    assert connection.ch.max_inflight[config.telemetry_queue] <= connection.ch.consumers[1][2]
+
+
+def test_event_in_telemetry_queue_is_rejected():
+    from guard.transport.protocol import encode
+
+    config = RabbitConfig("amqp://localhost/", "demo")
+    connection = Connection()
+    connection.ch.messages[config.telemetry_queue].append(encode(event_message()))
+    consumer = RabbitConsumer(config, lambda cfg: connection)
+    assert consumer.poll(lambda env: pytest.fail("Event accepted from the telemetry channel")) == 1
+    assert ("basic_reject", {"delivery_tag": 42, "requeue": False}) in connection.ch.calls
+    assert consumer.status()["rejected"] == 1
+
+
+def test_run_reconnects_and_resubscribes_after_connection_failure():
+    import threading
+
+    from guard.transport.protocol import encode
+
+    config = RabbitConfig("amqp://localhost/", "demo")
+    first, second = Connection(), Connection()
+    connections = [first, second]
+    stop = threading.Event()
+
+    def broken(time_limit=0):
+        raise ConnectionError("tunnel dropped")
+
+    first.process_data_events = broken
+    second.ch.messages[config.event_queue].append(encode(event_message()))
+    seen = []
+
+    def handle(envelope):
+        seen.append(envelope)
+        stop.set()
+
+    consumer = RabbitConsumer(config, lambda cfg: connections.pop(0))
+    thread = threading.Thread(target=consumer.run, args=(handle, stop), daemon=True)
+    thread.start()
+    thread.join(timeout=5)
+    assert not thread.is_alive()
+    assert [envelope.kind for envelope in seen] == ["event"]
+    assert not first.is_open
+    assert sum(name == "basic_consume" for name, _ in second.ch.calls) == 2
 
 
 def test_fake_uncertain_publish_and_lost_ack_are_replayable():

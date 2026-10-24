@@ -9,7 +9,7 @@ video-loop. Отдельная PPE-модель даёт полезные кас
 Каждая фича находится в своей ветке: `feature/model-quality-comparison`,
 `feature/ppe-evaluation-metrics`, `feature/ppe-model-candidate`; объединение —
 `feature/implementation-batch`. Основной реестр в этой ветке не переключался.
-При финализации внешний fetch обновил `main` с `c017614` до `79a8920`;
+При финализации внешний fetch обновил `main` с `8d90af3` до `da4c4cc`;
 его новые результаты не входят в описанные замеры и проверяются отдельно.
 
 ## Парное сравнение событий S1

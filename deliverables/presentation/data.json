@@ -1,78 +1,279 @@
 {
-  "_readme": "Цифры для слайдов. Вёрстку (index.html) не трогаем: правим значения здесь и пересобираем PDF (README.md). value: null — показываем плейсхолдер «будет обновлено к защите». Когда значение появится, впишите его, поставьте status: \"done\", measured_at и source.",
+  "_readme": "Цифры для слайдов. Вёрстку (index.html) не трогаем: правим значения здесь и пересобираем PDF (README.md). Всё, что ещё в работе, лежит в pending: пока status = \"pending\", на слайде розовая метка «будет обновлено к защите». Когда результат появится, впишите значения, source и measured_at и поставьте status = \"done\".",
   "meta": {
-    "deck_version": "чек-поинт 3 · 24.10.2026",
+    "deck_version": "прототип к защите · 24.10.2026",
     "event": "Хакатон «Открой#Моспром» · кейс LinQ",
     "team": "Команда «Зазеркалье»",
     "defense": "Защита 25.10.2026"
   },
   "links": {
     "repo": "github.com/timur-nagimov/mospromhack",
-    "readme": "README.md",
-    "benchmarks": "docs/BENCHMARKS.md"
+    "docs": [
+      {
+        "path": "README.md",
+        "what": "запуск, сценарии, как добавить нарушение"
+      },
+      {
+        "path": "docs/EDGE.md",
+        "what": "edge на стенде, сквозная задержка"
+      },
+      {
+        "path": "docs/EDGE_PROTOCOL.md",
+        "what": "доставка событий без потерь и дублей"
+      },
+      {
+        "path": "docs/QUALITY.md",
+        "what": "качество и разбор каждой ошибки"
+      },
+      {
+        "path": "docs/BENCHMARKS.md",
+        "what": "замеры TPU, CPU и канала"
+      },
+      {
+        "path": "docs/FLYWHEEL.md",
+        "what": "маховик данных"
+      },
+      {
+        "path": "docs/ROLES.md",
+        "what": "роли и права доступа"
+      }
+    ]
   },
   "pending_label": "будет обновлено к защите",
   "pending": {
-    "edge_mode": {
+    "eval_tpu": {
       "status": "pending",
-      "pending_text": "Режим edge на стенде + шлюз — в работе. Вживую сейчас local на CPU; linq-tpu и канал событий проверены отдельно",
-      "done_text": "Работает вживую: конвейер на стенде рядом с LinQ TPU, шлюз и UI на ноутбуке",
-      "measured_at": null,
-      "source": "docs/ARCHITECTURE.md §2"
-    },
-    "eval": {
-      "status": "pending",
-      "title": "Качество на размеченных роликах",
-      "dataset": "13 роликов, 535 с: 23 достоверных события и 10 спорных (S1 ×2, S2 ×2, S3 ×2, S4 ×3, S6, S7, «чистые» ×2 — 68.9 с)",
-      "source": "ml/eval/events_eval.py → metrics/eval-*.json",
-      "measured_at": null,
+      "title": "Качество на TPU в живой конфигурации",
+      "what": "те же 13 роликов в 360p: det и pose 480, СИЗ и огонь 640 в int8, пороги и правила стенда",
+      "now": "Первый прогон на стенде 24.10 18:45: 14 из 23 событий, 1 дубль; на CPU — 18 из 23, разбор отличия в работе",
+      "source": "eval-tpu-live-20261024-1845.json · docs/QUALITY.md",
+      "measured_at": "24.10 18:45",
       "metrics": [
         {
           "key": "precision",
-          "title": "Precision по событиям",
-          "value": null,
+          "title": "Precision",
+          "value": "1.00",
           "unit": ""
         },
         {
           "key": "recall",
-          "title": "Recall по событиям",
-          "value": null,
+          "title": "Recall",
+          "value": 0.61,
           "unit": ""
         },
         {
-          "key": "duplicates",
-          "title": "Дубли",
-          "hint": "цель — 0",
-          "value": null,
-          "unit": ""
-        },
-        {
-          "key": "false_per_hour",
-          "title": "Ложных тревог в час",
-          "value": null,
+          "key": "false",
+          "title": "Ложные тревоги",
+          "value": 0,
           "unit": ""
         },
         {
           "key": "latency",
-          "title": "Задержка тревоги, p50",
-          "value": null,
+          "title": "Задержка p50",
+          "value": 2.7,
           "unit": "с"
         }
       ]
     },
-    "edge_latency": {
+    "finetune": {
       "status": "pending",
-      "title": "Сквозная задержка на TPU, режим edge + gateway",
-      "what": "от начала нарушения до карточки в UI",
-      "p50_s": null,
-      "p95_s": null,
+      "title": "Дообучение на открытых наборах",
+      "source": "ml/model_cards/*.json · docs/DATASETS.md · docs/QUALITY.md",
       "measured_at": null,
-      "source": "docs/BENCHMARKS.md, после запуска режима edge на стенде",
-      "estimate_s": 3,
-      "estimate_note": "расчёт, не замер: окно 2 с + батч до 0.4 с + доставка ~0.5 с",
-      "local_cpu_s": 2.1,
-      "local_cpu_note": "local, CPU: окно 2.0 с + обработка 65 мс, 24.10 01:09"
+      "rows": [
+        {
+          "id": "S4",
+          "title": "Сближение с погрузчиком",
+          "weak": "погрузчика нет в классах моделей",
+          "now": "2 из 4",
+          "datasets": "5 открытых наборов, 1973 кадра; негативы — фуры, экскаваторы, автобусы",
+          "status": "done",
+          "after": "2 из 4",
+          "card": "forklift-v1: AP50 погрузчика 0.87 (у открытой модели 0.50), 0 ложных на 338 кадрах; гейт «не хуже»"
+        },
+        {
+          "id": "S3",
+          "title": "Падение и неподвижность",
+          "weak": "детектор теряет лежащего: падение с кровати, человек на снегу",
+          "now": "6 из 7; на отложенных падениях — 14 из 25",
+          "datasets": "UR Fall, CAUCAFall, Le2i, GMDCSA24 — без роликов оценки",
+          "status": "pending",
+          "after": null,
+          "card": null
+        },
+        {
+          "id": "S7",
+          "title": "Курение",
+          "weak": "сигарету модель огня не видит",
+          "now": "0 из 1, не заявляем",
+          "datasets": "наборы сигарет и курения (HF, Roboflow); авторазметка YOLO-World",
+          "status": "pending",
+          "after": null,
+          "card": null
+        },
+        {
+          "id": "S2",
+          "title": "Нет каски",
+          "weak": "каску у людей в кадре с первой секунды видим поздно — до 18 с",
+          "now": "5 из 6, p95 задержки 16 с",
+          "datasets": "SH17, обучающая часть Construction-PPE",
+          "status": "pending",
+          "after": null,
+          "card": null
+        }
+      ]
+    },
+    "video": {
+      "status": "pending",
+      "path": null,
+      "pending_text": "Резервное видео-демо: запись экрана с живыми событиями",
+      "done_text": "Резервное видео-демо лежит в deliverables/",
+      "measured_at": null
+    },
+    "streams": {
+      "status": "pending",
+      "pending_text": "Проверка на реальных потоках идёт; цифры и источники — docs/STREAMS.md",
+      "done_text": "Проверено на реальных потоках, подробности",
+      "path": "docs/STREAMS.md",
+      "measured_at": null,
+      "rtsp": {
+        "first_s": null,
+        "fps": null,
+        "recover_s": null
+      },
+      "mjpeg": {
+        "first_s": null,
+        "fps": null,
+        "recover_s": null
+      },
+      "hls": {
+        "first_s": null,
+        "fps": null,
+        "recover_s": null
+      },
+      "webcam": {
+        "first_s": null,
+        "fps": null,
+        "recover_s": null
+      }
+    },
+    "streams_screen": {
+      "status": "pending",
+      "src": null,
+      "measured_at": null,
+      "title": "Камеры · проверка потока",
+      "caption": "Скриншот: проверка адреса потока до подключения и статус камеры на плитке"
+    },
+    "rbac_screen": {
+      "status": "pending",
+      "src": null,
+      "measured_at": null,
+      "title": "Пользователи · роли",
+      "caption": "Скриншоты: вход по ролям, экран «Нет доступа», журнал действий"
+    },
+    "holdout": {
+      "status": "pending",
+      "pending_text": "Сбор роликов, двойная разметка и прогон идут; итог — docs/QUALITY.md «Отложенная выборка»",
+      "done_text": "Итог и разбор ошибок",
+      "path": "docs/QUALITY.md «Отложенная выборка»",
+      "measured_at": null,
+      "videos": null,
+      "events": null,
+      "agreement": null,
+      "precision": null,
+      "recall": null,
+      "fa_per_hour": null
     }
+  },
+  "quality": {
+    "title": "Качество оповещений: весь конвейер на размеченных роликах",
+    "dataset": "13 роликов, 535 с: 23 достоверных события и 10 спорных",
+    "backend": "CPU, onnxruntime, det 640 fp32",
+    "measured_at": "24.10 13:42",
+    "source": "eval-onnx-cpu-phone-nearest-stress-20261024-1342.json · docs/QUALITY.md",
+    "overall": {
+      "tp": 18,
+      "fp": 0,
+      "fn": 5,
+      "duplicates": 0,
+      "latency_p50_s": 2.35,
+      "latency_p95_s": 8.85,
+      "duration_s": 535,
+      "fa_per_hour_upper": 20
+    },
+    "base": {
+      "tp": 11,
+      "fp": 3,
+      "fn": 12,
+      "duplicates": 2,
+      "precision": 0.79,
+      "recall": 0.48
+    },
+    "by_type": [
+      {
+        "id": "S1",
+        "title": "Опасная зона",
+        "k": 4,
+        "n": 4
+      },
+      {
+        "id": "S2",
+        "title": "Нет каски",
+        "k": 5,
+        "n": 6
+      },
+      {
+        "id": "S3",
+        "title": "Падение",
+        "k": 6,
+        "n": 7
+      },
+      {
+        "id": "S4",
+        "title": "Сближение с техникой",
+        "k": 2,
+        "n": 4
+      },
+      {
+        "id": "S6",
+        "title": "Телефон",
+        "k": 1,
+        "n": 1
+      },
+      {
+        "id": "S7",
+        "title": "Курение",
+        "k": 0,
+        "n": 1,
+        "not_claimed": true
+      }
+    ]
+  },
+  "latency": {
+    "title": "От начала нарушения до оповещения на ноутбуке, с",
+    "source": "docs/EDGE.md §6.1, §6.4",
+    "runs": [
+      {
+        "label": "24.10 10:02",
+        "sub": "канал VPN свободен · 41 событие",
+        "window": 1.723,
+        "edge": 0.166,
+        "channel": 0.158,
+        "p50": 2.203,
+        "p95": 2.527,
+        "file": "edge-tpu-20261024-1002.json"
+      },
+      {
+        "label": "24.10 13:38",
+        "sub": "канал VPN загружен · 82 события",
+        "window": 1.693,
+        "edge": 0.142,
+        "channel": 1.132,
+        "p50": 2.837,
+        "p95": 4.046,
+        "file": "edge-tpu-stability-tap-20261024-1338.json"
+      }
+    ]
   },
   "tpu_vs_cpu": {
     "title": "Кадров в секунду в одном контейнере (1.5 CPU, 4 ГиБ)",
@@ -140,9 +341,10 @@
     "rows": [
       {
         "set": "det 480",
-        "use": "зона, СИЗ по атрибутам, техника, бег",
+        "use": "зона, СИЗ, техника, бег",
         "fps": 45.72,
-        "cams": 9
+        "cams": 9,
+        "main": true
       },
       {
         "set": "det 640",
@@ -154,7 +356,8 @@
         "set": "det + pose 480",
         "use": "падение, телефон, перелезание",
         "fps": 21.06,
-        "cams": 4
+        "cams": 4,
+        "main": true
       },
       {
         "set": "det + pose 640",
@@ -165,7 +368,7 @@
     ]
   },
   "scenarios": {
-    "as_of": "24.10, 10:00",
+    "as_of": "24.10, 21:30",
     "rows": [
       {
         "id": "S1",
@@ -173,31 +376,31 @@
         "plugin": "zone_intrusion",
         "models": "det",
         "state": "live",
-        "status": "работает в живом конвейере (local, CPU): события, снапшоты, клипы, журнал"
+        "status": "работает вживую на TPU в edge-режиме; на роликах 4 из 4"
       },
       {
         "id": "S2",
         "title": "Нет каски или жилета",
         "plugin": "ppe_missing",
         "models": "det + ppe",
-        "state": "wip",
-        "status": "плагин и тесты готовы; модель СИЗ скомпилирована под TPU (O5), сверка с CPU — в работе"
+        "state": "live",
+        "status": "работает на TPU в edge-режиме; 5 из 6. Жилет включается на зоне, где он обязателен"
       },
       {
         "id": "S3",
         "title": "Падение и неподвижность",
         "plugin": "fall_immobile",
         "models": "det + pose",
-        "state": "wip",
-        "status": "плагин и тесты готовы, pose на TPU сверена с CPU; прогон на роликах — в работе"
+        "state": "live",
+        "status": "работает на TPU в edge-режиме; 6 из 7"
       },
       {
         "id": "S4",
         "title": "Опасное сближение с техникой",
         "plugin": "vehicle_proximity",
         "models": "det",
-        "state": "wip",
-        "status": "плагин и тесты готовы; прогон на 3 роликах — в работе"
+        "state": "live",
+        "status": "работает на TPU в edge-режиме; 2 из 4. Модель погрузчика forklift-v1 обучена, событий пока не добавила"
       },
       {
         "id": "S5",
@@ -213,15 +416,15 @@
         "plugin": "phone_usage",
         "models": "det + pose",
         "state": "ready",
-        "status": "плагин и тесты готовы, ролик s6_01"
+        "status": "плагин и тесты готовы; на ролике 1 из 1, на всех 13 роликах 0 ложных"
       },
       {
         "id": "S7",
-        "title": "Открытый огонь (курение не заявляем)",
+        "title": "Открытый огонь; курение не заявляем",
         "plugin": "smoking_fire",
         "models": "fire",
         "state": "wip",
-        "status": "модель огня скомпилирована под TPU, сверка с CPU — в работе; курение моделью огня не решается"
+        "status": "модель огня на TPU, сверена с CPU; курение 0 из 1, детектор сигареты в работе"
       },
       {
         "id": "S8",
@@ -250,32 +453,80 @@
     ]
   },
   "questions": {
-    "source": "docs/CHECKPOINT_2.md §5 · .orchestra/QUESTIONS_FOR_ORGS.md",
+    "source": "docs/EXPERT_CALL.md §6",
     "groups": [
       {
-        "title": "Стенд во время защиты",
+        "title": "Продукт и качество",
         "items": [
-          "Живут ли фоновые процессы в Jupyter часами, в том числе 25.10? Будут ли перезапуски или очистка ~/work и /auto/cache?",
-          "Можно ли поднять лимиты контейнера (1.5 CPU, 4 ГиБ) на время защиты?",
-          "Допустим ли постоянный воркер рядом с TPU с HTTP-портом через jupyter-server-proxy?"
+          "Что для заказчика важнее: не пропустить нарушение или не дать ложную тревогу? Сколько ложных тревог в час на камеру приемлемо?",
+          "Сигнальный жилет на ваших объектах обязателен всегда или только в отдельных зонах? Включать ли проверку жилета по умолчанию?",
+          "Есть ли у LinQ или партнёров реальные записи с производства, хотя бы несколько часов без нарушений? Это главный способ честно оценить ложные тревоги"
         ]
       },
       {
-        "title": "Честность замеров",
+        "title": "Стенд и защита",
         "items": [
-          "Что входит в inference_time: только исполнение на устройстве или ещё упаковка и загрузка программы?",
-          "Сколько TPU и потоков воркера обслуживают очередь input? Она общая для всех команд?",
-          "Кешируется ли программа .tpu на воркере между задачами?"
-        ]
-      },
-      {
-        "title": "Инфраструктура",
-        "items": [
-          "Канал VPN асимметричный: к стенду 1–2 МБ/с, от стенда 0.1–0.4 МБ/с. Это ограничение сервера? Есть ли UDP-профиль?",
-          "Совпадает ли SDK tpu_framework 2026.9.45 с рантаймом? Куда слать баг-репорты компилятора?",
-          "Есть ли лимиты на размер и частоту сообщений в своих очередях RabbitMQ?"
+          "Будут ли перезапуски Jupyter-контейнера или очистка /auto/cache во время защиты 25.10? Можно ли на это время поднять лимит контейнера (1.5 CPU, 4 ГиБ)?",
+          "Что входит в inference_time воркера? Сколько TPU-устройств обслуживают общую очередь?",
+          "Канал VPN асимметричный: к стенду 1–2 МБ/с, от стенда 0.1–0.4 МБ/с. Это ограничение сервера? Есть ли UDP-профиль?"
         ]
       }
     ]
+  },
+  "flywheel": {
+    "_readme": "Статус звеньев слайда «Маховик» (data-sst=\"flywheel.steps.N\"): done — работает, part — частично, wip — в работе. Порядок: 01…07",
+    "as_of": "24.10 21:30",
+    "source": "docs/FLYWHEEL.md, docs/CHECKPOINT_3.md §4 (трек B), docs/MAIN_INTEGRATION_20261024.md",
+    "steps": [
+      "done",
+      "part",
+      "part",
+      "done",
+      "done",
+      "wip",
+      "part"
+    ],
+    "notes": [
+      "01 решение оператора → positive / hard_negative / forwarded",
+      "02 local: сбор event, uncertain, flicker работает; на edge — в работе",
+      "03 учитель применён при сборке набора погрузчика; модуль авторазметки — в работе",
+      "04 страница «Данные» с живым API",
+      "05 ml/flywheel/train.py, forklift-v1",
+      "06 ONNX есть, программы TPU для forklift-v1 нет; deploy — в работе",
+      "07 гейт работает (forklift-v1 — candidate); выкатка — в работе"
+    ]
+  },
+  "forklift": {
+    "_readme": "Первый оборот маховика: погрузчик для S4. Источник — ml/model_cards/forklift-v1.json, docs/MODELS.md «Погрузчик (S4)»",
+    "version": "forklift-v1",
+    "measured_at": "24.10 16:12",
+    "ap50": "0.87",
+    "ap50_ref": "0.50",
+    "test_images": 238,
+    "false_frames": 0,
+    "false_frames_ref": 35,
+    "frames_total": 338,
+    "s4": "2 из 4",
+    "s4_note": "событий S4 — как до дообучения. Гейт «не хуже» пройден, нужны кадры погрузчика с грузом"
+  },
+  "state_labels": {
+    "done": "работает",
+    "part": "частично",
+    "wip": "в работе"
+  },
+  "streams": {
+    "_readme": "Статусы на слайде «Реальные камеры» (data-sst): done | part | wip. Цифры проверки — pending.streams, итог — docs/STREAMS.md",
+    "as_of": "24.10 21:30",
+    "kinds": {
+      "rtsp": "done",
+      "mjpeg": "wip",
+      "hls": "wip",
+      "webcam": "done"
+    },
+    "features": {
+      "probe": "wip",
+      "status": "wip",
+      "reconnect": "done"
+    }
   }
 }
