@@ -88,10 +88,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def default_env() -> Path:
-    """.env ищется вверх от корня: в worktree это .env основного репозитория."""
+    """.env ищется вверх от корня без границы git: в worktree это .env основного репозитория.
+
+    Отсюда берётся только доступ к JupyterHub, GUARD_* в окружение не грузятся."""
     from guard.pipeline.settings import find_dotenv
 
-    return find_dotenv(ROOT) or ROOT / ".env"
+    return find_dotenv(ROOT, stop_at_git_root=False) or ROOT / ".env"
 
 
 # ---------- имена ----------

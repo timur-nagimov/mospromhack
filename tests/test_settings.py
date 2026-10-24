@@ -131,3 +131,67 @@ print("settings-lightweight-ok")
     process = subprocess.run([sys.executable, "-c", script], env=env, capture_output=True, text=True, timeout=10)
     assert process.returncode == 0, process.stdout + process.stderr
     assert "settings-lightweight-ok" in process.stdout
+
+
+def test_find_dotenv_stops_at_worktree_git_file(tmp_path):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("# parent repository\n", encoding="utf-8")
+    wt = tmp_path / ".agents/worktrees/wt"
+    nested = wt / "guard/pipeline"
+    nested.mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: ../../../.git/worktrees/wt\n", encoding="utf-8")
+
+    assert find_dotenv(wt) is None
+    assert find_dotenv(nested) is None
+
+
+def test_find_dotenv_finds_env_at_worktree_git_root(tmp_path):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("# parent repository\n", encoding="utf-8")
+    wt = tmp_path / ".agents/worktrees/wt"
+    (wt / "guard").mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: ../../../.git/worktrees/wt\n", encoding="utf-8")
+    (wt / ".env").write_text("# worktree\n", encoding="utf-8")
+
+    assert find_dotenv(wt / "guard") == wt / ".env"
+
+
+def test_find_dotenv_finds_env_at_checkout_git_root(tmp_path):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("# checkout\n", encoding="utf-8")
+    nested = tmp_path / "guard/pipeline"
+    nested.mkdir(parents=True)
+
+    assert find_dotenv(nested) == tmp_path / ".env"
+
+
+def test_find_dotenv_does_not_search_above_checkout_git_root(tmp_path):
+    (tmp_path / ".env").write_text("# outside checkout\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    (repo / "sub").mkdir()
+
+    assert find_dotenv(repo / "sub") is None
+
+
+def test_find_dotenv_can_search_above_worktree_git_root(tmp_path):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("# parent repository\n", encoding="utf-8")
+    wt = tmp_path / ".agents/worktrees/wt"
+    wt.mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: ../../../.git/worktrees/wt\n", encoding="utf-8")
+
+    assert find_dotenv(wt, stop_at_git_root=False) == tmp_path / ".env"
+
+
+def test_load_dotenv_guard_does_not_load_parent_repository_env(tmp_path, monkeypatch):
+    (tmp_path / ".git").mkdir()
+    (tmp_path / ".env").write_text("GUARD_SENTINEL_CX202=parent\n", encoding="utf-8")
+    wt = tmp_path / ".agents/worktrees/wt"
+    wt.mkdir(parents=True)
+    (wt / ".git").write_text("gitdir: ../../../.git/worktrees/wt\n", encoding="utf-8")
+    monkeypatch.setattr(configuration, "find_dotenv", find_dotenv)
+    monkeypatch.delenv("GUARD_SENTINEL_CX202", raising=False)
+
+    assert configuration.load_dotenv_guard(wt) is None
+    assert "GUARD_SENTINEL_CX202" not in os.environ
