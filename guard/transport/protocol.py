@@ -14,11 +14,19 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from guard.contracts import CameraConfig, Event, Zone
 
-MessageKind = Literal["event", "event_update", "frame_meta", "metrics", "cameras",
+MessageKind = Literal["event", "event_update", "frame_meta", "metrics", "cameras", "flywheel_sample",
                       "camera_config", "camera_config_ack"]
 # camera_config / camera_config_ack — управляющий канал gateway → edge (docs/EDGE_PROTOCOL.md)
 CONTROL_KINDS = frozenset({"camera_config", "camera_config_ack"})
 MAX_MESSAGE_BYTES = 2 * 1024 * 1024
+# Data-flywheel sample part (docs/FLYWHEEL.md): a JPEG chunk; part 0 also carries metadata.
+MAX_FLYWHEEL_PARTS = 64
+MAX_FLYWHEEL_CHUNK_BYTES = 64 * 1024
+MAX_FLYWHEEL_DETECTIONS = 4096
+FLYWHEEL_SAMPLE_FIELDS = frozenset({
+    "id", "created_at", "camera_id", "source", "event_id", "reason", "holdout",
+    "width", "height", "detections", "meta",
+})
 MAX_SNAPSHOT_BYTES = 1024 * 1024
 MAX_FRAME_DIMENSION = 4096
 MAX_FRAME_PIXELS = 16_777_216
@@ -182,6 +190,51 @@ def _frame_payload(payload: dict[str, Any]) -> None:
                 raise ValueError("Zone polygon must be normalized")
 
 
+def _flywheel_payload(payload: dict[str, Any]) -> None:
+    """No paths are accepted: the gateway derives the frame name from sample_id."""
+    if set(payload) != {"sample_id", "part", "parts", "sample", "jpeg_b64"}:
+        raise ValueError("Invalid flywheel_sample fields")
+    identifier(payload["sample_id"], "sample_id")
+    _integer(payload["parts"], "parts", 1, MAX_FLYWHEEL_PARTS)
+    _integer(payload["part"], "part", 0, payload["parts"] - 1)
+    sample = payload["sample"]
+    if payload["part"] > 0:
+        if sample is not None:
+            raise ValueError("Only the first flywheel part carries sample metadata")
+    else:
+        if not isinstance(sample, dict) or set(sample) - FLYWHEEL_SAMPLE_FIELDS:
+            raise ValueError("Invalid flywheel sample metadata")
+        if sample.get("id", payload["sample_id"]) != payload["sample_id"]:
+            raise ValueError("Flywheel sample id mismatch")
+        identifier(sample.get("camera_id"), "sample.camera_id")
+        if sample.get("event_id") is not None:
+            identifier(sample["event_id"], "sample.event_id")
+        if not isinstance(sample.get("source"), str) or not 1 <= len(sample["source"]) <= 32:
+            raise ValueError("Invalid flywheel sample source")
+        for dimension in ("width", "height"):
+            _integer(sample.get(dimension), f"sample.{dimension}", 1, MAX_FRAME_DIMENSION)
+        if "created_at" in sample:
+            _number(sample["created_at"], "sample.created_at", minimum=0)
+        if not isinstance(sample.get("reason", ""), str) or len(sample.get("reason", "")) > 512:
+            raise ValueError("Invalid flywheel sample reason")
+        if not isinstance(sample.get("meta", {}), dict):
+            raise ValueError("Invalid flywheel sample meta")
+        detections = sample.get("detections", [])
+        if not isinstance(detections, list) or len(detections) > MAX_FLYWHEEL_DETECTIONS:
+            raise ValueError("Invalid flywheel sample detections")
+        if any(not isinstance(item, dict) for item in detections):
+            raise ValueError("Invalid flywheel sample detection")
+    chunk = payload["jpeg_b64"]
+    if not isinstance(chunk, str) or len(chunk) > 4 * ((MAX_FLYWHEEL_CHUNK_BYTES + 2) // 3):
+        raise ValueError("Invalid or oversized flywheel chunk")
+    try:
+        data = base64.b64decode(chunk, validate=True)
+    except (ValueError, binascii.Error):
+        raise ValueError("Invalid base64 flywheel chunk") from None
+    if not 1 <= len(data) <= MAX_FLYWHEEL_CHUNK_BYTES:
+        raise ValueError("Invalid or oversized flywheel chunk")
+
+
 class Envelope(BaseModel):
     """Version 1 envelope; validation also runs for messages built in Python."""
 
@@ -217,6 +270,8 @@ class Envelope(BaseModel):
             _event_payload(self.payload)
         elif self.kind == "frame_meta":
             _frame_payload(self.payload)
+        elif self.kind == "flywheel_sample":
+            _flywheel_payload(self.payload)
         elif self.kind == "metrics":
             if set(self.payload) != {"data"} or not isinstance(self.payload["data"], dict):
                 raise ValueError("metrics payload must contain a data object")

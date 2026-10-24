@@ -320,11 +320,16 @@ def analytics(
     request: Request,
     from_: str | None = Query(None, alias="from"),
     to: str | None = None,
+    employee_id: str | None = Query(None, min_length=1),
 ) -> dict[str, Any]:
     """Агрегаты выбранного периода из одного согласованного снимка журнала."""
-    return _engine(request).journal.analytics(
-        ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"),
-    )
+    from guard.employees import UnknownEmployee
+    try:
+        return _engine(request).journal.analytics(
+            ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"), employee_id=employee_id,
+        )
+    except UnknownEmployee as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.websocket("/ws/events")
@@ -439,6 +444,8 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
     app.include_router(reports_router)
     from guard.api.flywheel import router as flywheel_router  # маховик данных, docs/FLYWHEEL.md
     app.include_router(flywheel_router)
+    from guard.api.employees import router as employees_router
+    app.include_router(employees_router)
     if settings.frontend_dist.is_dir():
         app.mount("/", SPAStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     return app

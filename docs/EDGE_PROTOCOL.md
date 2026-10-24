@@ -56,6 +56,14 @@ JSON, NaN/Infinity и неверный `message_id` отклоняются до 
   `source.uri` обязательно равен `edge://<edge_id>/<camera_id>`.
   Перед формированием сообщения отправитель удаляет исходный URI и
   секреты из диагностических строк.
+- **flywheel_sample**: часть сэмпла маховика (`docs/FLYWHEEL.md`).
+  Ровно поля `sample_id`, `part`, `parts` (1..64), `sample`, `jpeg_b64`.
+  `sample` — объект только в части 0, в остальных null. В нём допустимы
+  только `id`, `created_at`, `camera_id`, `source`, `event_id`, `reason`,
+  `holdout`, `width`, `height`, `detections`, `meta`. `sample_id`,
+  `camera_id` и `event_id` — идентификаторы по правилу выше.
+  `jpeg_b64` — кусок JPEG от 1 байта до 64 КБ. Путей нет: имя кадра на
+  gateway строится из `sample_id`. Целый JPEG проверяет сборщик gateway.
 
 - **camera_config** (gateway → edge): `{"camera_id", "version", "op", "config"}`.
   `op` — `upsert` с полным CameraConfig в `config` (его `camera_id` равен
@@ -187,6 +195,15 @@ non-durable/non-exclusive очередь: это подтверждено пер
 Старую `.telemetry` приложение автоматически не удаляет; при обновлении
 оба процесса должны использовать новую версию. Очереди событий и wire
 version сохраняются.
+
+Сэмплы маховика (`flywheel_sample`) идут в третью очередь
+`guard.gateway.<edge_id>.flywheel.v1`, ключ `<edge_id>.flywheel`
+(`guard/flywheel/amqp.py`). Очередь durable по метаданным, сообщения
+delivery_mode=1, TTL 120 с, не больше 256 сообщений и 4 МБ. У edge и
+gateway для неё отдельные соединения: опрос событий и телеметрии сэмплов
+не ждёт. Гарантии доставки событий на сэмплы не распространяются: в outbox
+они не попадают. Старый gateway эту очередь не объявляет и не читает;
+части в ней истекают по TTL.
 
 Edge удерживает полный подготовленный пакет EventManager до успешной
 фиксации каждого нового события и закрытия. Временная ошибка SQLite

@@ -27,13 +27,13 @@
       "videos": ["clean_01", "clean_02", "s1_01", "s1_02", "s2_01", "s2_02", "s3_01", "s3_02", "s4_01", "s4_02",
         "s4_03", "s6_01", "s7_01"],
       "by_type": {"vehicle_proximity": {"tp": 2, "fp": 0, "fn": 2, "duplicates": 0}},
-      "report": ".orchestra/metrics/eval-onnx-cpu-forklift-base-20261024-1444.json",
+      "report": "eval-onnx-cpu-forklift-base-20261024-1444.json",
       "note": "CPU-прогон run_offline: det 640 + pose/ppe/fire по правилам роликов, параметры T3 (docs/QUALITY.md)"
     }
   },
   "baseline": {},
   "tpu_check": {"frames": 30, "recall": 0.95, "precision": 0.97, "conf_tpu": 0.25,
-    "source": "docs/BENCHMARKS.md, .orchestra/metrics/tpu-baseline.json (det 480)"},
+    "source": "docs/BENCHMARKS.md, tpu-baseline.json (det 480)"},
   "gate": null,
   "status": "deployed",
   "note": "Базовая модель: det и det_n480 в configs/models*.yaml. Погрузчика в классах нет — S4 2 из 4 (docs/QUALITY.md)."

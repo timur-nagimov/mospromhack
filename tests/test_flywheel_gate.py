@@ -195,6 +195,35 @@ def test_cli_refuses_events_on_different_videos(tmp_path, monkeypatch):
     assert code == 2
 
 
+def test_scenarios_runs_share_cache_and_record_reports(tmp_path, monkeypatch, capsys):
+    # Обе стороны считаются здесь же: кэш детекций общий, путь отчёта и коммит кода — в карточку.
+    card = {"model_id": "forklift", "version": "forklift-vt", "parent": "p", "created_at": "x",
+            "task": "detect", "classes": ["person", "forklift"], "status": "candidate"}
+    card_file = tmp_path / "forklift-vt.json"
+    card_file.write_text(json.dumps(card))
+    calls = []
+
+    def fake_run_events(scenarios, only, out, models_config=None, cache_dir=None):
+        calls.append((Path(scenarios).name, models_config is not None, cache_dir))
+        rep = _report(3, 0, 1) if models_config is not None else _report(2, 0, 2)
+        rep["code"] = "abc1234" if models_config is not None else "def5678"
+        return rep
+
+    monkeypatch.setattr(gate, "run_events", fake_run_events)
+    monkeypatch.setattr(gate, "candidate_registry", lambda *a: tmp_path / "models_candidate.yaml")
+    saved = {}
+    monkeypatch.setattr(gate, "save_card", lambda c: saved.update(c) or tmp_path / "out.json")
+    code = gate.main(["--candidate", str(card_file), "--onnx", str(tmp_path / "x.onnx"),
+                      "--scenarios-candidate", "sc.yaml", "--scenarios-baseline", "sc.yaml",
+                      "--cache-dir", str(tmp_path / "cache"), "--events-out", str(tmp_path / "runs"), "--write"])
+    assert code == 1  # без --data mAP50 кандидата нет — отказ, но события посчитаны и записаны
+    assert calls == [("sc.yaml", True, tmp_path / "cache"), ("sc.yaml", False, tmp_path / "cache")]
+    assert saved["holdout"]["events"]["report"].startswith(str(tmp_path / "runs" / "forklift-vt"))
+    assert saved["baseline"]["holdout"]["events"]["report"].startswith(str(tmp_path / "runs" / "events-base-"))
+    assert saved["holdout"]["events"]["code"] == "abc1234"
+    assert "разным кодом" in capsys.readouterr().err
+
+
 def test_parser_requires_candidate():
     with pytest.raises(SystemExit):
         gate.build_parser().parse_args([])
