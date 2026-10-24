@@ -354,3 +354,34 @@ def test_worker_end_to_end_single_s1_event(tmp_path):
     jpeg = worker.overlay_jpeg()
     assert jpeg is not None and jpeg[1][:2] == b"\xff\xd8"
     engine.stop()
+
+
+def test_clip_queue_full_marks_clip_error_and_restart_publishes_close(tmp_path):
+    settings = make_settings(tmp_path, autostart=False)
+    engine = PipelineEngine(settings, backend=FakeBackend())
+    cam = CameraConfig(
+        camera_id="cam1", name="Цех", site="Цех 1",
+        source=SourceConfig(type="images", uri=str(write_images(tmp_path / "imgs", n=2))),
+        sample_fps=5,
+        zones=[Zone(zone_id="z1", name="Опасная", polygon=[(0.4, 0.5), (0.9, 0.5), (0.9, 1.0), (0.4, 1.0)])],
+        rules=[RuleConfig(rule_id="s1", type="zone_intrusion", zones=["z1"], min_duration_s=1.0, close_after_s=1.0)],
+    )
+    engine.cameras[cam.camera_id] = cam
+    worker = CameraWorker(cam, engine)
+    worker.detectors = {"det": ScriptedDetector(lambda i, frame: [person((200, 60, 240, 200))])}  # стоит в зоне
+    engine.media.schedule_clip = lambda ev, on_done=None: False  # очередь клипов переполнена
+    published = []
+    engine.bus.publish = published.append
+    frame = np.zeros((240, 320, 3), np.uint8)
+    t0 = time.time() - 20
+    for i in range(20):
+        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0))
+    events, _ = engine.journal.query(camera_id="cam1")
+    assert len(events) == 1
+    ev = events[0]
+    assert ev.ended_at is None and ev.details.get("clip_error") is True
+    published.clear()
+    engine._close_open_events("cam1")  # горячий перезапуск камеры
+    updates = [m["event"] for m in published if m["kind"] == "event_update"]
+    assert updates and updates[0]["id"] == ev.id and updates[0]["ended_at"] is not None
+    engine.stop()
