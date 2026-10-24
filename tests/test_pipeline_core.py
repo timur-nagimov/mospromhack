@@ -241,7 +241,7 @@ def test_batch_scheduler_skips_cancelled_requests():
     assert be.calls == 1 and stale.cancelled()
 
 
-# ---------- заглушки (запасной вариант модулей Codex) ----------
+# ---------- заглушки (резервные реализации модулей) ----------
 
 
 def test_fallback_letterbox_decode_roundtrip():
@@ -355,7 +355,7 @@ def test_worker_end_to_end_single_s1_event(tmp_path):
     for i in range(50):
         ts = t0 + i * 0.2
         engine.media.push_frame("cam1", frame, ts)
-        worker.process(FramePacket(frame=frame, ts=ts, seq=i + 1, decode_ms=1.0))
+        worker.process(FramePacket(frame=frame, ts=ts, seq=i + 1, decode_ms=1.0, capture_id=worker.source.capture_id))
     events, total = engine.journal.query(camera_id="cam1")
     assert total == 1
     ev = events[0]
@@ -391,7 +391,7 @@ def test_clip_queue_full_marks_clip_error_and_restart_publishes_close(tmp_path):
     frame = np.zeros((240, 320, 3), np.uint8)
     t0 = time.time() - 20
     for i in range(20):
-        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0))
+        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0, capture_id=worker.source.capture_id))
     events, _ = engine.journal.query(camera_id="cam1")
     assert len(events) == 1
     ev = events[0]

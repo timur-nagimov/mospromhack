@@ -218,13 +218,17 @@ def _capture_playback(engine: Any, cam: Any, writer: Any) -> dict[str, Any] | No
     worker = engine.workers.get(cam.camera_id)
     if worker is None:
         return None
-    pkt = worker.source.latest()
+    source = getattr(worker, "source", None)
+    latest = getattr(source, "latest", None)
+    if not callable(latest):
+        return None
+    pkt = latest()
     if pkt is None:
         return None
     det_dicts: list[dict[str, Any]] = []
     meta_for = getattr(worker, "meta_for", None)
     if callable(meta_for):
-        fps = worker.source.native_fps or 25.0
+        fps = source.native_fps or 25.0
         meta = meta_for(round(pkt.pos_s * fps) if pkt.pos_s is not None else None)
         if meta is not None:
             h, w = pkt.frame.shape[:2]

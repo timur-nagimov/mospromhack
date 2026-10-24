@@ -89,8 +89,32 @@ def _phone_near_person(person: Track, phone: Detection) -> bool:
     )
 
 
+def ppe_attribute(cls: str) -> str | None:
+    return _PPE[cls][0] if cls in _PPE else None
+
+
+def ppe_candidates(det: Detection, people: list[Track]) -> list[tuple[float, int, int]]:
+    """Anatomically compatible (distance, track ID, index), using runtime geometry."""
+    if det.cls not in _PPE or not valid_detection(det):
+        return []
+    _, _, top, bottom, anchor = _PPE[det.cls]
+    cx, cy = (det.bbox[0] + det.bbox[2]) / 2, (det.bbox[1] + det.bbox[3]) / 2
+    candidates = []
+    for index, person in enumerate(people):
+        x1, y1, x2, y2 = person.bbox
+        width, height = x2 - x1, y2 - y1
+        if width <= 0 or height <= 0:
+            continue
+        if x1 - .1 * width <= cx <= x2 + .1 * width and y1 + top * height <= cy <= y1 + bottom * height:
+            distance = ((cx - (x1 + x2) / 2) / width) ** 2 + ((cy - (y1 + anchor * height)) / height) ** 2
+            candidates.append((distance, person.track_id, index))
+    return candidates
+
+
 def assign_attributes(
-    people: list[Track], dets: dict[str, list[Detection]], ts: float
+    people: list[Track], dets: dict[str, list[Detection]], ts: float, *,
+    ppe_by_track: dict[int, list[Detection]] | None = None,
+    ppe_unknown: dict[int, set[str]] | None = None,
 ) -> None:
     """Update attributes in place using nondecreasing timestamps.
 
@@ -100,6 +124,11 @@ def assign_attributes(
     adds no observation. The strongest compatible detection supplies the vote.
     Repeated PPE runs at the same timestamp replace that timestamp's observation;
     calls without the PPE model preserve it.
+
+    Optional ppe_by_track supplies already owner-bound observations. Presence of
+    a track ID means one successful ROI model run, including an empty result;
+    missing IDs add no observation. ppe_unknown masks current public attributes
+    after aggregation and leaves the private history and pose/phone untouched.
 
     False requires at least _PPE_MIN_NEG_VOTES negative votes and a negative
     fraction of at least _PPE_NEG_RATIO among all model-run observations.
@@ -122,33 +151,28 @@ def assign_attributes(
 
     ppe_ran = "ppe" in dets
     votes: list[dict[str, tuple[float, bool]]] = [{} for _ in people]
-    for det in dets.get("ppe", []):
+    for det in (dets.get("ppe", []) if ppe_by_track is None else []):
         if det.cls not in _PPE or not valid_detection(det):
             continue
-        name, value, top, bottom, anchor = _PPE[det.cls]
-        cx = (det.bbox[0] + det.bbox[2]) / 2.0
-        cy = (det.bbox[1] + det.bbox[3]) / 2.0
-        candidates: list[tuple[float, int, int]] = []
-        for index, person in enumerate(people):
-            x1, y1, x2, y2 = person.bbox
-            width, height = x2 - x1, y2 - y1
-            if width <= 0 or height <= 0:
-                continue
-            if (
-                x1 - 0.1 * width <= cx <= x2 + 0.1 * width
-                and y1 + top * height <= cy <= y1 + bottom * height
-            ):
-                distance = (
-                    ((cx - (x1 + x2) / 2.0) / width) ** 2
-                    + ((cy - (y1 + anchor * height)) / height) ** 2
-                )
-                candidates.append((distance, person.track_id, index))
+        name, value, *_ = _PPE[det.cls]
+        candidates = ppe_candidates(det, people)
         if not candidates:
             continue
         _, _, index = min(candidates)
         previous = votes[index].get(name)
         if previous is None or det.conf > previous[0]:
             votes[index][name] = (float(det.conf), value)
+
+    if ppe_by_track is not None:
+        votes = [{} for _ in people]
+        for index, person in enumerate(people):
+            for det in ppe_by_track.get(person.track_id, []):
+                if det.cls not in _PPE or not valid_detection(det):
+                    continue
+                name, value, *_ = _PPE[det.cls]
+                previous = votes[index].get(name)
+                if previous is None or det.conf > previous[0]:
+                    votes[index][name] = (float(det.conf), value)
 
     poses = [det for det in dets.get("pose", []) if valid_detection(det)]
     pose_matches = {
@@ -172,13 +196,14 @@ def assign_attributes(
         )
         state["last_ts"] = ts
         histories = state["ppe"]
+        observed = ppe_ran if ppe_by_track is None else person.track_id in ppe_by_track
         for name in _ATTRIBUTE_NAMES:
             samples = [
                 sample
                 for sample in histories.get(name, [])
                 if ts - _PPE_WINDOW_S <= sample[0] <= ts
             ]
-            if ppe_ran:
+            if observed:
                 samples = [sample for sample in samples if sample[0] < ts]
                 vote = votes[index].get(name)
                 samples.append((ts, vote[1] if vote is not None else None))
@@ -194,6 +219,10 @@ def assign_attributes(
             elif positives * 2 > len(samples):
                 attributes[name] = True
             else:
+                attributes[name] = None
+
+        for name in (ppe_unknown or {}).get(person.track_id, set()):
+            if name in _ATTRIBUTE_NAMES:
                 attributes[name] = None
 
         previous_pose = attributes.get("pose_state")

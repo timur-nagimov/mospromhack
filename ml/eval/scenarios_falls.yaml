@@ -1,0 +1,834 @@
+# Отложенная выборка падений и ADL (ml/datasets/falls.py holdout, docs/QUALITY.md).
+# Ролики собраны из test-серий открытых наборов: URFD (люди P2, P5, B, E), CAUCAFall (люди 8–10),
+# GMDCSA24 (Subject 1 и 4; Subject 2 и 3 — источник s3_02, не используются). В обучение не попадают.
+# Правило fall_immobile — с теми же параметрами, что rule_defaults.fall в ml/eval/scenarios.yaml,
+# без подгонки; файл генерируется, параметры копируются оттуда.
+# Падение достоверно, если после его начала в ролике видно не меньше 3 с, иначе uncertain.
+
+version: 1
+root: ../..
+videos_dir: data/videos
+labels_dir: data/labels/falls
+models_config: configs/models.yaml
+models_dir: models
+sample_fps: 5.0
+t0: 1700000000.0
+
+rule_defaults:
+  fall: &fall
+    rule_id: "fall"
+    type: "fall_immobile"
+    enabled: true
+    min_duration_s: 1.0
+    min_ratio: 0.5
+    params: {"min_lying_s": 1.0, "immobile_window_s": 1.5}
+
+scenarios:
+  - id: urfd_fall_07
+    video: falls_urfd/fall-07.mp4
+    camera:
+      camera_id: falls_urfd_fall_07
+      name: "urfd fall-07 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_08
+    video: falls_urfd/fall-08.mp4
+    camera:
+      camera_id: falls_urfd_fall_08
+      name: "urfd fall-08 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_09
+    video: falls_urfd/fall-09.mp4
+    camera:
+      camera_id: falls_urfd_fall_09
+      name: "urfd fall-09 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_10
+    video: falls_urfd/fall-10.mp4
+    camera:
+      camera_id: falls_urfd_fall_10
+      name: "urfd fall-10 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_11
+    video: falls_urfd/fall-11.mp4
+    camera:
+      camera_id: falls_urfd_fall_11
+      name: "urfd fall-11 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_12
+    video: falls_urfd/fall-12.mp4
+    camera:
+      camera_id: falls_urfd_fall_12
+      name: "urfd fall-12 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_25
+    video: falls_urfd/fall-25.mp4
+    camera:
+      camera_id: falls_urfd_fall_25
+      name: "urfd fall-25 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_26
+    video: falls_urfd/fall-26.mp4
+    camera:
+      camera_id: falls_urfd_fall_26
+      name: "urfd fall-26 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_27
+    video: falls_urfd/fall-27.mp4
+    camera:
+      camera_id: falls_urfd_fall_27
+      name: "urfd fall-27 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_28
+    video: falls_urfd/fall-28.mp4
+    camera:
+      camera_id: falls_urfd_fall_28
+      name: "urfd fall-28 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_29
+    video: falls_urfd/fall-29.mp4
+    camera:
+      camera_id: falls_urfd_fall_29
+      name: "urfd fall-29 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_fall_30
+    video: falls_urfd/fall-30.mp4
+    camera:
+      camera_id: falls_urfd_fall_30
+      name: "urfd fall-30 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_12
+    video: falls_urfd/adl-12.mp4
+    camera:
+      camera_id: falls_urfd_adl_12
+      name: "urfd adl-12 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_13
+    video: falls_urfd/adl-13.mp4
+    camera:
+      camera_id: falls_urfd_adl_13
+      name: "urfd adl-13 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_14
+    video: falls_urfd/adl-14.mp4
+    camera:
+      camera_id: falls_urfd_adl_14
+      name: "urfd adl-14 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_15
+    video: falls_urfd/adl-15.mp4
+    camera:
+      camera_id: falls_urfd_adl_15
+      name: "urfd adl-15 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_16
+    video: falls_urfd/adl-16.mp4
+    camera:
+      camera_id: falls_urfd_adl_16
+      name: "urfd adl-16 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_17
+    video: falls_urfd/adl-17.mp4
+    camera:
+      camera_id: falls_urfd_adl_17
+      name: "urfd adl-17 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_18
+    video: falls_urfd/adl-18.mp4
+    camera:
+      camera_id: falls_urfd_adl_18
+      name: "urfd adl-18 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_19
+    video: falls_urfd/adl-19.mp4
+    camera:
+      camera_id: falls_urfd_adl_19
+      name: "urfd adl-19 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_20
+    video: falls_urfd/adl-20.mp4
+    camera:
+      camera_id: falls_urfd_adl_20
+      name: "urfd adl-20 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_21
+    video: falls_urfd/adl-21.mp4
+    camera:
+      camera_id: falls_urfd_adl_21
+      name: "urfd adl-21 (adl, lying_sofa)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_22
+    video: falls_urfd/adl-22.mp4
+    camera:
+      camera_id: falls_urfd_adl_22
+      name: "urfd adl-22 (adl, lying_sofa)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_23
+    video: falls_urfd/adl-23.mp4
+    camera:
+      camera_id: falls_urfd_adl_23
+      name: "urfd adl-23 (adl, lying_sofa)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_28
+    video: falls_urfd/adl-28.mp4
+    camera:
+      camera_id: falls_urfd_adl_28
+      name: "urfd adl-28 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_29
+    video: falls_urfd/adl-29.mp4
+    camera:
+      camera_id: falls_urfd_adl_29
+      name: "urfd adl-29 (adl, walk_sit_crouch)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_31
+    video: falls_urfd/adl-31.mp4
+    camera:
+      camera_id: falls_urfd_adl_31
+      name: "urfd adl-31 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_32
+    video: falls_urfd/adl-32.mp4
+    camera:
+      camera_id: falls_urfd_adl_32
+      name: "urfd adl-32 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_34
+    video: falls_urfd/adl-34.mp4
+    camera:
+      camera_id: falls_urfd_adl_34
+      name: "urfd adl-34 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_35
+    video: falls_urfd/adl-35.mp4
+    camera:
+      camera_id: falls_urfd_adl_35
+      name: "urfd adl-35 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_36
+    video: falls_urfd/adl-36.mp4
+    camera:
+      camera_id: falls_urfd_adl_36
+      name: "urfd adl-36 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: urfd_adl_37
+    video: falls_urfd/adl-37.mp4
+    camera:
+      camera_id: falls_urfd_adl_37
+      name: "urfd adl-37 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_01
+    video: falls_gmdcsa/s1_fall_01.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_01
+      name: "gmdcsa s1_fall_01 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_02
+    video: falls_gmdcsa/s1_fall_02.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_02
+      name: "gmdcsa s1_fall_02 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_03
+    video: falls_gmdcsa/s1_fall_03.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_03
+      name: "gmdcsa s1_fall_03 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_04
+    video: falls_gmdcsa/s1_fall_04.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_04
+      name: "gmdcsa s1_fall_04 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_05
+    video: falls_gmdcsa/s1_fall_05.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_05
+      name: "gmdcsa s1_fall_05 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_06
+    video: falls_gmdcsa/s1_fall_06.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_06
+      name: "gmdcsa s1_fall_06 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_07
+    video: falls_gmdcsa/s1_fall_07.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_07
+      name: "gmdcsa s1_fall_07 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_08
+    video: falls_gmdcsa/s1_fall_08.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_08
+      name: "gmdcsa s1_fall_08 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_09
+    video: falls_gmdcsa/s1_fall_09.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_09
+      name: "gmdcsa s1_fall_09 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_10
+    video: falls_gmdcsa/s1_fall_10.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_10
+      name: "gmdcsa s1_fall_10 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_11
+    video: falls_gmdcsa/s1_fall_11.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_11
+      name: "gmdcsa s1_fall_11 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_12
+    video: falls_gmdcsa/s1_fall_12.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_12
+      name: "gmdcsa s1_fall_12 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_13
+    video: falls_gmdcsa/s1_fall_13.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_13
+      name: "gmdcsa s1_fall_13 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_14
+    video: falls_gmdcsa/s1_fall_14.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_14
+      name: "gmdcsa s1_fall_14 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_15
+    video: falls_gmdcsa/s1_fall_15.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_15
+      name: "gmdcsa s1_fall_15 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_fall_16
+    video: falls_gmdcsa/s1_fall_16.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_fall_16
+      name: "gmdcsa s1_fall_16 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_01
+    video: falls_gmdcsa/s1_adl_01.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_01
+      name: "gmdcsa s1_adl_01 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_02
+    video: falls_gmdcsa/s1_adl_02.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_02
+      name: "gmdcsa s1_adl_02 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_03
+    video: falls_gmdcsa/s1_adl_03.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_03
+      name: "gmdcsa s1_adl_03 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_04
+    video: falls_gmdcsa/s1_adl_04.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_04
+      name: "gmdcsa s1_adl_04 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_05
+    video: falls_gmdcsa/s1_adl_05.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_05
+      name: "gmdcsa s1_adl_05 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_06
+    video: falls_gmdcsa/s1_adl_06.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_06
+      name: "gmdcsa s1_adl_06 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_07
+    video: falls_gmdcsa/s1_adl_07.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_07
+      name: "gmdcsa s1_adl_07 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_08
+    video: falls_gmdcsa/s1_adl_08.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_08
+      name: "gmdcsa s1_adl_08 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_09
+    video: falls_gmdcsa/s1_adl_09.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_09
+      name: "gmdcsa s1_adl_09 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_10
+    video: falls_gmdcsa/s1_adl_10.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_10
+      name: "gmdcsa s1_adl_10 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_11
+    video: falls_gmdcsa/s1_adl_11.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_11
+      name: "gmdcsa s1_adl_11 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_12
+    video: falls_gmdcsa/s1_adl_12.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_12
+      name: "gmdcsa s1_adl_12 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_13
+    video: falls_gmdcsa/s1_adl_13.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_13
+      name: "gmdcsa s1_adl_13 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_14
+    video: falls_gmdcsa/s1_adl_14.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_14
+      name: "gmdcsa s1_adl_14 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_15
+    video: falls_gmdcsa/s1_adl_15.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_15
+      name: "gmdcsa s1_adl_15 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s1_adl_16
+    video: falls_gmdcsa/s1_adl_16.mp4
+    camera:
+      camera_id: falls_gmdcsa_s1_adl_16
+      name: "gmdcsa s1_adl_16 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_01
+    video: falls_gmdcsa/s4_fall_01.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_01
+      name: "gmdcsa s4_fall_01 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_02
+    video: falls_gmdcsa/s4_fall_02.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_02
+      name: "gmdcsa s4_fall_02 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_03
+    video: falls_gmdcsa/s4_fall_03.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_03
+      name: "gmdcsa s4_fall_03 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_04
+    video: falls_gmdcsa/s4_fall_04.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_04
+      name: "gmdcsa s4_fall_04 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_05
+    video: falls_gmdcsa/s4_fall_05.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_05
+      name: "gmdcsa s4_fall_05 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_06
+    video: falls_gmdcsa/s4_fall_06.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_06
+      name: "gmdcsa s4_fall_06 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_07
+    video: falls_gmdcsa/s4_fall_07.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_07
+      name: "gmdcsa s4_fall_07 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_08
+    video: falls_gmdcsa/s4_fall_08.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_08
+      name: "gmdcsa s4_fall_08 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_09
+    video: falls_gmdcsa/s4_fall_09.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_09
+      name: "gmdcsa s4_fall_09 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_10
+    video: falls_gmdcsa/s4_fall_10.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_10
+      name: "gmdcsa s4_fall_10 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_11
+    video: falls_gmdcsa/s4_fall_11.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_11
+      name: "gmdcsa s4_fall_11 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_12
+    video: falls_gmdcsa/s4_fall_12.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_12
+      name: "gmdcsa s4_fall_12 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_13
+    video: falls_gmdcsa/s4_fall_13.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_13
+      name: "gmdcsa s4_fall_13 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_14
+    video: falls_gmdcsa/s4_fall_14.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_14
+      name: "gmdcsa s4_fall_14 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_15
+    video: falls_gmdcsa/s4_fall_15.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_15
+      name: "gmdcsa s4_fall_15 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_16
+    video: falls_gmdcsa/s4_fall_16.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_16
+      name: "gmdcsa s4_fall_16 (fall, fall)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_fall_17
+    video: falls_gmdcsa/s4_fall_17.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_fall_17
+      name: "gmdcsa s4_fall_17 (fall, fall_on_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_01
+    video: falls_gmdcsa/s4_adl_01.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_01
+      name: "gmdcsa s4_adl_01 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_02
+    video: falls_gmdcsa/s4_adl_02.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_02
+      name: "gmdcsa s4_adl_02 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_03
+    video: falls_gmdcsa/s4_adl_03.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_03
+      name: "gmdcsa s4_adl_03 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_04
+    video: falls_gmdcsa/s4_adl_04.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_04
+      name: "gmdcsa s4_adl_04 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_05
+    video: falls_gmdcsa/s4_adl_05.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_05
+      name: "gmdcsa s4_adl_05 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_06
+    video: falls_gmdcsa/s4_adl_06.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_06
+      name: "gmdcsa s4_adl_06 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_07
+    video: falls_gmdcsa/s4_adl_07.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_07
+      name: "gmdcsa s4_adl_07 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_08
+    video: falls_gmdcsa/s4_adl_08.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_08
+      name: "gmdcsa s4_adl_08 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_09
+    video: falls_gmdcsa/s4_adl_09.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_09
+      name: "gmdcsa s4_adl_09 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_10
+    video: falls_gmdcsa/s4_adl_10.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_10
+      name: "gmdcsa s4_adl_10 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_11
+    video: falls_gmdcsa/s4_adl_11.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_11
+      name: "gmdcsa s4_adl_11 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_12
+    video: falls_gmdcsa/s4_adl_12.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_12
+      name: "gmdcsa s4_adl_12 (adl, floor_activity)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_13
+    video: falls_gmdcsa/s4_adl_13.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_13
+      name: "gmdcsa s4_adl_13 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_14
+    video: falls_gmdcsa/s4_adl_14.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_14
+      name: "gmdcsa s4_adl_14 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_15
+    video: falls_gmdcsa/s4_adl_15.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_15
+      name: "gmdcsa s4_adl_15 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_16
+    video: falls_gmdcsa/s4_adl_16.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_16
+      name: "gmdcsa s4_adl_16 (adl, lying_bed)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_17
+    video: falls_gmdcsa/s4_adl_17.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_17
+      name: "gmdcsa s4_adl_17 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_18
+    video: falls_gmdcsa/s4_adl_18.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_18
+      name: "gmdcsa s4_adl_18 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_19
+    video: falls_gmdcsa/s4_adl_19.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_19
+      name: "gmdcsa s4_adl_19 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]
+  - id: gmdcsa_s4_adl_20
+    video: falls_gmdcsa/s4_adl_20.mp4
+    camera:
+      camera_id: falls_gmdcsa_s4_adl_20
+      name: "gmdcsa s4_adl_20 (adl, walk_sit_read)"
+      site: Отложенная выборка падений
+      zones: []
+      rules: [*fall]

@@ -15,16 +15,11 @@ import yaml
 from guard.contracts import ModelSpec
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-MAIN_ROOT = Path("/Users/nagimov-timur/Desktop/mosprom")
 DEFAULT_CONFIG = REPO_ROOT / "configs" / "models.yaml"
 
 
 def models_dir() -> Path:
-    env = os.environ.get("GUARD_MODELS_DIR")
-    if env:
-        return Path(env)
-    local = REPO_ROOT / "models"
-    return local if any(local.glob("*.onnx")) else MAIN_ROOT / "models"
+    return Path(os.environ.get("GUARD_MODELS_DIR") or REPO_ROOT / "models").expanduser()
 
 
 def load_raw(path: str | Path = DEFAULT_CONFIG) -> dict:

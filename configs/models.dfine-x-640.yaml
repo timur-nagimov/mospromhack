@@ -1,0 +1,103 @@
+# Explicit D-FINE experiment. iou_threshold is unused (no NMS).
+models:
+- model_id: det
+  task: detect
+  onnx_path: candidates/dfine-x-obj2coco/model.onnx
+  input_size:
+  - 640
+  - 640
+  input_dtype: float32
+  output_format: dfine
+  conf_threshold: 0.25
+  iou_threshold: 0.5
+  classes:
+  - person
+  - bicycle
+  - car
+  - motorbike
+  - aeroplane
+  - bus
+  - train
+  - truck
+  - boat
+  - traffic light
+  - fire hydrant
+  - stop sign
+  - parking meter
+  - bench
+  - bird
+  - cat
+  - dog
+  - horse
+  - sheep
+  - cow
+  - elephant
+  - bear
+  - zebra
+  - giraffe
+  - backpack
+  - umbrella
+  - handbag
+  - tie
+  - suitcase
+  - frisbee
+  - skis
+  - snowboard
+  - sports ball
+  - kite
+  - baseball bat
+  - baseball glove
+  - skateboard
+  - surfboard
+  - tennis racket
+  - bottle
+  - wine glass
+  - cup
+  - fork
+  - knife
+  - spoon
+  - bowl
+  - banana
+  - apple
+  - sandwich
+  - orange
+  - broccoli
+  - carrot
+  - hot dog
+  - pizza
+  - donut
+  - cake
+  - chair
+  - sofa
+  - pottedplant
+  - bed
+  - diningtable
+  - toilet
+  - tvmonitor
+  - laptop
+  - mouse
+  - remote
+  - keyboard
+  - cell phone
+  - microwave
+  - oven
+  - toaster
+  - sink
+  - refrigerator
+  - book
+  - clock
+  - vase
+  - scissors
+  - teddy bear
+  - hair drier
+  - toothbrush
+meta:
+  det:
+    status: experimental_opt_in
+    source: onnx-community/dfine_x_obj2coco-ONNX
+    revision: 4d3a85a6c29f55a5346fabaf9728f5f3751f947a
+    sha256: 486ee1cba40b25f3ea8d6783f664eca88b7c12d01078984834d36834d9b2c802
+    classes_source: pinned config.json id2label in index order
+    preprocessing: RGB PIL BILINEAR direct resize; float32 /255 NCHW; no normalize/pad
+    postprocessing: focal sigmoid; top-300 query/class pairs; no NMS
+    tpu_status: not compiled or verified

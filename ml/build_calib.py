@@ -4,20 +4,23 @@
 Отбор детерминированный (seed), тестовые кадры из data/images/samples исключаются.
 Рядом пишется manifest.csv: файл, тематика, источник, исходное имя, лицензия.
 
-    python ml/build_calib.py --work /path/to/a2_work/dl --out /Users/nagimov-timur/Desktop/mosprom/data/calib
+    python -m ml.build_calib --work ./downloaded --out ./data/calib
+
+По умолчанию data/calib и demo videos берутся из GUARD_DATA_DIR либо checkout/data.
 """
 
 from __future__ import annotations
 
 import argparse
 import csv
+import os
 import random
 import shutil
 from pathlib import Path
 
 import cv2
 
-MAIN = Path("/Users/nagimov-timur/Desktop/mosprom")
+ROOT = Path(__file__).resolve().parents[1]
 
 SOURCES = {
     # ключ: (тематика, лицензия, url)
@@ -31,18 +34,26 @@ SOURCES = {
 }
 
 
-def main() -> int:
+def data_dir() -> Path:
+    return Path(os.environ.get("GUARD_DATA_DIR") or ROOT / "data").expanduser()
+
+
+def parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--work", required=True, help="каталог со скачанными наборами: cs/, forklift/, sh17/")
-    ap.add_argument("--out", default=str(MAIN / "data" / "calib"))
+    ap.add_argument("--out", default=str(data_dir() / "calib"))
     ap.add_argument("--n-cs", type=int, default=60)
     ap.add_argument("--n-forklift", type=int, default=50)
     ap.add_argument("--n-sh17", type=int, default=60)
     ap.add_argument("--n-video", type=int, default=30)
     ap.add_argument("--seed", type=int, default=12)
-    a = ap.parse_args()
+    return ap
 
-    work, out = Path(a.work), Path(a.out)
+
+def main(argv=None) -> int:
+    a = parser().parse_args(argv)
+
+    work, out = Path(a.work).expanduser(), Path(a.out).expanduser()
     out.mkdir(parents=True, exist_ok=True)
     for old in out.glob("calib_*.jpg"):
         old.unlink()
@@ -78,7 +89,7 @@ def main() -> int:
             idx += 1
 
     # кадры демо-видео: равномерно, исключая крайние 5 % и кадры, взятые в samples
-    videos = sorted((MAIN / "data" / "videos").glob("*/*.mp4"))
+    videos = sorted((data_dir() / "videos").glob("*/*.mp4"))
     weights = {"worker-zone-detection": 0.5, "store-aisle-detection": 0.25, "people-detection": 0.25}
     counts = {v.stem: int(a.n_video * weights.get(v.stem, 1 / max(len(videos), 1))) for v in videos}
     for v in videos[: a.n_video - sum(counts.values())]:  # остаток от округления вниз
@@ -96,7 +107,7 @@ def main() -> int:
                 continue
             name = f"calib_{idx:03d}_video.jpg"
             cv2.imwrite(str(out / name), frame, [cv2.IMWRITE_JPEG_QUALITY, 95])
-            rows.append([name, SOURCES["video"][0], str(v.relative_to(MAIN)), f"frame {f}", SOURCES["video"][1]])
+            rows.append([name, SOURCES["video"][0], str(v.relative_to(data_dir())), f"frame {f}", SOURCES["video"][1]])
             idx += 1
 
     with open(out / "manifest.csv", "w", newline="", encoding="utf-8") as f:

@@ -59,7 +59,7 @@ class ModelSpec(BaseModel):
     input_size: tuple[int, int] = (640, 640)  # (h, w)
     input_dtype: Literal["float32", "uint8"] = "float32"
     classes: list[str] = Field(default_factory=list)
-    output_format: Literal["yolov8", "yolov8-pose", "raw"] = "yolov8"
+    output_format: Literal["yolov8", "yolov8-pose", "dfine", "raw"] = "yolov8"
     conf_threshold: float = 0.35
     iou_threshold: float = 0.5
 
@@ -177,6 +177,10 @@ class FrameContext:
     people: list[Track] = field(default_factory=list)  # треки людей
     objects: list[Track] = field(default_factory=list)  # треки техники и прочих объектов
     timings: dict[str, float] = field(default_factory=dict)  # мс, ключи из TIMING_KEYS
+    # Current-frame coverage only: observed | not_observable | unsupported | error.
+    model_observations: dict[str, str] = field(default_factory=dict)
+    # Explicit opt-in reports by rule_id; existing plugins need not populate it.
+    rule_observations: dict[str, str] = field(default_factory=dict)
 
     @property
     def size(self) -> tuple[int, int]:

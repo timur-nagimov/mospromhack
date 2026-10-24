@@ -1,9 +1,10 @@
 """Выбор бэкенда инференса по имени; модули реализаций импортируются лениво.
 
     backend = get_backend()           # GUARD_BACKEND, по умолчанию "onnx-cpu"
-    backend = get_backend("linq-tpu") # TPU с автоматическим откатом на CPU
+    backend = get_backend("linq-tpu") # строго TPU; ошибка не превращается в CPU
+    backend = get_backend("linq-tpu", fallback="onnx-cpu") # явный opt-in
 
-GUARD_BACKEND_FALLBACK=none отключает откат; по умолчанию для TPU — onnx-cpu.
+GUARD_BACKEND_FALLBACK=onnx-cpu явно разрешает откат; по умолчанию он отключён.
 Лишние kwargs, которых конструктор не принимает, отбрасываются.
 """
 
@@ -15,6 +16,7 @@ import os
 from typing import Any
 
 from guard.inference.base import InferenceBackend
+from guard.pipeline.settings import normalize_backend_name
 
 DEFAULT_BACKEND = "onnx-cpu"
 
@@ -22,16 +24,10 @@ _MODULES = {
     "onnx-cpu": "guard.inference.onnx_cpu",
     "linq-tpu": "guard.inference.linq_tpu",
 }
-_ALIASES = {"onnx": "onnx-cpu", "cpu": "onnx-cpu", "ort": "onnx-cpu", "tpu": "linq-tpu", "linq": "linq-tpu"}
 
 
 def backend_name_from_env() -> str:
     return normalize_backend_name(os.environ.get("GUARD_BACKEND") or DEFAULT_BACKEND)
-
-
-def normalize_backend_name(name: str) -> str:
-    key = name.strip().lower().replace("_", "-")
-    return _ALIASES.get(key, key)
 
 
 def available_backends() -> list[str]:
@@ -48,13 +44,13 @@ def _filter_kwargs(fn: Any, kwargs: dict[str, Any]) -> dict[str, Any]:
     return {k: v for k, v in kwargs.items() if k in params}
 
 
-def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
+def get_backend(name: str | None = None, *, fallback: str | None = None, **kwargs: Any) -> InferenceBackend:
     """Создать бэкенд по имени (или из GUARD_BACKEND)."""
     resolved = normalize_backend_name(name) if name else backend_name_from_env()
     fallback_name = "none"
     if resolved == "linq-tpu":
         fallback_name = normalize_backend_name(
-            os.environ.get("GUARD_BACKEND_FALLBACK") or "onnx-cpu"
+            fallback if fallback is not None else os.environ.get("GUARD_BACKEND_FALLBACK") or "none"
         )
         if fallback_name not in {"none", "onnx-cpu"}:
             raise ValueError("GUARD_BACKEND_FALLBACK must be 'onnx-cpu' or 'none'")
@@ -85,7 +81,7 @@ def get_backend(name: str | None = None, **kwargs: Any) -> InferenceBackend:
         from guard.inference.fallback import FallbackBackend
 
         try:
-            secondary = get_backend(fallback_name, **kwargs)
+            secondary = get_backend(fallback_name, fallback="none", **kwargs)
             return FallbackBackend(backend, secondary)
         except Exception:
             backend.close()

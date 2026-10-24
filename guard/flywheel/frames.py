@@ -8,7 +8,6 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
-import cv2
 import numpy as np
 
 from guard.contracts import Detection
@@ -22,6 +21,8 @@ def encode_jpeg(
     frame: np.ndarray, max_width: int = 1280, quality: int = 90, max_kb: int | None = None
 ) -> tuple[bytes, int, int, float]:
     """JPEG кадра шириной не больше max_width. Возвращает (данные, ширина, высота, масштаб)."""
+    import cv2
+
     h, w = frame.shape[:2]
     scale = min(1.0, max_width / w) if max_width and w > max_width else 1.0
     img = frame
@@ -40,6 +41,8 @@ def encode_jpeg(
 
 def decode_size(jpeg: bytes) -> tuple[int, int]:
     """Ширина и высота JPEG без полной распаковки не нужны часто — распаковываем."""
+    import cv2
+
     img = cv2.imdecode(np.frombuffer(jpeg, np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         raise ValueError("not a JPEG")

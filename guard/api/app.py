@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
+import math
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -20,8 +21,7 @@ from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from guard.contracts import CameraConfig, Event, EventStatus
-from guard.pipeline.engine import CameraError, CameraExists, PipelineEngine
-from guard.pipeline.gateway import make_engine
+from guard.pipeline.errors import CameraError, CameraExists, CameraReadOnly
 from guard.pipeline.settings import Settings
 from guard.rules.base import available_rules, load_plugins
 from guard.rules.geometry import LOCAL_TZ
@@ -29,9 +29,7 @@ from guard.rules.geometry import LOCAL_TZ
 log = logging.getLogger(__name__)
 
 METRICS_PERIOD_S = 2.0
-STATS_GROUPS = {"type", "camera", "zone", "severity", "status", "site", "hour", "day", "weekday_hour"}
-_PY_GROUPS = {"site", "weekday_hour"}  # журнал их не группирует — считаем здесь
-_STATS_SCAN_LIMIT = 100_000
+STATS_GROUPS = {"type", "camera", "zone", "site", "hour", "day", "weekday_hour", "severity", "status"}
 
 
 class EventPatch(BaseModel):
@@ -39,11 +37,11 @@ class EventPatch(BaseModel):
     operator_note: str | None = None
 
 
-def _engine(request: Request) -> PipelineEngine:
+def _engine(request: Request) -> Any:
     return request.app.state.engine
 
 
-def _camera_out(engine: PipelineEngine, cam: CameraConfig) -> dict[str, Any]:
+def _camera_out(engine: Any, cam: CameraConfig) -> dict[str, Any]:
     """CameraConfig плюс необязательное поле status (рантайм: running, fps, ошибки)."""
     return {**cam.model_dump(mode="json"), "status": engine.camera_status(cam.camera_id)}
 
@@ -53,9 +51,13 @@ def _parse_ts(value: str | None, name: str) -> float | None:
     if value is None or value == "":
         return None
     try:
-        return float(value)
+        timestamp = float(value)
     except ValueError:
         pass
+    else:
+        if not math.isfinite(timestamp):
+            raise HTTPException(422, f"{name}: expected finite epoch seconds")
+        return timestamp
     try:
         dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
@@ -105,6 +107,8 @@ def create_camera(cam: CameraConfig, request: Request) -> dict[str, Any]:
     engine = _engine(request)
     try:
         engine.add_camera(cam)
+    except CameraReadOnly as exc:
+        raise HTTPException(409, str(exc)) from exc
     except CameraExists as exc:
         raise HTTPException(409, f"camera {cam.camera_id} already exists") from exc
     except CameraError as exc:
@@ -117,6 +121,8 @@ def update_camera(camera_id: str, cam: CameraConfig, request: Request) -> dict[s
     engine = _engine(request)
     try:
         engine.update_camera(camera_id, cam)
+    except CameraReadOnly as exc:
+        raise HTTPException(409, str(exc)) from exc
     except CameraError as exc:
         raise HTTPException(422, str(exc)) from exc
     except KeyError as exc:
@@ -128,6 +134,8 @@ def update_camera(camera_id: str, cam: CameraConfig, request: Request) -> dict[s
 def delete_camera(camera_id: str, request: Request) -> Response:
     try:
         _engine(request).delete_camera(camera_id)
+    except CameraReadOnly as exc:
+        raise HTTPException(409, str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(404, f"camera {camera_id} not found") from exc
     return Response(status_code=204)
@@ -279,38 +287,27 @@ def event_clip(event_id: str, request: Request) -> FileResponse:
 def stats(
     request: Request,
     group_by: str = Query("type"),
+    type: str | None = None,
+    camera_id: str | None = None,
+    zone_id: str | None = None,
+    status: str | None = None,
+    severity: str | None = None,
     from_: str | None = Query(None, alias="from"),
     to: str | None = None,
 ) -> dict[str, Any]:
     if group_by not in STATS_GROUPS:
         raise HTTPException(422, f"group_by must be one of {sorted(STATS_GROUPS)}")
-    journal = _engine(request).journal
-    ts_from, ts_to = _parse_ts(from_, "from"), _parse_ts(to, "to")
-    if group_by in _PY_GROUPS:
-        items = _group_events(journal, group_by, ts_from, ts_to)
-    else:
-        items = journal.stats(group_by, ts_from=ts_from, ts_to=ts_to)
+    items = _engine(request).journal.stats(
+        group_by,
+        ts_from=_parse_ts(from_, "from"),
+        ts_to=_parse_ts(to, "to"),
+        type=_split(type),
+        camera_id=_split(camera_id),
+        zone_id=_split(zone_id),
+        status=_split(status),
+        severity=_split(severity),
+    )
     return {"group_by": group_by, "items": items}
-
-
-def _group_events(journal: Any, group_by: str, ts_from: float | None, ts_to: float | None) -> list[dict[str, Any]]:
-    events, _ = journal.query(ts_from=ts_from, ts_to=ts_to, limit=_STATS_SCAN_LIMIT, offset=0, order="asc")
-    counts: dict[str, int] = {}
-    for ev in events:
-        if group_by == "site":
-            key = ev.site
-        else:  # weekday_hour: "<0-6>:<0-23>", понедельник = 0, время МСК
-            local = datetime.fromtimestamp(ev.confirmed_at, LOCAL_TZ)
-            key = f"{local.weekday()}:{local.hour}"
-        counts[key] = counts.get(key, 0) + 1
-
-    def order(key: str) -> tuple:
-        if group_by == "weekday_hour":
-            day, hour = key.split(":")
-            return (int(day), int(hour))
-        return (key,)
-
-    return [{"key": k, "count": counts[k]} for k in sorted(counts, key=order)]
 
 
 @router.get("/api/metrics")
@@ -318,9 +315,21 @@ def metrics(request: Request) -> dict[str, Any]:
     return _engine(request).metrics_snapshot()
 
 
+@router.get("/api/analytics")
+def analytics(
+    request: Request,
+    from_: str | None = Query(None, alias="from"),
+    to: str | None = None,
+) -> dict[str, Any]:
+    """Агрегаты выбранного периода из одного согласованного снимка журнала."""
+    return _engine(request).journal.analytics(
+        ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"),
+    )
+
+
 @router.websocket("/ws/events")
 async def ws_events(ws: WebSocket) -> None:
-    engine: PipelineEngine = ws.app.state.engine
+    engine = ws.app.state.engine
     await ws.accept()
     sub = engine.bus.subscribe()
 
@@ -361,7 +370,7 @@ class SPAStaticFiles(StaticFiles):
             return await super().get_response("index.html", scope)
 
 
-async def _metrics_loop(engine: PipelineEngine) -> None:
+async def _metrics_loop(engine: Any) -> None:
     while True:
         await asyncio.sleep(METRICS_PERIOD_S)
         if engine.bus.subscribers:
@@ -372,23 +381,45 @@ async def _metrics_loop(engine: PipelineEngine) -> None:
                 log.exception("metrics broadcast failed")
 
 
-def create_app(settings: Settings | None = None, engine: PipelineEngine | None = None) -> FastAPI:
+def _create_engine(settings: Settings) -> Any:
+    if settings.mode == "gateway":
+        from guard.gateway.engine import GatewayEngine
+        return GatewayEngine(settings)
+    if settings.mode == "edge":
+        from guard.edge.runner import EdgeEngine
+        return EdgeEngine(settings)
+    from guard.pipeline.engine import PipelineEngine
+    return PipelineEngine(settings)
+
+
+def create_app(settings: Settings | None = None, engine: Any | None = None) -> FastAPI:
     settings = settings or (engine.settings if engine else Settings.from_env())
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
-        eng = engine or make_engine(settings)  # local или gateway (GUARD_MODE)
+        eng = engine or _create_engine(settings)
         app.state.engine = eng
-        if settings.autostart:
-            await run_in_threadpool(eng.start)
-        task = asyncio.create_task(_metrics_loop(eng))
+        task = None
+        failed = False
         try:
+            if settings.autostart:
+                await run_in_threadpool(eng.start)
+            task = asyncio.create_task(_metrics_loop(eng))
             yield
+        except BaseException:
+            failed = True
+            raise
         finally:
-            task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await task
-            await run_in_threadpool(eng.stop)
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+            try:
+                await run_in_threadpool(eng.stop)
+            except Exception as exc:
+                if not failed:
+                    raise
+                log.error("Startup cleanup failed: %s", type(exc).__name__)
 
     app = FastAPI(title="Зазеркалье — видеоаналитика ТБ", version="0.1.0", lifespan=lifespan)
     app.add_middleware(

@@ -1,0 +1,12 @@
+# Explicit heavy experimental candidate; the default registry remains unchanged.
+# Official YOLOv8x weights: Ultralytics assets release v8.3.0.
+# Sidecar classes and provenance must be in <candidate-models-dir>/det.json.
+models:
+  - model_id: det
+    task: detect
+    onnx_path: yolov8x-640.onnx
+    input_size: [640, 640]
+    input_dtype: float32
+    output_format: yolov8
+    conf_threshold: 0.25
+    iou_threshold: 0.5

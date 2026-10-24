@@ -1,4 +1,5 @@
 import type {
+  AnalyticsResponse,
   CameraConfig,
   EventPage,
   EventPatch,
@@ -10,7 +11,7 @@ import type {
   StatsResponse,
 } from '../domain/types';
 import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
-import { ApiError, type FlywheelApi, type GuardApi, type StatsQuery } from './types';
+import { ApiError, type FlywheelApi, type AnalyticsQuery, type GuardApi, type StatsQuery } from './types';
 import { EventSocket } from './ws';
 
 /**
@@ -209,7 +210,9 @@ export function createHttpApi(): GuardApi {
     getEvent: (id) => request<GuardEvent>(`/api/events/${enc(id)}`),
     patchEvent: (id, patch: EventPatch) => request<GuardEvent>(`/api/events/${enc(id)}`, { method: 'PATCH', json: patch }),
     getStats: (q: StatsQuery) =>
-      request<StatsResponse>(`/api/stats${toQuery({ group_by: q.group_by, from: q.from, to: q.to })}`),
+      request<StatsResponse>(`/api/stats${toQuery({ ...q })}`),
+    getAnalytics: (q: AnalyticsQuery, signal?: AbortSignal) =>
+      request<AnalyticsResponse>(`/api/analytics${toQuery({ ...q })}`, { signal }),
     getMetrics: () => request<MetricsSnapshot>('/api/metrics'),
     subscribe: (subscription) => socket.subscribe(subscription),
     media: {

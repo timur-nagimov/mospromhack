@@ -1,4 +1,4 @@
-"""YOLOv8 image preprocessing without torch or ultralytics."""
+"""Explicit model image preprocessing without torch or ultralytics."""
 
 from __future__ import annotations
 
@@ -19,6 +19,45 @@ class LetterboxMeta:
     pad_y: int
     orig_w: int
     orig_h: int
+
+
+@dataclass(frozen=True, slots=True)
+class DirectResizeMeta:
+    """Original image size for normalized boxes from a direct resize."""
+
+    orig_w: int
+    orig_h: int
+
+
+def resize_rgb(
+    img_bgr: np.ndarray,
+    size: tuple[int, int] = (640, 640),
+) -> tuple[np.ndarray, DirectResizeMeta]:
+    """D-FINE HF processor: PIL bilinear RGB resize, /255, float32 NCHW.
+
+    Aspect ratio changes to the requested (height, width). There is no padding
+    or mean/std normalization. PIL interpolation is intentional: OpenCV's
+    INTER_LINEAR is not numerically equivalent to this source processor.
+    """
+    from PIL import Image
+
+    if not isinstance(img_bgr, np.ndarray):
+        raise TypeError("img_bgr must be a numpy array")
+    if img_bgr.ndim != 3 or img_bgr.shape[2] != 3 or img_bgr.dtype != np.uint8:
+        raise ValueError("img_bgr must be a uint8 array of shape (height, width, 3)")
+    orig_h, orig_w = img_bgr.shape[:2]
+    if orig_h <= 0 or orig_w <= 0:
+        raise ValueError("img_bgr must not be empty")
+    if len(size) != 2 or any(
+        isinstance(value, bool) or not isinstance(value, Integral) or value <= 0
+        for value in size
+    ):
+        raise ValueError("size must contain two positive integers (height, width)")
+    rgb = Image.fromarray(np.ascontiguousarray(img_bgr[:, :, ::-1]))
+    resized = np.asarray(rgb.resize((int(size[1]), int(size[0])), Image.Resampling.BILINEAR))
+    tensor = np.ascontiguousarray(resized.transpose(2, 0, 1)[None], dtype=np.float32)
+    tensor /= np.float32(255.)
+    return tensor, DirectResizeMeta(orig_w=orig_w, orig_h=orig_h)
 
 
 def letterbox(

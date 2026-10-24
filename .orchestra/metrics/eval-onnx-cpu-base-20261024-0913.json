@@ -1,0 +1,1609 @@
+{
+  "tol_s": 2.0,
+  "duration_s": 534.88,
+  "videos": [
+    "clean_01.mp4",
+    "clean_02.mp4",
+    "s1_01.mp4",
+    "s1_02.mp4",
+    "s2_01.mp4",
+    "s2_02.mp4",
+    "s3_01.mp4",
+    "s3_02.mp4",
+    "s4_01.mp4",
+    "s4_02.mp4",
+    "s4_03.mp4",
+    "s6_01.mp4",
+    "s7_01.mp4"
+  ],
+  "by_type": {
+    "fall_immobile": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 6,
+      "duplicates": 0,
+      "ignored_uncertain": 0,
+      "precision": 1.0,
+      "recall": 0.14285714285714285,
+      "f1": 0.25,
+      "latency_median_s": 5.699999999999999,
+      "latency_p95_s": 5.699999999999999,
+      "false_alarms_per_hour": 0.0
+    },
+    "phone_usage": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "duplicates": 0,
+      "ignored_uncertain": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "latency_median_s": null,
+      "latency_p95_s": null,
+      "false_alarms_per_hour": 0.0
+    },
+    "ppe_missing": {
+      "tp": 6,
+      "fp": 3,
+      "fn": 0,
+      "duplicates": 1,
+      "ignored_uncertain": 0,
+      "precision": 0.6666666666666666,
+      "recall": 1.0,
+      "f1": 0.8,
+      "latency_median_s": 3.500000071525573,
+      "latency_p95_s": 5.900000035762787,
+      "false_alarms_per_hour": 20.191444810050854
+    },
+    "smoking_fire": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "duplicates": 0,
+      "ignored_uncertain": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "latency_median_s": null,
+      "latency_p95_s": null,
+      "false_alarms_per_hour": 0.0
+    },
+    "vehicle_proximity": {
+      "tp": 1,
+      "fp": 0,
+      "fn": 3,
+      "duplicates": 0,
+      "ignored_uncertain": 0,
+      "precision": 1.0,
+      "recall": 0.25,
+      "f1": 0.4,
+      "latency_median_s": 4.400000095367432,
+      "latency_p95_s": 4.400000095367432,
+      "false_alarms_per_hour": 0.0
+    },
+    "zone_intrusion": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "duplicates": 1,
+      "ignored_uncertain": 0,
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571428571428571,
+      "latency_median_s": 2.000000047683713,
+      "latency_p95_s": 2.0000000905990594,
+      "false_alarms_per_hour": 0.0
+    }
+  },
+  "overall": {
+    "tp": 11,
+    "fp": 3,
+    "fn": 12,
+    "duplicates": 2,
+    "ignored_uncertain": 0,
+    "precision": 0.7857142857142857,
+    "recall": 0.4782608695652174,
+    "f1": 0.5945945945945946,
+    "latency_median_s": 3.1000000476837144,
+    "latency_p95_s": 5.9500000238418576,
+    "false_alarms_per_hour": 20.191444810050854
+  },
+  "backend": "onnx-cpu",
+  "items": [
+    {
+      "id": "d5eee778406a4a778ec8dc6f497d4ba7",
+      "camera_id": "offline_clean_01",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 9,
+      "started_at": 1700000013.8,
+      "confirmed_at": 1700000015.8,
+      "ended_at": null,
+      "bbox": [
+        301.841064453125,
+        144.45712280273438,
+        577.657958984375,
+        710.0489501953125
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7463750007445924,
+        "preprocess": 2.8081249984097667,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 275.3353740008606,
+        "postprocess": 1.9735000023501925,
+        "tracking": 0.521541998750763,
+        "rules": 0.021833000573678873,
+        "alert": 0.11545800043677446,
+        "total": 281.6081250020943
+      }
+    },
+    {
+      "id": "062ba42a38bd48878a6583040ba99f1b",
+      "camera_id": "offline_clean_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 1,
+      "started_at": 1700000000.6,
+      "confirmed_at": 1700000002.6,
+      "ended_at": null,
+      "bbox": [
+        704.385986328125,
+        54.20660400390625,
+        1041.0439453125,
+        713.7394409179688
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7799169998179423,
+        "preprocess": 4.3076250003650784,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 311.7817500005913,
+        "postprocess": 1.9564159974834183,
+        "tracking": 0.36420799915504176,
+        "rules": 0.021583000489044935,
+        "alert": 0.11270899994997308,
+        "total": 319.42150099894207
+      }
+    },
+    {
+      "id": "0344e0b4819c4b7f8d319418d004d7d7",
+      "camera_id": "offline_s1_01",
+      "site": "Офлайн-разметка",
+      "zone_id": "behind_tape",
+      "rule_id": "intrusion",
+      "type": "zone_intrusion",
+      "severity": "high",
+      "track_id": 2,
+      "started_at": 1700000015.4,
+      "confirmed_at": 1700000017.4,
+      "ended_at": 1700000051.8,
+      "bbox": [
+        365.966552734375,
+        133.54702758789062,
+        480.735107421875,
+        469.5191650390625
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "zone_name": "За ограничительной лентой (левый передний сектор)",
+        "zone_kind": "danger",
+        "foot_xy": [
+          323.7,
+          561.8
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.768166999478126,
+        "preprocess": 3.047625001272536,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 234.40525000114576,
+        "postprocess": 1.4292079995357199,
+        "tracking": 0.19112500012852252,
+        "rules": 0.025291999918408692,
+        "alert": 0.09691699960967526,
+        "total": 240.03120899942587
+      }
+    },
+    {
+      "id": "397ca660713141d79bbfb8abc92c6612",
+      "camera_id": "offline_s1_01",
+      "site": "Офлайн-разметка",
+      "zone_id": "behind_tape",
+      "rule_id": "intrusion",
+      "type": "zone_intrusion",
+      "severity": "high",
+      "track_id": 3,
+      "started_at": 1700000036.2,
+      "confirmed_at": 1700000038.2,
+      "ended_at": 1700000039.6,
+      "bbox": [
+        423.93951416015625,
+        148.44692993164062,
+        576.322998046875,
+        498.5257568359375
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "zone_name": "За ограничительной лентой (левый передний сектор)",
+        "zone_kind": "danger",
+        "foot_xy": [
+          298.0,
+          585.5
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7762080003885785,
+        "preprocess": 2.37066600129765,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 248.28054099998553,
+        "postprocess": 1.6179579997697147,
+        "tracking": 0.2787079993140651,
+        "rules": 0.030375000278581865,
+        "alert": 0.11079199975938536,
+        "total": 253.53341700065357
+      }
+    },
+    {
+      "id": "4708211854df48bd9bd148d89433e2de",
+      "camera_id": "offline_s1_02",
+      "site": "Офлайн-разметка",
+      "zone_id": "aisle_far_right",
+      "rule_id": "intrusion",
+      "type": "zone_intrusion",
+      "severity": "high",
+      "track_id": 4,
+      "started_at": 1700000026.8,
+      "confirmed_at": 1700000028.8,
+      "ended_at": 1700000042.2,
+      "bbox": [
+        388.3309326171875,
+        13.081180572509766,
+        416.2808837890625,
+        94.11722564697266
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "zone_name": "Дальний конец правого прохода",
+        "zone_kind": "danger",
+        "foot_xy": [
+          420.5,
+          163.5
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.26699999943957664,
+        "preprocess": 0.9270409991586348,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 55.809792000218295,
+        "postprocess": 0.9979589995054994,
+        "tracking": 0.4015419999632286,
+        "rules": 0.02975000097649172,
+        "alert": 0.10141699931409676,
+        "total": 58.563291999234934
+      }
+    },
+    {
+      "id": "9764bc5c4e7b43acbf522a3cda60983f",
+      "camera_id": "offline_s1_02",
+      "site": "Офлайн-разметка",
+      "zone_id": "aisle_far_right",
+      "rule_id": "intrusion",
+      "type": "zone_intrusion",
+      "severity": "high",
+      "track_id": 3,
+      "started_at": 1700000038.0,
+      "confirmed_at": 1700000040.0,
+      "ended_at": null,
+      "bbox": [
+        366.27508544921875,
+        31.07101821899414,
+        403.9557189941406,
+        157.48794555664062
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "zone_name": "Дальний конец правого прохода",
+        "zone_kind": "danger",
+        "foot_xy": [
+          462.6,
+          225.9
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.2737499999057036,
+        "preprocess": 1.0484169997653225,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 58.3807919992978,
+        "postprocess": 1.0539169998082798,
+        "tracking": 0.38587500057474244,
+        "rules": 0.030166998840286396,
+        "alert": 0.10533299973758403,
+        "total": 61.30733299869462
+      }
+    },
+    {
+      "id": "b35227c63deb413f8a9aa2cb35c02ed1",
+      "camera_id": "offline_s2_01",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 2,
+      "started_at": 1700000021.0,
+      "confirmed_at": 1700000023.0,
+      "ended_at": 1700000025.6,
+      "bbox": [
+        1160.36572265625,
+        236.10595703125,
+        1278.96435546875,
+        707.71630859375
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "helmet",
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7431250014633406,
+        "preprocess": 1.8790829999488778,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 215.17745799974364,
+        "postprocess": 1.4016669992997777,
+        "tracking": 0.27475000024423935,
+        "rules": 0.013875000149710104,
+        "alert": 0.0952909995248774,
+        "total": 219.64250000019092
+      }
+    },
+    {
+      "id": "f4508090e34b4692a3683845b1b91c44",
+      "camera_id": "offline_s2_01",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 8,
+      "started_at": 1700000039.4,
+      "confirmed_at": 1700000041.4,
+      "ended_at": 1700000046.2,
+      "bbox": [
+        1148.709228515625,
+        317.60546875,
+        1279.330810546875,
+        714.0128173828125
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "helmet"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7489159997930983,
+        "preprocess": 1.9460000003164168,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 215.55670900124824,
+        "postprocess": 1.3980000003357418,
+        "tracking": 0.29275000088091474,
+        "rules": 0.01316700036113616,
+        "alert": 0.09404199954587966,
+        "total": 220.10466599931533
+      }
+    },
+    {
+      "id": "0bf557d7babf4a57a826de97bb0ff57a",
+      "camera_id": "offline_s2_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 3,
+      "started_at": 1700000000.6,
+      "confirmed_at": 1700000002.6,
+      "ended_at": null,
+      "bbox": [
+        707.739990234375,
+        257.25,
+        884.262451171875,
+        713.0887451171875
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "helmet",
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7960420007293578,
+        "preprocess": 1.847792000262416,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 214.51879199958057,
+        "postprocess": 1.4596659984817961,
+        "tracking": 0.33420900035707746,
+        "rules": 0.015790999896125868,
+        "alert": 0.12633400001504924,
+        "total": 219.1491670018877
+      }
+    },
+    {
+      "id": "55c86622c4de47c5a174a27e3048579e",
+      "camera_id": "offline_s2_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 2,
+      "started_at": 1700000000.6,
+      "confirmed_at": 1700000002.6,
+      "ended_at": 1700000020.0,
+      "bbox": [
+        902.2991943359375,
+        47.0743408203125,
+        1278.6724853515625,
+        712.4212646484375
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7960420007293578,
+        "preprocess": 1.847792000262416,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 214.51879199958057,
+        "postprocess": 1.4596659984817961,
+        "tracking": 0.33420900035707746,
+        "rules": 0.015790999896125868,
+        "alert": 0.12633400001504924,
+        "total": 219.1491670018877
+      }
+    },
+    {
+      "id": "2e1e16ea4a14440982fd70f551e3d14c",
+      "camera_id": "offline_s2_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 1,
+      "started_at": 1700000004.2,
+      "confirmed_at": 1700000006.2,
+      "ended_at": null,
+      "bbox": [
+        371.8455505371094,
+        140.5096435546875,
+        856.8663330078125,
+        709.1177978515625
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.8032909991015913,
+        "preprocess": 2.2927080008230405,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 218.7159180011804,
+        "postprocess": 1.511165999545483,
+        "tracking": 0.40920799983723555,
+        "rules": 0.01820900070015341,
+        "alert": 0.10162499893340282,
+        "total": 223.9095829991129
+      }
+    },
+    {
+      "id": "b4c12e8323d64df5b2b3c15bcc35fddc",
+      "camera_id": "offline_s2_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 4,
+      "started_at": 1700000012.0,
+      "confirmed_at": 1700000014.0,
+      "ended_at": null,
+      "bbox": [
+        52.31890869140625,
+        0.0,
+        778.467529296875,
+        710.15869140625
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7492919994547265,
+        "preprocess": 1.8657920008990914,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 215.135750000627,
+        "postprocess": 1.507250000940985,
+        "tracking": 0.4089169997314457,
+        "rules": 0.01991600038309116,
+        "alert": 0.09695900007500313,
+        "total": 219.83566699964285
+      }
+    },
+    {
+      "id": "b1a0dc601e054df389c427ddf4cd3a4f",
+      "camera_id": "offline_s2_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 5,
+      "started_at": 1700000021.2,
+      "confirmed_at": 1700000023.2,
+      "ended_at": 1700000025.6,
+      "bbox": [
+        637.5452880859375,
+        143.64743041992188,
+        821.9437255859375,
+        680.42626953125
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7591249996039551,
+        "preprocess": 1.8828329993993975,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 218.0615420002141,
+        "postprocess": 1.4277489990490722,
+        "tracking": 0.3729170002770843,
+        "rules": 0.014749999536434188,
+        "alert": 0.1206659999297699,
+        "total": 222.70299999945564
+      }
+    },
+    {
+      "id": "e90c7a0c90024f81ab37dd6288d63d4e",
+      "camera_id": "offline_s3_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "fall",
+      "type": "fall_immobile",
+      "severity": "critical",
+      "track_id": 8,
+      "started_at": 1700000013.4,
+      "confirmed_at": 1700000018.0,
+      "ended_at": 1700000039.8,
+      "bbox": [
+        243.89697265625,
+        498.1126708984375,
+        850.0091552734375,
+        712.34423828125
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "lying_s": null,
+        "shift_bh": 0.0644327710129799
+      },
+      "latency_ms": {
+        "decode": 0.7559589994343696,
+        "preprocess": 1.8873759981943294,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 115.70650000066962,
+        "postprocess": 1.1410409988457104,
+        "tracking": 0.18041600014839787,
+        "rules": 0.027750000299420208,
+        "alert": 0.08954199984145816,
+        "total": 119.83645899999829
+      }
+    },
+    {
+      "id": "363864953aa44baa8176f4e149eb2e59",
+      "camera_id": "offline_s4_01",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "ppe",
+      "type": "ppe_missing",
+      "severity": "high",
+      "track_id": 1,
+      "started_at": 1700000005.4,
+      "confirmed_at": 1700000007.4,
+      "ended_at": 1700000015.0,
+      "bbox": [
+        654.797607421875,
+        225.80795288085938,
+        826.8402099609375,
+        714.1641845703125
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "missing": [
+          "vest"
+        ]
+      },
+      "latency_ms": {
+        "decode": 0.7551250000688015,
+        "preprocess": 1.8594579996715765,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 215.54625099997793,
+        "postprocess": 1.4400829986698227,
+        "tracking": 0.37858300129300915,
+        "rules": 0.017500000467407517,
+        "alert": 0.09224999848811422,
+        "total": 220.1600829994277
+      }
+    },
+    {
+      "id": "c02c238d9fd34b7092257d8a71ad915b",
+      "camera_id": "offline_s4_02",
+      "site": "Офлайн-разметка",
+      "zone_id": null,
+      "rule_id": "vehicle",
+      "type": "vehicle_proximity",
+      "severity": "critical",
+      "track_id": 1,
+      "started_at": 1700000008.4,
+      "confirmed_at": 1700000011.4,
+      "ended_at": 1700000012.6,
+      "bbox": [
+        415.2981872558594,
+        109.3287353515625,
+        849.3680419921875,
+        712.0340576171875
+      ],
+      "snapshot_path": null,
+      "clip_path": null,
+      "status": "new",
+      "operator_note": null,
+      "details": {
+        "vehicle_track_id": 4,
+        "distance_px": 76.01012537126364
+      },
+      "latency_ms": {
+        "decode": 0.7486249996873084,
+        "preprocess": 0.9784590001800098,
+        "transfer": 0.0,
+        "queue": 0.0,
+        "infer": 55.53341699851444,
+        "postprocess": 0.8270420003100298,
+        "tracking": 0.23870800032455008,
+        "rules": 0.016457999663543887,
+        "alert": 0.09170900011667982,
+        "total": 58.46308400032285
+      }
+    }
+  ],
+  "total": 16,
+  "mapping": {
+    "offline_clean_01": {
+      "video": "clean_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_clean_02": {
+      "video": "clean_02.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s1_01": {
+      "video": "s1_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s1_02": {
+      "video": "s1_02.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s2_01": {
+      "video": "s2_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s2_02": {
+      "video": "s2_02.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s3_01": {
+      "video": "s3_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s3_02": {
+      "video": "s3_02.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s4_01": {
+      "video": "s4_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s4_02": {
+      "video": "s4_02.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s4_03": {
+      "video": "s4_03.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s6_01": {
+      "video": "s6_01.mp4",
+      "t0": 1700000000.0
+    },
+    "offline_s7_01": {
+      "video": "s7_01.mp4",
+      "t0": 1700000000.0
+    }
+  },
+  "durations": {
+    "clean_01.mp4": 34.28,
+    "clean_02.mp4": 34.64,
+    "s1_01.mp4": 60.0,
+    "s1_02.mp4": 60.0,
+    "s2_01.mp4": 60.04,
+    "s2_02.mp4": 36.92,
+    "s3_01.mp4": 21.68,
+    "s3_02.mp4": 60.16,
+    "s4_01.mp4": 20.12,
+    "s4_02.mp4": 34.32,
+    "s4_03.mp4": 55.0,
+    "s6_01.mp4": 22.64,
+    "s7_01.mp4": 35.08
+  },
+  "runs": [
+    {
+      "id": "clean_01",
+      "video": "clean_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_clean_01",
+        "name": "Подстанция — чистый ролик",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/clean_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "intrusion",
+            "type": "zone_intrusion",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "fall",
+            "type": "fall_immobile",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "vehicle",
+            "type": "vehicle_proximity",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 34.28,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 857,
+      "frames_analyzed": 172,
+      "elapsed_s": 61.729778958999304,
+      "fps": 2.7863375327205007,
+      "decoded_fps": 13.883088753148076
+    },
+    {
+      "id": "clean_02",
+      "video": "clean_02.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_clean_02",
+        "name": "Рабочие на стройплощадке — чистый ролик",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/clean_02.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "fall",
+            "type": "fall_immobile",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "vehicle",
+            "type": "vehicle_proximity",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 34.64,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 866,
+      "frames_analyzed": 174,
+      "elapsed_s": 62.816205125000124,
+      "fps": 2.7699858603962375,
+      "decoded_fps": 13.78625146611001
+    },
+    {
+      "id": "s1_01",
+      "video": "s1_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s1_01",
+        "name": "Цех — за ограничительной лентой",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s1_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [
+          {
+            "zone_id": "behind_tape",
+            "name": "За ограничительной лентой (левый передний сектор)",
+            "kind": "danger",
+            "polygon": [
+              [
+                0.0,
+                0.3
+              ],
+              [
+                0.07,
+                0.31
+              ],
+              [
+                0.4,
+                0.7
+              ],
+              [
+                0.22,
+                1.0
+              ],
+              [
+                0.0,
+                1.0
+              ]
+            ],
+            "active_hours": null
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "intrusion",
+            "type": "zone_intrusion",
+            "enabled": true,
+            "zones": [
+              "behind_tape"
+            ],
+            "params": {
+              "min_conf": 0.35,
+              "min_box_h_px": 40
+            },
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 60.0,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 1500,
+      "frames_analyzed": 300,
+      "elapsed_s": 72.90421187500033,
+      "fps": 4.1149885896081315,
+      "decoded_fps": 20.574942948040658
+    },
+    {
+      "id": "s1_02",
+      "video": "s1_02.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s1_02",
+        "name": "Магазин — дальний конец прохода",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s1_02.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [
+          {
+            "zone_id": "aisle_far_right",
+            "name": "Дальний конец правого прохода",
+            "kind": "danger",
+            "polygon": [
+              [
+                0.47,
+                0.22
+              ],
+              [
+                0.6,
+                0.22
+              ],
+              [
+                0.75,
+                0.56
+              ],
+              [
+                0.5,
+                0.56
+              ]
+            ],
+            "active_hours": null
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "intrusion",
+            "type": "zone_intrusion",
+            "enabled": true,
+            "zones": [
+              "aisle_far_right"
+            ],
+            "params": {
+              "min_conf": 0.35,
+              "min_box_h_px": 30
+            },
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 60.0,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 1500,
+      "frames_analyzed": 300,
+      "elapsed_s": 17.936286333999305,
+      "fps": 16.72587036210121,
+      "decoded_fps": 83.62935181050607
+    },
+    {
+      "id": "s2_01",
+      "video": "s2_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s2_01",
+        "name": "Коридор — каски и жилеты",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s2_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 60.04,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 1501,
+      "frames_analyzed": 301,
+      "elapsed_s": 67.59967162499925,
+      "fps": 4.452684351334723,
+      "decoded_fps": 22.20424987160604
+    },
+    {
+      "id": "s2_02",
+      "video": "s2_02.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s2_02",
+        "name": "Склад и стройка — отсутствие касок",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s2_02.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 36.92,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 923,
+      "frames_analyzed": 185,
+      "elapsed_s": 41.95421012499901,
+      "fps": 4.409569372151405,
+      "decoded_fps": 22.00017584051755
+    },
+    {
+      "id": "s3_01",
+      "video": "s3_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s3_01",
+        "name": "Падение на снегу",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s3_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "fall",
+            "type": "fall_immobile",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 21.68,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 542,
+      "frames_analyzed": 109,
+      "elapsed_s": 13.654936499999167,
+      "fps": 7.982461141434576,
+      "decoded_fps": 39.69260494181229
+    },
+    {
+      "id": "s3_02",
+      "video": "s3_02.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s3_02",
+        "name": "Постановочные падения GMDCSA24",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s3_02.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "fall",
+            "type": "fall_immobile",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 60.16,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 1504,
+      "frames_analyzed": 301,
+      "elapsed_s": 37.46952920900003,
+      "fps": 8.03319407407182,
+      "decoded_fps": 40.13928201795355
+    },
+    {
+      "id": "s4_01",
+      "video": "s4_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s4_01",
+        "name": "Рабочий между фурами",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s4_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "vehicle",
+            "type": "vehicle_proximity",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 20.12,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 503,
+      "frames_analyzed": 101,
+      "elapsed_s": 22.984694458000376,
+      "fps": 4.3942285238794865,
+      "decoded_fps": 21.884128193181997
+    },
+    {
+      "id": "s4_02",
+      "video": "s4_02.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s4_02",
+        "name": "Грузовик и погрузчик рядом с рабочим",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s4_02.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "vehicle",
+            "type": "vehicle_proximity",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 34.32,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 858,
+      "frames_analyzed": 172,
+      "elapsed_s": 10.843860875000246,
+      "fps": 15.861509289236071,
+      "decoded_fps": 79.12311029165436
+    },
+    {
+      "id": "s4_03",
+      "video": "s4_03.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s4_03",
+        "name": "Экскаватор и самосвал в котловане",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s4_03.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [
+          {
+            "zone_id": "excavator_pit",
+            "name": "Котлован — радиус работы экскаватора и погрузка",
+            "kind": "vehicle_path",
+            "polygon": [
+              [
+                0.14,
+                0.0
+              ],
+              [
+                0.52,
+                0.0
+              ],
+              [
+                0.56,
+                1.0
+              ],
+              [
+                0.1,
+                1.0
+              ]
+            ],
+            "active_hours": null
+          }
+        ],
+        "rules": [
+          {
+            "rule_id": "vehicle",
+            "type": "vehicle_proximity",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "intrusion",
+            "type": "zone_intrusion",
+            "enabled": true,
+            "zones": [
+              "excavator_pit"
+            ],
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 55.0,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 1375,
+      "frames_analyzed": 275,
+      "elapsed_s": 17.169570333000593,
+      "fps": 16.016708319802223,
+      "decoded_fps": 80.08354159901111
+    },
+    {
+      "id": "s6_01",
+      "video": "s6_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s6_01",
+        "name": "Телефон у уха",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s6_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "phone",
+            "type": "phone_usage",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          },
+          {
+            "rule_id": "ppe",
+            "type": "ppe_missing",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 22.64,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 566,
+      "frames_analyzed": 114,
+      "elapsed_s": 32.689666541000406,
+      "fps": 3.487340559348246,
+      "decoded_fps": 17.314339970097432
+    },
+    {
+      "id": "s7_01",
+      "video": "s7_01.mp4",
+      "t0": 1700000000.0,
+      "camera": {
+        "camera_id": "offline_s7_01",
+        "name": "Курение в заброшенном здании",
+        "site": "Офлайн-разметка",
+        "source": {
+          "type": "file",
+          "uri": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/videos/s7_01.mp4",
+          "loop": false,
+          "realtime": false
+        },
+        "sample_fps": 5.0,
+        "enabled": true,
+        "zones": [],
+        "rules": [
+          {
+            "rule_id": "smoking",
+            "type": "smoking_fire",
+            "enabled": true,
+            "zones": null,
+            "params": {},
+            "min_duration_s": 2.0,
+            "min_ratio": 0.7,
+            "close_after_s": 3.0,
+            "cooldown_s": 30.0,
+            "severity": "high"
+          }
+        ]
+      },
+      "duration_s": 35.08,
+      "native_fps": 25.0,
+      "sample_fps": 5.0,
+      "effective_sample_fps": 5.0,
+      "frames_decoded": 877,
+      "frames_analyzed": 176,
+      "elapsed_s": 10.234696083000017,
+      "fps": 17.19640706208547,
+      "decoded_fps": 85.68891473550545
+    }
+  ],
+  "models_config": "configs/models.yaml",
+  "models_dir": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/models",
+  "required_models": [
+    "det",
+    "fire",
+    "pose",
+    "ppe"
+  ],
+  "tracker": {
+    "high_thresh": 0.4,
+    "low_thresh": 0.1,
+    "match_iou": 0.25,
+    "new_track_thresh": 0.45,
+    "track_buffer_s": 3.0,
+    "min_hits": 2
+  },
+  "processing": {
+    "frames_decoded": 13372,
+    "frames_analyzed": 2680,
+    "elapsed_s": 469.98731804199815,
+    "fps": 5.702281523605952,
+    "decoded_fps": 28.45183154240999,
+    "wall_elapsed_s": 470.06698275000053
+  },
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

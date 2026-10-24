@@ -1,0 +1,627 @@
+{
+  "date": "2026-10-24",
+  "scope": "third local implementation and validation batch",
+  "base_commit": "51147152687d1d3561b2e6dd8bc1c8b5eed08fcf",
+  "integration_branch": "feature/implementation-batch",
+  "tested_code_commit": "ae49f60559a11d45a12f1d512581021248395e8f",
+  "features": {
+    "feature/rabbit-live-acceptance": "6ef2d73e7cd6a758b53f9f9c6c58ef098e229391",
+    "feature/cpu-s1-evaluation": "04b622b922337a6633ce6a27293d7fbad6dbb543",
+    "feature/cpu-multicamera": "b388d623cf2080a81a62576c0ac3e9d6fa4156d0"
+  },
+  "backend": {
+    "command": ".venv/bin/python -m pytest -q --junitxml=/private/tmp/mospromhack-third-batch-final.xml",
+    "tests": 897,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "passed": 897,
+    "duration_s": 6.987,
+    "warnings": [
+      "Existing Starlette/httpx TestClient deprecation"
+    ]
+  },
+  "astra_reviews": {
+    "persistence_stop": "no remaining scoped blockers; 13 focused tests",
+    "live_acceptance_tool": "no remaining scoped blockers; 18 focused tests",
+    "design": "three separate finite features; separate quality and realtime load denominators"
+  },
+  "real_s1_quality": {
+    "status": "completed",
+    "report": "data/s1_evaluation/20261024T015641Z-2d1ce10a/report.json",
+    "report_sha256": "40e05c1c903df2e9b8cd8eb013f7c1ace54bd9bb825bae0067189960744efd23",
+    "runtime_git": {
+      "head": "9f313a0ad10287bbcab6526d0f941f102ed5b64e",
+      "tracked_changes": []
+    },
+    "versions": {
+      "python": "3.11.16",
+      "numpy": "2.4.6",
+      "opencv-python-headless": "4.11.0.86",
+      "onnxruntime": "1.31.0",
+      "pydantic": "2.14.1",
+      "scipy": "1.17.1",
+      "lap": "0.5.13"
+    },
+    "coverage": {
+      "videos_expected": 2,
+      "videos_completed": 2,
+      "selected_frames_expected": 600,
+      "frames_processed": 600
+    },
+    "label_counts": {
+      "certain": 4,
+      "uncertain": 3
+    },
+    "wall_s": 37.69423054193612,
+    "original_metrics": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 1,
+      "duplicates": 1,
+      "ignored_uncertain": 1,
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571428571428571,
+      "latency_median_s": 2.2050333333333327,
+      "latency_p95_s": 2.571948333333334,
+      "false_alarms_per_hour": 0.0
+    },
+    "strict_metrics": {
+      "precision_denominator_evaluator": 3,
+      "raw_predictions": 5,
+      "precision_denominator_strict": 4,
+      "recall_denominator": 4,
+      "strict_precision": 0.75,
+      "alarms_false_or_duplicate_per_hour": 30.0,
+      "positive_video_exposure_s": 120.0,
+      "independent_clean_video_exposure_s": 0,
+      "predictions_excluded_uncertain": 1
+    },
+    "per_video": {
+      "s1_01.mp4": {
+        "coverage": {
+          "source_fps": 59.94005994005994,
+          "source_frames_expected": 3597,
+          "source_frames_traversed": 3597,
+          "selected_frames_expected": 300,
+          "selected_frames_decoded": 300,
+          "frames_processed": 300,
+          "detections": 292,
+          "person_track_observations": 261,
+          "frames_with_violations": 83,
+          "created_events": 3,
+          "close_notifications": 3,
+          "reopen_transitions": 0,
+          "effective_tracker": {
+            "high_thresh": 0.4,
+            "low_thresh": 0.1,
+            "new_track_thresh": 0.45,
+            "match_iou": 0.25,
+            "track_buffer_s": 3.0,
+            "min_hits": 2
+          },
+          "duration_s": 60.0,
+          "wall_s": 18.99659591598902
+        },
+        "original_metrics": {
+          "tp": 2,
+          "fp": 0,
+          "fn": 0,
+          "duplicates": 0,
+          "ignored_uncertain": 1,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "latency_median_s": 2.2029749999999995,
+          "latency_p95_s": 2.2048274999999995,
+          "false_alarms_per_hour": 0.0
+        },
+        "strict_metrics": {
+          "precision_denominator_evaluator": 2,
+          "raw_predictions": 3,
+          "precision_denominator_strict": 2,
+          "recall_denominator": 2,
+          "strict_precision": 1.0,
+          "alarms_false_or_duplicate_per_hour": 0.0,
+          "positive_video_exposure_s": 60.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 1
+        }
+      },
+      "s1_02.mp4": {
+        "coverage": {
+          "source_fps": 59.94005994005994,
+          "source_frames_expected": 3597,
+          "source_frames_traversed": 3597,
+          "selected_frames_expected": 300,
+          "selected_frames_decoded": 300,
+          "frames_processed": 300,
+          "detections": 4244,
+          "person_track_observations": 957,
+          "frames_with_violations": 157,
+          "created_events": 2,
+          "close_notifications": 1,
+          "reopen_transitions": 0,
+          "effective_tracker": {
+            "high_thresh": 0.4,
+            "low_thresh": 0.1,
+            "new_track_thresh": 0.45,
+            "match_iou": 0.25,
+            "track_buffer_s": 3.0,
+            "min_hits": 2
+          },
+          "duration_s": 60.0,
+          "wall_s": 18.180387792061083
+        },
+        "original_metrics": {
+          "tp": 1,
+          "fp": 0,
+          "fn": 1,
+          "duplicates": 1,
+          "ignored_uncertain": 0,
+          "precision": 1.0,
+          "recall": 0.5,
+          "f1": 0.6666666666666666,
+          "latency_median_s": 2.6127166666666675,
+          "latency_p95_s": 2.6127166666666675,
+          "false_alarms_per_hour": 0.0
+        },
+        "strict_metrics": {
+          "precision_denominator_evaluator": 1,
+          "raw_predictions": 2,
+          "precision_denominator_strict": 2,
+          "recall_denominator": 2,
+          "strict_precision": 0.5,
+          "alarms_false_or_duplicate_per_hour": 60.0,
+          "positive_video_exposure_s": 60.0,
+          "independent_clean_video_exposure_s": 0,
+          "predictions_excluded_uncertain": 0
+        }
+      }
+    },
+    "sqlite_readback_events": 5,
+    "independent_evaluator_cli_exact_match": true,
+    "evaluator_changed": false,
+    "thresholds_tuned": false,
+    "fn_analysis": {
+      "s1_02_track_id": 3,
+      "active_interval_start_s": 38.2048,
+      "confirmed_s": 40.2068,
+      "late_label_interval_s": [
+        48,
+        60
+      ],
+      "late_interval_samples": 60,
+      "late_interval_track_samples": 60,
+      "late_interval_violation_samples": 59,
+      "new_confirmations_in_late_interval": 0,
+      "explanation": "Continuous active event; matcher uses start..confirmed and classifies it duplicate of prior certain label. Actor identity is not available; cooldown reopen did not cause this FN."
+    },
+    "limitations": [
+      "two positive videos, no independent clean S1 exposure",
+      "fixed nominal-CFR source-time sampling",
+      "no async runtime, network, RTSP, media or TPU",
+      "no production quality claim or threshold tuning"
+    ]
+  },
+  "real_multicamera": {
+    "status": "passed",
+    "source_commit": "ae49f60559a11d45a12f1d512581021248395e8f",
+    "report": "data/cpu_multicamera/20261024T020832Z-820289b0/report.json",
+    "report_sha256": "c0e3df1b0518217a6603d3406bbeafa642a4dc2ca32217c94f4f4725a5c9bf15",
+    "wall_s": 76.85829758294858,
+    "denominators": {
+      "cameras": 3,
+      "required_models": 1,
+      "events_compared": 1,
+      "jpeg_cameras_decoded": 3,
+      "http_events_total": 11
+    },
+    "per_camera": {
+      "cpu_worker_zone": {
+        "native_frames": 4548,
+        "native_fps": 59.94005994005994,
+        "exposure_s": 75.8758,
+        "configured_sample_target": 380,
+        "source_frames": 4548,
+        "frames_processed": 381,
+        "processing_failures": 0,
+        "sample_target_coverage": 1.0026315789473683,
+        "effective_processed_fps": 5.0213638604139925,
+        "native_frames_not_published": 0,
+        "skipped_by_sampling_or_overload": 4167,
+        "timings_ms": {
+          "alert": {
+            "n": 381,
+            "p50": 0.016915961168706417,
+            "p95": 0.045208027586340904,
+            "max": 7.91829195804894
+          },
+          "decode": {
+            "n": 381,
+            "p50": 2.217083005234599,
+            "p95": 2.597499988041818,
+            "max": 26.053332956507802
+          },
+          "infer": {
+            "n": 381,
+            "p50": 86.7586670210585,
+            "p95": 92.07554208114743,
+            "max": 114.07700006384403
+          },
+          "postprocess": {
+            "n": 381,
+            "p50": 0.9716670028865337,
+            "p95": 1.391792087815702,
+            "max": 3.3047079341486096
+          },
+          "preprocess": {
+            "n": 381,
+            "p50": 1.4328749384731054,
+            "p95": 1.903249998576939,
+            "max": 3.9579999865964055
+          },
+          "queue": {
+            "n": 381,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          },
+          "rules": {
+            "n": 381,
+            "p50": 0.012041069567203522,
+            "p95": 0.02191704697906971,
+            "max": 0.05795806646347046
+          },
+          "total": {
+            "n": 381,
+            "p50": 91.09420794993639,
+            "p95": 97.64162509236485,
+            "max": 145.00108291395009
+          },
+          "tracking": {
+            "n": 381,
+            "p50": 0.16941700596362352,
+            "p95": 0.2637080615386367,
+            "max": 0.3936659777536988
+          },
+          "transfer": {
+            "n": 381,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          }
+        },
+        "analysis_age_at_completion_ms": {
+          "n": 381,
+          "p50": 97.43905067443848,
+          "p95": 109.90428924560547,
+          "max": 203.765869140625
+        }
+      },
+      "cpu_store_aisle": {
+        "native_frames": 3921,
+        "native_fps": 59.94005994005994,
+        "exposure_s": 65.41535,
+        "configured_sample_target": 328,
+        "source_frames": 3921,
+        "frames_processed": 329,
+        "processing_failures": 0,
+        "sample_target_coverage": 1.0030487804878048,
+        "effective_processed_fps": 5.029400591757133,
+        "native_frames_not_published": 0,
+        "skipped_by_sampling_or_overload": 3592,
+        "timings_ms": {
+          "alert": {
+            "n": 329,
+            "p50": 0.017625046893954277,
+            "p95": 0.05020834505558012,
+            "max": 2.5146249681711197
+          },
+          "decode": {
+            "n": 329,
+            "p50": 0.36270800046622753,
+            "p95": 0.43199979700148083,
+            "max": 14.788291999138892
+          },
+          "infer": {
+            "n": 329,
+            "p50": 87.54700003191829,
+            "p95": 92.59744163136929,
+            "max": 115.12025003321469
+          },
+          "postprocess": {
+            "n": 329,
+            "p50": 1.1427919380366802,
+            "p95": 1.6291080508381122,
+            "max": 3.3770420122891665
+          },
+          "preprocess": {
+            "n": 329,
+            "p50": 1.315375091508031,
+            "p95": 1.860091835260391,
+            "max": 12.726542074233294
+          },
+          "queue": {
+            "n": 329,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          },
+          "rules": {
+            "n": 329,
+            "p50": 0.020666979253292084,
+            "p95": 0.029091443866491314,
+            "max": 0.0463330652564764
+          },
+          "total": {
+            "n": 329,
+            "p50": 90.69812402594835,
+            "p95": 96.50149221997708,
+            "max": 134.69266693573445
+          },
+          "tracking": {
+            "n": 329,
+            "p50": 0.3557089949026704,
+            "p95": 0.4782750038430094,
+            "max": 0.7608339656144381
+          },
+          "transfer": {
+            "n": 329,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          }
+        },
+        "analysis_age_at_completion_ms": {
+          "n": 329,
+          "p50": 99.60770606994629,
+          "p95": 111.27042770385741,
+          "max": 268.01586151123047
+        }
+      },
+      "cpu_people_load": {
+        "native_frames": 596,
+        "native_fps": 12.0,
+        "exposure_s": 49.666666666666664,
+        "configured_sample_target": 249,
+        "source_frames": 596,
+        "frames_processed": 250,
+        "processing_failures": 0,
+        "sample_target_coverage": 1.0040160642570282,
+        "effective_processed_fps": 5.033557046979866,
+        "native_frames_not_published": 0,
+        "skipped_by_sampling_or_overload": 346,
+        "timings_ms": {
+          "alert": {
+            "n": 250,
+            "p50": 0.020020990632474422,
+            "p95": 0.1706270209979251,
+            "max": 5.627415957860649
+          },
+          "decode": {
+            "n": 250,
+            "p50": 0.33674947917461395,
+            "p95": 0.45402729883789994,
+            "max": 3.563125035725534
+          },
+          "infer": {
+            "n": 250,
+            "p50": 88.57062453171238,
+            "p95": 92.81893530278467,
+            "max": 116.17079109419137
+          },
+          "postprocess": {
+            "n": 250,
+            "p50": 0.8855415508151054,
+            "p95": 1.2830517312977463,
+            "max": 2.254959079436958
+          },
+          "preprocess": {
+            "n": 250,
+            "p50": 1.3339580036699772,
+            "p95": 1.9112357578705994,
+            "max": 4.275500075891614
+          },
+          "queue": {
+            "n": 250,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          },
+          "rules": {
+            "n": 250,
+            "p50": 0.0056874705478549,
+            "p95": 0.026383867952972647,
+            "max": 0.04545808769762516
+          },
+          "total": {
+            "n": 250,
+            "p50": 91.48081252351403,
+            "p95": 96.959697897546,
+            "max": 122.47620907146484
+          },
+          "tracking": {
+            "n": 250,
+            "p50": 0.05610444350168109,
+            "p95": 0.3015752881765362,
+            "max": 0.46541704796254635
+          },
+          "transfer": {
+            "n": 250,
+            "p50": 0.0,
+            "p95": 0.0,
+            "max": 0.0
+          }
+        },
+        "analysis_age_at_completion_ms": {
+          "n": 250,
+          "p50": 135.032057762146,
+          "p95": 173.185658454895,
+          "max": 279.3099880218506
+        }
+      }
+    },
+    "three_camera_observed_overlap_s": 49.58131694793701,
+    "process_memory": {
+      "rss_high_water_bytes_before_start": 162906112,
+      "scope": "shared acceptance process; not attributable per camera or model",
+      "rss_high_water_bytes_after_stop": 721977344
+    },
+    "all_checks_passed": true,
+    "post_stop_sqlite_readback_events": 11,
+    "all_native_frames_published": true,
+    "raw_observation_count": 960,
+    "previous_run": {
+      "report": "data/cpu_multicamera/20261024T015855Z-b8975820/report.json",
+      "wall_s": 76.89087495789863,
+      "events": 12,
+      "raw_observation_count": 960
+    },
+    "not_verified": [
+      "TPU",
+      "RTSP",
+      "detection quality benchmark",
+      "browser UI",
+      "people video zone quality"
+    ],
+    "note": "First run 12 events; final run 11. Realtime sampling is not the fixed-grid quality benchmark; do not infer identical event boundaries from equal frame counts."
+  },
+  "real_rabbitmq": {
+    "status": "passed",
+    "report": "data/rabbit-acceptance-live-20261024-2/report.json",
+    "report_sha256": "d832b01365e784872a7de6477d6679c54b8a0060da5fbbcd0c1e90a8fac37dc8",
+    "scope": "broker-and-process-crash",
+    "git_sha": "6ef2d73e7cd6a758b53f9f9c6c58ef098e229391",
+    "versions": {
+      "pika": "1.4.4",
+      "python": "3.11.16",
+      "rabbitmq": "4.4.0"
+    },
+    "phases_passed": 7,
+    "phases_total": 7,
+    "phases": {
+      "broker_offline_outbox": {
+        "pending": 1,
+        "status": "passed"
+      },
+      "confirmed_queue_survives_broker_restart": {
+        "ready_messages": 1,
+        "status": "passed"
+      },
+      "edge_crash_after_confirm": {
+        "pending": 1,
+        "status": "passed",
+        "wire_sha256": "ccfa33693a88de9968a6a5730fa36dee618ea35f91496515334eb66955ad6c68"
+      },
+      "gateway_crash_after_commit_before_ack": {
+        "events": 1,
+        "receipts": 2,
+        "status": "passed"
+      },
+      "http_ws_snapshot_operator": {
+        "snapshot_sha256": "244cc04f252a774592dd6cb892c0f8a2448ddba69a1d4f44f35e96417f6bf0cd",
+        "status": "passed"
+      },
+      "reject_and_nack_recovery": {
+        "rejected": 1,
+        "status": "passed",
+        "transient_recovered": true
+      },
+      "restart_exact_replay_no_duplicates": {
+        "events": 1,
+        "snapshot_sha256": "18404d03639304d8b2a7ce511ddb11c51a3765842111d55be4eb6dff511baa42",
+        "status": "passed"
+      }
+    },
+    "readback": {
+      "edge": {
+        "events": 1,
+        "transport_outbox": 0,
+        "transport_receipts": 0
+      },
+      "ended_at": 110.0,
+      "gateway": {
+        "events": 1,
+        "transport_outbox": 0,
+        "transport_receipts": 2
+      },
+      "operator_note_preserved": true,
+      "status": "confirmed"
+    },
+    "durable_callbacks": {
+      "03f66856-3bed-42c6-a9b4-08420669bb8b:3": {
+        "changed": 0,
+        "completed": 2
+      },
+      "03f66856-3bed-42c6-a9b4-08420669bb8b:5": {
+        "changed": 0,
+        "completed": 2
+      }
+    },
+    "cleanup": {
+      "broker_stopped": true,
+      "queues_deleted": true,
+      "shared_exchange_retained": true
+    },
+    "actor_incarnations": 5,
+    "event_source": "synthetic Event; actual Rabbit/SQLite/HTTP/WS/JPEG",
+    "post_shutdown_readonly_sqlite_verified": true,
+    "latest_snapshot_sha_verified": true,
+    "first_failed_run": {
+      "report": "data/rabbit-acceptance-live-20261024-1/report.json",
+      "status": "failed",
+      "reason": "RabbitMQ 4.4 rejects transient_nonexcl_queues, INTERNAL_ERROR 541; cleanup masked the channel error",
+      "fixed_at": "429a174",
+      "fix": "Telemetry topology .telemetry.v2 durable metadata queue, TTL/max-length, delivery_mode1; wire v1; no deprecated feature enabled"
+    },
+    "not_verified": [
+      "ML inference through AMQP",
+      "RTSP",
+      "clips",
+      "preview TTL over live broker",
+      "hardware power-loss/fsync"
+    ]
+  },
+  "local_environment": {
+    "rabbitmq_installed": "4.4.0",
+    "erlang_installed": "29.1.2",
+    "system_service_enabled": false,
+    "autostart_enabled": false,
+    "all_owned_brokers_stopped": true,
+    "all_owned_ipv4_ipv6_listeners_closed": true,
+    "ports_checked": [
+      56783,
+      56784,
+      25683,
+      25684,
+      43690,
+      43691
+    ]
+  },
+  "frontend": {
+    "changed": false,
+    "rebuilt_in_this_batch": false
+  },
+  "not_verified": [
+    "Combined real model -> edge -> Rabbit -> gateway run",
+    "Independent clean-video quality exposure",
+    "Actor-level identity ground truth",
+    "Long-running endurance",
+    "RTSP",
+    "Live TPU"
+  ],
+  "main_unchanged": true,
+  "pushed_to_github": false,
+  "stand_access_attempted": false,
+  "next": [
+    "Combined CPU ML edge/gateway run",
+    "Actor-aware S1 incident policy and independent clean zones",
+    "Endurance and RTSP reconnect",
+    "Readiness, retention and clip transfer",
+    "PPE/fire artifacts and tests",
+    "TPU integration when user returns to stand"
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

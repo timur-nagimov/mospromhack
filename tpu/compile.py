@@ -33,8 +33,8 @@ import time
 import traceback
 from pathlib import Path
 
-ROOT = Path(os.environ.get("GUARD_ROOT", "/Users/nagimov-timur/Desktop/mosprom"))
-MODELS_DIR = Path(os.environ.get("GUARD_MODELS_DIR", ROOT / "models"))
+ROOT = Path(os.environ.get("GUARD_ROOT") or Path(__file__).resolve().parents[1]).expanduser().resolve()
+MODELS_DIR = Path(os.environ.get("GUARD_MODELS_DIR") or ROOT / "models").expanduser().resolve()
 DOCKER_IMAGE = os.environ.get("LINQ_SDK_IMAGE", "localhost/linq-sdk:2026.9.45")
 SDK_VERSION = "2026.9.45"
 

@@ -49,7 +49,7 @@ from urllib.parse import quote, urlencode, urlsplit
 
 import requests
 
-ROOT = Path(os.environ.get("GUARD_ROOT", "/Users/nagimov-timur/Desktop/mosprom"))
+ROOT = Path(os.environ.get("GUARD_ROOT", Path(__file__).resolve().parents[1])).expanduser().resolve()
 DEFAULT_ENV = ROOT / ".env"
 SESSION_FILE = Path(os.environ.get("JHUB_SESSION_FILE", Path.home() / ".cache" / "zazerkalye" / "jhub_session.json"))
 DEFAULT_TIMEOUT = 30.0

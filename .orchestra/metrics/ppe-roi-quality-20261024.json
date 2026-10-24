@@ -1,0 +1,775 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "status": "independent_readback_passed",
+  "scope": "Fresh paired BuildVision full-frame/person-ROI source-boundary S2 experiment; no default promotion",
+  "source_inference_commit": "bef7c11",
+  "integration_source": "b131adedf7ed61261e6b4c5091237716df25a8b6",
+  "arms": {
+    "full-frame": {
+      "report": {
+        "path": "data/s2_roi_boundary_ab_20261024/full-frame/report.json",
+        "bytes": 89893,
+        "sha256": "c76ee264307f1550ecfb1d1077ebe14959ccc541bd0aba853ea3fcca955db16c"
+      },
+      "source_git": {
+        "head": "bef7c1182e3f2fa87523ff6f0a7e18934eb1c93f",
+        "tracked_changes": [
+          "tests/test_s2_evaluation.py"
+        ]
+      },
+      "coverage": {
+        "videos_expected": 4,
+        "videos_completed": 4,
+        "frames_processed": 831,
+        "selected_frames_expected": 831
+      },
+      "primary_helmet_only": {
+        "tp": 6,
+        "fp": 0,
+        "fn": 0,
+        "duplicates": 0,
+        "ignored_uncertain": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "latency_median_s": 4.150000000000001,
+        "latency_p95_s": 15.150000000000002,
+        "false_alarms_per_hour": 0.0
+      },
+      "strict": {
+        "precision_denominator_evaluator": 6,
+        "raw_predictions": 6,
+        "precision_denominator_strict": 6,
+        "recall_denominator": 6,
+        "strict_precision": 1.0,
+        "alarms_false_or_duplicate_per_hour": 0.0,
+        "positive_video_exposure_s": 96.93333333333334,
+        "predictions_excluded_uncertain": 0,
+        "annotated_helmet_clean_exposure_s": 68.93333333333334,
+        "alarms_rate_exposure_s": 165.86666666666665
+      },
+      "clean_fp": 0,
+      "clean_exposure_s": 68.93333333333334,
+      "ppe_observations": {
+        "eligible": 0,
+        "attempted": 831,
+        "succeeded": 831,
+        "errors": 0,
+        "calls": 831
+      },
+      "attribute_coverage": {
+        "observed_person_samples": 2064,
+        "stale_person_samples": 0,
+        "attributes": {
+          "helmet": {
+            "true": 1602,
+            "false": 297,
+            "unknown": 165
+          },
+          "respirator": {
+            "true": 0,
+            "false": 0,
+            "unknown": 2064
+          },
+          "vest": {
+            "true": 871,
+            "false": 776,
+            "unknown": 417
+          }
+        }
+      },
+      "inference_stats": {
+        "backend": "onnx-cpu",
+        "device": "cpu",
+        "utilization": 0.987,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "intra_op_threads": 2,
+        "models": {
+          "det": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 261
+              },
+              "infer": {
+                "p50": 56.49,
+                "p95": 63.78,
+                "n": 261
+              }
+            },
+            "fps": 4.27,
+            "calls": 831,
+            "items": 831,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          },
+          "ppe": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 262
+              },
+              "infer": {
+                "p50": 160.18,
+                "p95": 181.4,
+                "n": 262
+              }
+            },
+            "fps": 4.42,
+            "calls": 831,
+            "items": 831,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          }
+        }
+      },
+      "wall_s": 189.3733225830365,
+      "source_code_sha256": "f298f5a52214985b7d0da52926c7597440e0ced410cf3d8a844aa5e11c35d8ec"
+    },
+    "person-crop": {
+      "report": {
+        "path": "data/s2_roi_boundary_ab_20261024/person-crop/report.json",
+        "bytes": 85123,
+        "sha256": "bf489140cb8d547a8d610845ac1c150fb28caacfe1e06f5150ab9c978f80dcc5"
+      },
+      "source_git": {
+        "head": "bef7c1182e3f2fa87523ff6f0a7e18934eb1c93f",
+        "tracked_changes": [
+          "tests/test_s2_evaluation.py"
+        ]
+      },
+      "coverage": {
+        "videos_expected": 4,
+        "videos_completed": 4,
+        "frames_processed": 831,
+        "selected_frames_expected": 831
+      },
+      "primary_helmet_only": {
+        "tp": 4,
+        "fp": 0,
+        "fn": 2,
+        "duplicates": 0,
+        "ignored_uncertain": 0,
+        "precision": 1.0,
+        "recall": 0.6666666666666666,
+        "f1": 0.8,
+        "latency_median_s": 5.35,
+        "latency_p95_s": 10.004999999999999,
+        "false_alarms_per_hour": 0.0
+      },
+      "strict": {
+        "precision_denominator_evaluator": 4,
+        "raw_predictions": 4,
+        "precision_denominator_strict": 4,
+        "recall_denominator": 6,
+        "strict_precision": 1.0,
+        "alarms_false_or_duplicate_per_hour": 0.0,
+        "positive_video_exposure_s": 96.93333333333334,
+        "predictions_excluded_uncertain": 0,
+        "annotated_helmet_clean_exposure_s": 68.93333333333334,
+        "alarms_rate_exposure_s": 165.86666666666665
+      },
+      "clean_fp": 0,
+      "clean_exposure_s": 68.93333333333334,
+      "ppe_observations": {
+        "eligible": 2064,
+        "attempted": 2064,
+        "succeeded": 2064,
+        "errors": 0,
+        "calls": 2064
+      },
+      "attribute_coverage": {
+        "observed_person_samples": 2064,
+        "stale_person_samples": 0,
+        "attributes": {
+          "helmet": {
+            "true": 1248,
+            "false": 128,
+            "unknown": 688
+          },
+          "respirator": {
+            "true": 0,
+            "false": 0,
+            "unknown": 2064
+          },
+          "vest": {
+            "true": 629,
+            "false": 733,
+            "unknown": 702
+          }
+        }
+      },
+      "inference_stats": {
+        "backend": "onnx-cpu",
+        "device": "cpu",
+        "utilization": 0.972,
+        "providers": [
+          "CPUExecutionProvider"
+        ],
+        "intra_op_threads": 2,
+        "models": {
+          "det": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 148
+              },
+              "infer": {
+                "p50": 57.88,
+                "p95": 62.08,
+                "n": 148
+              }
+            },
+            "fps": 2.29,
+            "calls": 831,
+            "items": 831,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          },
+          "ppe": {
+            "timings_ms": {
+              "transfer": {
+                "p50": 0.0,
+                "p95": 0.0,
+                "n": 298
+              },
+              "infer": {
+                "p50": 164.4,
+                "p95": 177.15,
+                "n": 298
+              }
+            },
+            "fps": 4.93,
+            "calls": 2064,
+            "items": 2064,
+            "max_batch_seen": 1,
+            "errors": 0,
+            "last_error": null
+          }
+        }
+      },
+      "wall_s": 396.0431307920953,
+      "source_code_sha256": "f298f5a52214985b7d0da52926c7597440e0ced410cf3d8a844aa5e11c35d8ec"
+    }
+  },
+  "all_831_source_frame_coordinates_coco_raw_outputs_and_track_identities_exact": true,
+  "input_artifacts_verified_unchanged": 180,
+  "actual_preprocessing_probes": 8,
+  "both_scope_sqlite_cli_full_json_exact": true,
+  "sqlite_full_rows_match_journal": true,
+  "production_default": "full_frame",
+  "roi_status": "experimental_quality_regression_on_this_frozen_set",
+  "original_primary_benchmark_unchanged": true,
+  "external_tpu_verified": false,
+  "validation": {
+    "tests": 1894,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "wall_s": 43.287,
+    "warnings": 1
+  },
+  "limitations": [
+    "Six certain helmet events; no actor IDs; short68.933333s annotated clean exposure; public training overlap unknown",
+    "Fresh known-boundary protocol does not replace historical continuous5of6 or cached diagnostic6of6",
+    "More unknown helmet observations are diagnostic; no causal claim that every lost alarm is an association failure",
+    "CPU quality result does not prove LinQ compilation or INT8 calibration/distribution compatibility"
+  ],
+  "references": [
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/protocol.json",
+      "bytes": 2196,
+      "sha256": "b53f78395dafc2c9ba24961e9c9b513842171b5c7912985e2015bde5f7477ad4"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/verification.json",
+      "bytes": 108685,
+      "sha256": "d1dddb8965ede2cab4b5dc20ec88fec551d59bb96d67d179647f292f383e9209"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/verify.py",
+      "bytes": 37026,
+      "sha256": "e1b2dc8f664c04a04c93f8b4832164721abed1a13d94700f1f31c1fba78594b2"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/artifact_hashes_after.json",
+      "bytes": 58995,
+      "sha256": "5891850edee96cccf3d8e64efc22bdcb1e70baf9e8091f47be03490a17ce4bfe"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/artifact_hashes_before.json",
+      "bytes": 58995,
+      "sha256": "5891850edee96cccf3d8e64efc22bdcb1e70baf9e8091f47be03490a17ce4bfe"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/guard.snapshot.db",
+      "bytes": 65536,
+      "sha256": "82c225256fccc79d5afc119928305a7d33032f9f58271fc7366dd204c98580ed"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only.json",
+      "bytes": 758,
+      "sha256": "11eaf74e738f312329b538bbfd2851aa9c72716e388e5c00322d52a97627282c"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy.json",
+      "bytes": 758,
+      "sha256": "11eaf74e738f312329b538bbfd2851aa9c72716e388e5c00322d52a97627282c"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/guard.snapshot.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy-command.json",
+      "bytes": 1378,
+      "sha256": "1fa1cbb928ccb636a2df87d347d55abfbd350ea33c11584886ae363b58727c78"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/guard.snapshot.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only-command.json",
+      "bytes": 1366,
+      "sha256": "2bcabee0c6a0f588513e48e06e825f54f6a310f89f838332fb8a25a0d4341f87"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy-labels/s2_02.json",
+      "bytes": 1220,
+      "sha256": "1f0b18ab2d06d82d866a70ada8cbeda7662cda92d689e411e6b08d402d2287d5"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy-labels/clean_02.json",
+      "bytes": 46,
+      "sha256": "d0217ef81017a86ebc82217735be5b7db6d9d15244d7c7c5c3fe3f83414023d7"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy-labels/s2_01.json",
+      "bytes": 845,
+      "sha256": "29e4ae0a4dfc1b6b8fd17a76f97590fd3d8d50fcf3f97788772780466e162f26"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/secondary_original_legacy-labels/clean_01.json",
+      "bytes": 46,
+      "sha256": "f49985122137fc84cf887e7c674a30d232b22b0dc70032cdff1faafa1aefe7dd"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only-labels/s2_02.json",
+      "bytes": 971,
+      "sha256": "43b77429083130f4ccf94728df79937d409dbdda10d933deb6387f979ee10e91"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only-labels/clean_02.json",
+      "bytes": 46,
+      "sha256": "d0217ef81017a86ebc82217735be5b7db6d9d15244d7c7c5c3fe3f83414023d7"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only-labels/s2_01.json",
+      "bytes": 564,
+      "sha256": "e2cc7919f1bb2be82f8b8757edc4e824e27e4e0d433f4c7ebc53ddf4259d6f1f"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/full-frame/primary_helmet_only-labels/clean_01.json",
+      "bytes": 46,
+      "sha256": "f49985122137fc84cf887e7c674a30d232b22b0dc70032cdff1faafa1aefe7dd"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/guard.snapshot.db",
+      "bytes": 65536,
+      "sha256": "237c3a1d29a1280a226bd852593fc9bc1c32d1fbc5af5860046576dfac3ada43"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only.json",
+      "bytes": 762,
+      "sha256": "b4ee738ac6e0dbbaab6de729df45bb2c9eccfda4685cf9e78f2d895903b83cc2"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy.json",
+      "bytes": 762,
+      "sha256": "b4ee738ac6e0dbbaab6de729df45bb2c9eccfda4685cf9e78f2d895903b83cc2"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/guard.snapshot.db-wal",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy-command.json",
+      "bytes": 1383,
+      "sha256": "63d692107b582e91dcc0f195932faeb90215bee909c89a288d0b50c97fd9950d"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/guard.snapshot.db-shm",
+      "bytes": 32768,
+      "sha256": "fd4c9fda9cd3f9ae7c962b0ddf37232294d55580e1aa165aa06129b8549389eb"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only-command.json",
+      "bytes": 1371,
+      "sha256": "cafaf8319080d1a059c0019dd9c14a7d22cebc31255b433d2d9ea3846d0f532d"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy-labels/s2_02.json",
+      "bytes": 1220,
+      "sha256": "1f0b18ab2d06d82d866a70ada8cbeda7662cda92d689e411e6b08d402d2287d5"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy-labels/clean_02.json",
+      "bytes": 46,
+      "sha256": "d0217ef81017a86ebc82217735be5b7db6d9d15244d7c7c5c3fe3f83414023d7"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy-labels/s2_01.json",
+      "bytes": 845,
+      "sha256": "29e4ae0a4dfc1b6b8fd17a76f97590fd3d8d50fcf3f97788772780466e162f26"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/secondary_original_legacy-labels/clean_01.json",
+      "bytes": 46,
+      "sha256": "f49985122137fc84cf887e7c674a30d232b22b0dc70032cdff1faafa1aefe7dd"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only-labels/s2_02.json",
+      "bytes": 971,
+      "sha256": "43b77429083130f4ccf94728df79937d409dbdda10d933deb6387f979ee10e91"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only-labels/clean_02.json",
+      "bytes": 46,
+      "sha256": "d0217ef81017a86ebc82217735be5b7db6d9d15244d7c7c5c3fe3f83414023d7"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only-labels/s2_01.json",
+      "bytes": 564,
+      "sha256": "e2cc7919f1bb2be82f8b8757edc4e824e27e4e0d433f4c7ebc53ddf4259d6f1f"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/20261024T134159Z-c2dae5d8/person-crop/primary_helmet_only-labels/clean_01.json",
+      "bytes": 46,
+      "sha256": "f49985122137fc84cf887e7c674a30d232b22b0dc70032cdff1faafa1aefe7dd"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/camera_s2_02.json",
+      "bytes": 769,
+      "sha256": "026e3df5c0363668a75dcda7b8acd067f36583e7a1cc20dc14ec5da586c20742"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/lifecycle_s2_02.jsonl",
+      "bytes": 923,
+      "sha256": "4bc5b2ef30e16080778b76fdadb3244bfe9bda2ad486881cd9c7e8b2e3b8e91a"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/samples_s2_01.jsonl",
+      "bytes": 1131214,
+      "sha256": "b79ec1fb6afb2b99bb831c2f9039d458ca6dedc61ee920f11aa155ea71f82dde"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/guard.db",
+      "bytes": 65536,
+      "sha256": "82c225256fccc79d5afc119928305a7d33032f9f58271fc7366dd204c98580ed"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/samples_clean_01.jsonl",
+      "bytes": 1573503,
+      "sha256": "fd32aba3c76096703c9a8d74e2c508d3b5fd8f06f6a0de6558ab4512a400823b"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/lifecycle_s2_01.jsonl",
+      "bytes": 464,
+      "sha256": "cecfa9574a225de2fef39cd2d4f48ca34821a7721839d599ac50a081e5edef52"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/camera_clean_02.json",
+      "bytes": 763,
+      "sha256": "fe0cce897bae45412dc9cc14d170fffc44a485b85aaca2006a845f3012edca5d"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/samples_s2_02.jsonl",
+      "bytes": 1599234,
+      "sha256": "4ceb63f901086ecc5a1f0de5a960df46787fbe48bc0da15d3b12915264ab889b"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/manifest.snapshot.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/effective_config.json",
+      "bytes": 3615,
+      "sha256": "373ef2beb8cf5779152c2fd1f229c0ae6f44ec7675e2ec0955de528c44832bef"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/samples_clean_02.jsonl",
+      "bytes": 965160,
+      "sha256": "b0f54cbf69760489d800ca7c383b9b676fcbf711f0f44761b69bd90d6c5d8417"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/primary_labels.json",
+      "bytes": 1706,
+      "sha256": "78cf958e9ad98a40e34520a47c6c4f102491b3aa8fa15f1ea2d8cc3cf0071100"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/mapping.json",
+      "bytes": 847,
+      "sha256": "d87579c582aecffc3bb677cf16d037e0108681abbb6b3a127da23ba01d0fc2d3"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/scope_exclusions.json",
+      "bytes": 1448,
+      "sha256": "a1cf6e20cedc8c7cae758bc73fc5e9b3812000f75f5328227144588dc9983f5c"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/journal_events.json",
+      "bytes": 5972,
+      "sha256": "e77935ab3a46cbf6e33dda3bddf2e9384e212b7046378a0c1dfec6193b890fbf"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/camera_clean_01.json",
+      "bytes": 753,
+      "sha256": "a61664820c3133db07320631729815921e78d901e3ee2983c0274cf59dd294dc"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/original_labels.json",
+      "bytes": 2322,
+      "sha256": "0808a906ac67c405eae99f4f1c994e209817f893d44194d67f3e98860d97f0df"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/predictions.json",
+      "bytes": 5785,
+      "sha256": "b1221fad51211ee3ba31f4aa761e48a143813f8ef18af76a73b5288d5241908a"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/durations.json",
+      "bytes": 134,
+      "sha256": "8a07ee96ff925d5606ad047a487802b131a5aa9ddb506f0d838c0703e7dd3e63"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/camera_s2_01.json",
+      "bytes": 741,
+      "sha256": "24275c0107feb996c590f2d6e9f7386adf6392181c17bd47c3df01e348255e58"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/original_gt/s2_02.json",
+      "bytes": 2587,
+      "sha256": "eda973af36ca521ed0b75a31862901c778751767190ef8f60f307bf86a0139c8"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/original_gt/clean_02.json",
+      "bytes": 941,
+      "sha256": "c14d607514facf60ba40984522ce4843b22d819ac475d5ccedc6ae34a86fd1f1"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/original_gt/s2_01.json",
+      "bytes": 1870,
+      "sha256": "f2964f2d8621481bd7fe641e79847fc63ddecfbb6ef98a0dd00b2ee26003e072"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/original_gt/clean_01.json",
+      "bytes": 1083,
+      "sha256": "59592f5197a1240acd067c91329c06403d563204222a225432c219e3aea422be"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/runtime.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame/report.json",
+      "bytes": 89893,
+      "sha256": "c76ee264307f1550ecfb1d1077ebe14959ccc541bd0aba853ea3fcca955db16c"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/full-frame.log",
+      "bytes": 130,
+      "sha256": "25a350a4934e36e0be4c8116cc58ab13def3a8ea3d5d92d2468a6c933251f55a"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/camera_s2_02.json",
+      "bytes": 769,
+      "sha256": "026e3df5c0363668a75dcda7b8acd067f36583e7a1cc20dc14ec5da586c20742"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/lifecycle_s2_02.jsonl",
+      "bytes": 885,
+      "sha256": "99f0cde6eb8bc9caa04f507d48f75161760a73c947b8236fb6115b5002d9fb2e"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/samples_s2_01.jsonl",
+      "bytes": 1294914,
+      "sha256": "2fd0fbf201a43f139ea2a9a2b4fb9dec820e415ef1fa3b7e348ad8f7f6c8a2e7"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/guard.db",
+      "bytes": 65536,
+      "sha256": "237c3a1d29a1280a226bd852593fc9bc1c32d1fbc5af5860046576dfac3ada43"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/samples_clean_01.jsonl",
+      "bytes": 2755189,
+      "sha256": "d933a3872c31632632da3f79f39c1319a025a5e8f720fb7818708000b146b68d"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/lifecycle_clean_02.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/lifecycle_s2_01.jsonl",
+      "bytes": 232,
+      "sha256": "ec4a45d0c4b366dbe678d7cf30dc382b02c6fcaefc0419736d5feca7c7af60b0"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/camera_clean_02.json",
+      "bytes": 763,
+      "sha256": "fe0cce897bae45412dc9cc14d170fffc44a485b85aaca2006a845f3012edca5d"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/samples_s2_02.jsonl",
+      "bytes": 2527422,
+      "sha256": "3d2320c383b79a0912265bf383847768be494dbea3f7c9d0e59313c7b6b18edb"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/manifest.snapshot.json",
+      "bytes": 37681,
+      "sha256": "06642131278f2b484b3c7b859600f1d4e55c95676b8e51e26481da019e848449"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/effective_config.json",
+      "bytes": 3615,
+      "sha256": "373ef2beb8cf5779152c2fd1f229c0ae6f44ec7675e2ec0955de528c44832bef"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/samples_clean_02.jsonl",
+      "bytes": 1402801,
+      "sha256": "6fb2aeecc0153e2e0842744a8637f7b2eff113ca2be70440be65ce5da40baaec"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/primary_labels.json",
+      "bytes": 1706,
+      "sha256": "78cf958e9ad98a40e34520a47c6c4f102491b3aa8fa15f1ea2d8cc3cf0071100"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/lifecycle_clean_01.jsonl",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/mapping.json",
+      "bytes": 847,
+      "sha256": "d87579c582aecffc3bb677cf16d037e0108681abbb6b3a127da23ba01d0fc2d3"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/scope_exclusions.json",
+      "bytes": 1448,
+      "sha256": "a1cf6e20cedc8c7cae758bc73fc5e9b3812000f75f5328227144588dc9983f5c"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/journal_events.json",
+      "bytes": 3970,
+      "sha256": "9be134cd7c39b00823d974780996e720dd1cc20a2f2371980fec1ee0a0baf1dd"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/camera_clean_01.json",
+      "bytes": 753,
+      "sha256": "a61664820c3133db07320631729815921e78d901e3ee2983c0274cf59dd294dc"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/original_labels.json",
+      "bytes": 2322,
+      "sha256": "0808a906ac67c405eae99f4f1c994e209817f893d44194d67f3e98860d97f0df"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/predictions.json",
+      "bytes": 3879,
+      "sha256": "1099d7c6ef0bb27c58e6cb1d2699c4a98a0f5a367fab1093e89c51719862b2e4"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/durations.json",
+      "bytes": 134,
+      "sha256": "8a07ee96ff925d5606ad047a487802b131a5aa9ddb506f0d838c0703e7dd3e63"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/camera_s2_01.json",
+      "bytes": 741,
+      "sha256": "24275c0107feb996c590f2d6e9f7386adf6392181c17bd47c3df01e348255e58"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/original_gt/s2_02.json",
+      "bytes": 2587,
+      "sha256": "eda973af36ca521ed0b75a31862901c778751767190ef8f60f307bf86a0139c8"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/original_gt/clean_02.json",
+      "bytes": 941,
+      "sha256": "c14d607514facf60ba40984522ce4843b22d819ac475d5ccedc6ae34a86fd1f1"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/original_gt/s2_01.json",
+      "bytes": 1870,
+      "sha256": "f2964f2d8621481bd7fe641e79847fc63ddecfbb6ef98a0dd00b2ee26003e072"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/original_gt/clean_01.json",
+      "bytes": 1083,
+      "sha256": "59592f5197a1240acd067c91329c06403d563204222a225432c219e3aea422be"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/runtime.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop/report.json",
+      "bytes": 85123,
+      "sha256": "bf489140cb8d547a8d610845ac1c150fb28caacfe1e06f5150ab9c978f80dcc5"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/person-crop.log",
+      "bytes": 131,
+      "sha256": "5f116a9abe8d06296ca0d7c77521ec48b073e22d3b201b3b85094030ea3d73c2"
+    },
+    {
+      "path": "data/integration_validation_20261024/model-quality-batch.xml",
+      "bytes": 2691231,
+      "sha256": "956623dcd621e0d067701d6547c045c138b6f9090b3a56a0e895ec2ec6184710"
+    },
+    {
+      "path": "data/integration_validation_20261024/model-quality-batch.log",
+      "bytes": 2691,
+      "sha256": "84d128836eab734940d2406ea85ab5ff26bea30570eb40ca3d19fd54bcdb73ce"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/roi-fn-analysis-capture-scoped.json",
+      "bytes": 115745,
+      "sha256": "a1974709484266031e9a8b7a4d0ce76ac5bdcc7f114bb94a5c8961ffbdd9af28"
+    },
+    {
+      "path": "data/s2_roi_boundary_ab_20261024/independent-readback/analyze_fns.py",
+      "bytes": 8228,
+      "sha256": "249b9871c269092e390dceb679091d2f946c775b30ee78bcbc0ef1383f3eeb21"
+    }
+  ],
+  "fn_diagnostic_scope": "Matched COCO track counterparts and capture-scoped negative-vote windows; physical actor IDs are not established. See capture-scoped analysis reference."
+}

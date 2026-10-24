@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-24",
+  "scope": "integration of capture-session isolation and pinned source-boundary replay",
+  "status": "accepted_locally",
+  "source_commit": "b74edbb",
+  "ticket_mode": "no_ticket",
+  "backend": {
+    "passed": 1775,
+    "errors": 0,
+    "failures": 0,
+    "skipped": 0,
+    "wall_s_from_log": 33.07,
+    "warning": "existing Starlette/httpx deprecation"
+  },
+  "artifacts": {
+    "junit": {
+      "path": "data/integration_validation_20261024/capture-replay.xml",
+      "bytes": 2673166,
+      "sha256": "b712eda5fa2af91c14a5e67b0ed95c1611bb968c91055edbd03b35391af2a097"
+    },
+    "log": {
+      "path": "data/integration_validation_20261024/capture-replay.log",
+      "bytes": 2531,
+      "sha256": "e874494650b3ae8aec47b8ad1cb7c632ecff1a053661175138332dee2c5e6825"
+    },
+    "diagnostic_report": {
+      "path": ".orchestra/metrics/s2-source-boundary-20261024.json",
+      "bytes": 69992,
+      "sha256": "323e7e4dcb20b6f05f07a033497be01b2e955eb96760085979a0eb5fab42fdaf"
+    }
+  },
+  "review": {
+    "result": "accepted; replay capture-origin finding fixed in8d15ec2",
+    "merge_conflict": "production test file preserves all5 dependency functions unchanged;18 top-level functions total"
+  },
+  "result": {
+    "capture": "durable last-violation closures before fresh trackers/rules, retries and capture-bound media",
+    "buildvision_diagnostic": {
+      "tp": 6,
+      "fp": 0,
+      "fn": 0,
+      "samples": 831
+    },
+    "buildvision_original_primary": {
+      "tp": 5,
+      "fp": 0,
+      "fn": 1
+    },
+    "vyra_control_and_diagnostic": {
+      "tp": 3,
+      "fp": 0,
+      "fn": 3,
+      "samples": 831
+    }
+  },
+  "limits": [
+    "Known-source boundary diagnosis; no actor-aware independent quality proof",
+    "No new externalTPU/liveRTSP acceptance",
+    "Frontend unchanged; prior7tests/build not rerun"
+  ],
+  "publication_note": "Development labels and historical workspace paths normalized for publication; measured results retained."
+}

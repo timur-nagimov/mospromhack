@@ -131,13 +131,10 @@ def start_flywheel(engine: Any) -> None:
 def stop_flywheel(engine: Any) -> None:
     collector = getattr(engine, "flywheel", None)
     writer = getattr(engine, "flywheel_writer", None)
-    try:
-        if collector is not None:
-            collector.stop()
-        elif writer is not None:
-            writer.stop()
-    except Exception:  # noqa: BLE001
-        log.exception("flywheel stop failed")
+    if collector is not None:
+        collector.stop()
+    elif writer is not None:
+        writer.stop()
     store = getattr(engine, "flywheel_store", None)
     if store is not None:
         store.close()
