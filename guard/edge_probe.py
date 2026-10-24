@@ -1,6 +1,6 @@
 """Замеряющий подписчик на стороне шлюза: что и с какой задержкой доходит с edge (docs/EDGE.md).
 
-    python -m guard.edge_probe --duration 300 --out .orchestra/metrics/edge-tpu-<время>.json
+    python -m guard.edge_probe --duration 300 --out edge-tpu-<время>.json
 
 Читает очередь шлюза zazerkalye.gateway (по умолчанию через VPN-контейнер, 127.0.0.1:5672) и считает:
 - сквозную задержку оповещения: момент получения на ноутбуке − Event.started_at (первый нарушающий

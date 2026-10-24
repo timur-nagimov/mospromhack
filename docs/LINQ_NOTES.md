@@ -5,7 +5,7 @@
 - `compile.py`, `README.txt` и `packets/requirements.txt` из архива SDK. Локальная копия: `vendor/linq_sdk/tpu_framework/`.
 - `usage_example_python_api` и примеры C/C++ (`vendor/linq_api/`): локальный рантайм `pytpu`/`libtpu` с устройством `/dev/tpu*`. На стенде хакатона они **не нужны**.
 - С Jupyter-стенда (`~/work/examples`, `~/work/packages`): `example.ipynb` и `tpu_pycloud_format-0.0.1`. Копия: `vendor/linq_examples/`. Это единственный источник по облачному протоколу; в pdf его нет.
-- Метаданные программ (`metadata.json` внутри `.tpu`) и собственные замеры (`.orchestra/metrics/tpu-baseline.json`).
+- Метаданные программ (`metadata.json` внутри `.tpu`) и собственные замеры (`tpu-baseline.json`).
 
 Пометка **[стенд]** — проверено на стенде 24.10.
 
@@ -129,7 +129,7 @@
 
 На стенде вместо шага 7 — облачный воркер (§6). Пример организаторов `example.ipynb` повторён нами с ноутбука и из Jupyter: класс 257 **[стенд]**.
 
-## 9. Замеры [стенд] (`.orchestra/metrics/tpu-baseline.json`, `tpu/bench.py`)
+## 9. Замеры [стенд] (`tpu-baseline.json`, `tpu/bench.py`)
 
 | Где | RTT до брокера | Петля через брокер 1 МБ / 5 МБ | resnet50 total p50 / p95 | инференс воркера p50 | к/с последовательно / окно 4 |
 |---|---|---|---|---|---|
