@@ -53,7 +53,9 @@ flowchart LR
 
 Почему конвейер стоит рядом с TPU: с ноутбука через VPN один кадр YOLO идёт **3.3 с**, а из контейнера рядом с брокером — **0.04 с**. Подробно — `docs/ARCHITECTURE.md` §3 (решение D-005).
 
-**Маховик данных.** Система сама собирает обучающую выборку. Сырой кадр каждого события, рамки с уверенностью у порога, смена ID трека и решение оператора («ложное» — hard negative) пишутся в `data/flywheel` в фоне и не задерживают оповещение. Учитель предлагает разметку, человек её принимает, `python -m ml.flywheel.export` собирает версию датасета в YOLO. Кадры роликов оценки в обучение не попадают. API — `/api/flywheel/*`, контракт и устройство — [docs/FLYWHEEL.md](docs/FLYWHEEL.md).
+**Маховик данных.** Система сама собирает обучающую выборку. Сырой кадр каждого события, рамки с уверенностью у порога, смена ID трека и решение оператора («ложное» — hard negative) пишутся в `data/flywheel` в фоне и не задерживают оповещение. Человек принимает или отклоняет предложенные рамки на странице «Данные», `python -m ml.flywheel.export` собирает версию датасета в YOLO, `ml/flywheel/train.py` и `ml/flywheel/gate.py` дообучают модель и сравнивают её с базой. Кадры роликов оценки в обучение не попадают. API — `/api/flywheel/*`, контракт и устройство — [docs/FLYWHEEL.md](docs/FLYWHEEL.md).
+
+Сбор сейчас работает в режиме local. В режиме edge он выключен: отправителя сэмплов с edge (`guard/flywheel/edge.py`) в main нет. Авторазметки учителем (`ml/flywheel/autolabel.py`) и выкатки (`ml/flywheel/deploy.py`) в main тоже пока нет. Первый оборот сделан на открытых данных — модель погрузчика `forklift-v1` ([docs/MODELS.md](docs/MODELS.md), `ml/model_cards/`).
 
 `GUARD_RABBIT_URL` задаёт event bus; параметры `LINQ_RABBIT_HOST/PORT/USER/PASSWORD` — отдельный канал inference. Они не подменяют друг друга. `GUARD_MODE` выбирает размещение компонентов, `GUARD_BACKEND` — backend inference. Локальные developer defaults остаются `local`/`onnx-cpu`; production entrypoints ниже явно выбирают внешний TPU и отключают fallback.
 
@@ -74,20 +76,22 @@ flowchart LR
 
 ## Сценарии и статус
 
-Плагины S1–S10 находятся в `guard/rules/plugins/`, их синтетические проверки — в `tests/`. Наличие плагина, ONNX или `.tpu` не подтверждает event-level precision/recall на текущем релизе. Видео и веса не входят в git; рецепты, источники и интервальная разметка заданы в `tools/data_manifest.json`.
+Плагины S1–S10 и три дополнительных правила — `wrong_way`, `zone_dwell`, `zone_overcapacity` ([VIOLATION_EXPANSION_RESULTS](docs/VIOLATION_EXPANSION_RESULTS.md)) — находятся в `guard/rules/plugins/`, их синтетические проверки — в `tests/`. Наличие плагина, ONNX или `.tpu` не подтверждает event-level precision/recall на текущем релизе. Видео и веса не входят в git; рецепты, источники и интервальная разметка заданы в `tools/data_manifest.json`.
 
 | Сценарий | Плагин | Роли моделей | Проверки и ограничения |
 |---|---|---|---|
-| S1: вход в опасную зону | `zone_intrusion` | det | Измеренная CPU-оценка двух роликов и границы выводов — [S1_EVALUATION](docs/S1_EVALUATION.md) |
-| S2: каска и жилет | `ppe_missing` | det + ppe | [AP и покрытие классов](docs/PPE_EVALUATION.md), [подготовка S2/clean](docs/S2_DATA_PREPARATION.md); отсутствие PPE-детекции означает unknown |
-| S3: падение и неподвижность | `fall_immobile` | det + pose | Нужны оценка событий и проверка текущих программ на TPU |
-| S4: близость техники | `vehicle_proximity` | det | Интервальная разметка не содержит actor ID; нужна проверка привязки участников |
+| S1: вход в опасную зону | `zone_intrusion` | det | Измеренная CPU-оценка двух роликов и границы выводов — [S1_EVALUATION](docs/S1_EVALUATION.md); на 13 размеченных роликах — 4 из 4 ([QUALITY](docs/QUALITY.md)) |
+| S2: каска и жилет | `ppe_missing` | det + ppe | [AP и покрытие классов](docs/PPE_EVALUATION.md), [подготовка S2/clean](docs/S2_DATA_PREPARATION.md); отсутствие PPE-детекции означает unknown; на 13 роликах — 5 из 6 |
+| S3: падение и неподвижность | `fall_immobile` | det + pose | На 13 роликах — 6 из 7; на отложенной выборке падений из открытых наборов — около половины ([QUALITY](docs/QUALITY.md)) |
+| S4: близость техники | `vehicle_proximity` | det | Интервальная разметка не содержит actor ID; нужна проверка привязки участников. На 13 роликах — 2 из 4; дообученная модель погрузчика `forklift-v1` событий пока не добавила ([MODELS](docs/MODELS.md)) |
 | S5: бег | `running` | det | Синтетические тесты не заменяют размеченный benchmark |
-| S6: телефон | `phone_usage` | det + pose | Качество зависит от видимости мелкого объекта и позы |
-| S7: курение/огонь | `smoking_fire` | fire | Требуется отдельная модель и её проверка на целевом backend |
+| S6: телефон | `phone_usage` | det + pose | Качество зависит от видимости мелкого объекта и позы. 1 из 1 после правки геометрии; правило, включённое на всех 13 роликах, ложных тревог не дало |
+| S7: курение/огонь | `smoking_fire` | fire | Программа `fire_640s1` на TPU сверена с CPU ([LINQ_NOTES](docs/LINQ_NOTES.md) §17). Сигарету модель огня не видит (0 из 1): для курения нужна отдельная модель |
 | S8: ограждение | `fence_climb` | det + pose | Нужны размеченные сцены с геометрией ограждения |
 | S9: высота без привязи | `height_no_harness` | det | В strict-режиме без модели привязи это контроль доступа в зону высоты |
 | S10: переноска груза | `unsafe_carry` | det + pose | Эвристики по позе требуют отдельной проверки качества |
+
+Качество оповещений на 13 размеченных роликах (535 с, 23 события, офлайн-прогон на CPU): P 1.00, R 0.78 (18 из 23), 0 дублей, 0 ложных тревог, задержка p50 2.35 с — [QUALITY](docs/QUALITY.md). Это малая выборка: разбор ошибок и ограничения — там же.
 
 Актуальный объём тестов получают командой `.venv/bin/python -m pytest --collect-only -q`; историческое число тестов не используется как статус текущей интеграции.
 
@@ -327,23 +331,25 @@ guard/                бэкенд (Python 3.11, FastAPI)
   vision/             letterbox, декод YOLOv8 det и pose, NMS, отрисовка
   tracking/           ByteTrack и атрибуты человека (СИЗ, поза, телефон)
   pipeline/           движок камер, батчинг между камерами, воркер камеры, шина WS, настройки
-  rules/              API правил (base.py), геометрия зон и расписаний, plugins/ — 10 типов нарушений
+  rules/              API правил (base.py), геометрия зон и расписаний, plugins/ — 13 типов нарушений
   events/             EventManager (подтверждение, дедуп), журнал SQLite, медиа (снапшот, клип)
   edge/               durable headless CLI, outbox publisher и telemetry
   gateway/            receipt/commit-before-ACK и JPEG preview
   transport/          versioned wire v1, store и AMQP
   reports/            сводка по смене
+  flywheel/           маховик данных: сбор сэмплов, хранилище, задачи
+  doctor.py           офлайн-проверка конфигурации
   api/                HTTP API и WebSocket
 frontend/             веб-интерфейс (React 18, TypeScript, Vite), мок-режим для резервного демо
 tpu/                  компиляция ONNX → .tpu, калибровка, замеры, сверка TPU с CPU, установка на стенд
-ml/                   экспорт моделей в ONNX, оценка качества по событиям (ml/eval/)
+ml/                   экспорт в ONNX, оценка по событиям (ml/eval/), дообучение (ml/flywheel/, ml/datasets/), карточки (ml/model_cards/)
 configs/              cameras.yaml (камеры, зоны, правила), models.yaml (реестр моделей)
 tools/                jhub.py (JupyterHub API), fetch_data.py (демо-данные), heavy.sh и memguard.sh (защита от OOM)
 infra/vpn/            OpenVPN в контейнере Podman для доступа к стенду
 scripts/run_dev.sh    запуск сервиса
 tests/                unit- и интеграционные проверки pytest
 docs/                 документация (см. ниже)
-deliverables/         материалы для экспертов: скриншоты, позже презентация
+deliverables/         материалы для экспертов: скриншоты и презентация (deliverables/presentation/)
 ```
 
 `data/`, `models/`, `vendor/` и `.env` в git не входят.
@@ -353,21 +359,40 @@ deliverables/         материалы для экспертов: скринш
 | Файл | Что внутри |
 |---|---|
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | схема, режимы запуска, почему edge, модули, точки расширения |
-| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | замеры TPU и CPU, точность, канал, расчёт «камер на TPU» |
-| [docs/LINQ_NOTES.md](docs/LINQ_NOTES.md) | конспект SDK и облачного протокола LinQ, компиляция, raw, грабли |
 | [docs/CONTRACTS.md](docs/CONTRACTS.md) | контракты модулей, HTTP API, WebSocket |
 | [docs/EDGE_PROTOCOL.md](docs/EDGE_PROTOCOL.md) | durable wire v1, outbox/receipt и bounded telemetry.v2 |
+| [docs/EDGE.md](docs/EDGE.md) | edge на стенде LinQ: запуск, 4 камеры на TPU, сквозная задержка, стабильность (замеры на прежнем транспорте) |
+| [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | замеры TPU и CPU, точность, канал, расчёт «камер на TPU» |
+| [docs/LINQ_NOTES.md](docs/LINQ_NOTES.md) | конспект SDK и облачного протокола LinQ, компиляция, raw, грабли |
+| [docs/TPU_PREFLIGHT.md](docs/TPU_PREFLIGHT.md) | проверка ONNX для TPU без SDK: разрез на голову и хвост (`python -m tpu.preflight`) |
+| [docs/QUALITY.md](docs/QUALITY.md) | качество оповещений на 13 размеченных роликах: P, R, дубли, задержка, разбор ошибок, отложенная выборка падений |
+| [docs/DATA.md](docs/DATA.md) | данные, демо-ролики, разметка и воспроизводимость проверок |
+| [docs/MODELS.md](docs/MODELS.md), [docs/DATASETS.md](docs/DATASETS.md) | модели, их выбор и компиляция под TPU; открытые наборы и дообучение (`forklift-v1`, карточки — `ml/model_cards/`) |
+| [docs/FLYWHEEL.md](docs/FLYWHEEL.md) | маховик данных: контракт, устройство, API |
 | [docs/S1_EVALUATION.md](docs/S1_EVALUATION.md), [docs/MODEL_COMPARISON.md](docs/MODEL_COMPARISON.md) | воспроизводимая оценка событий и сравнение моделей |
 | [docs/PPE_EVALUATION.md](docs/PPE_EVALUATION.md), [docs/S2_DATA_PREPARATION.md](docs/S2_DATA_PREPARATION.md) | AP, покрытие PPE-классов и pins входных данных |
+| [docs/S2_EVALUATION.md](docs/S2_EVALUATION.md), [docs/S2_ROI_BOUNDARY_AB.md](docs/S2_ROI_BOUNDARY_AB.md), [docs/S2_SOURCE_BOUNDARY_DIAGNOSTIC.md](docs/S2_SOURCE_BOUNDARY_DIAGNOSTIC.md), [docs/CAPTURE_DISCONTINUITY.md](docs/CAPTURE_DISCONTINUITY.md) | оценка S2, A/B полного кадра и кропов людей, граница склеенных источников, `capture_id` |
+| [docs/PPE_MODEL_CANDIDATE.md](docs/PPE_MODEL_CANDIDATE.md), [docs/PPE_VYRA_CANDIDATE.md](docs/PPE_VYRA_CANDIDATE.md), [docs/PPE_PERSON_ROI.md](docs/PPE_PERSON_ROI.md) | экспериментальные PPE-кандидаты BuildVision и Vyra, кропы людей для PPE (opt-in) |
+| [docs/MODEL_RESEARCH_20261024.md](docs/MODEL_RESEARCH_20261024.md), [docs/MODEL_FAMILIES_RESEARCH_20261024.md](docs/MODEL_FAMILIES_RESEARCH_20261024.md), [docs/EXTENDED_MODEL_FAMILIES_20261024.md](docs/EXTENDED_MODEL_FAMILIES_20261024.md), [docs/HEAVY_MODEL_RESEARCH_20261024.md](docs/HEAVY_MODEL_RESEARCH_20261024.md), [docs/MODEL_FOLLOWUP_20261024.md](docs/MODEL_FOLLOWUP_20261024.md), [docs/HIGH_RESOLUTION_EVALUATION.md](docs/HIGH_RESOLUTION_EVALUATION.md) | исследование моделей 24.10: семейства, тяжёлые модели, разрешение 640 и 1280 |
+| [docs/YOLO11_CANDIDATE.md](docs/YOLO11_CANDIDATE.md), [docs/RFDETR_CANDIDATE.md](docs/RFDETR_CANDIDATE.md), [docs/RFDETR_PARITY_DIAGNOSTICS.md](docs/RFDETR_PARITY_DIAGNOSTICS.md), [docs/RFDETR_QUALITY_COMPARISON.md](docs/RFDETR_QUALITY_COMPARISON.md), [docs/DFINE_DETECTOR_ADAPTER.md](docs/DFINE_DETECTOR_ADAPTER.md) | кандидаты детектора YOLO11, RF-DETR и D-FINE (opt-in, проверка на CPU) |
+| [docs/VIOLATION_EXPANSION_PLAN.md](docs/VIOLATION_EXPANSION_PLAN.md), [docs/VIOLATION_EXPANSION_RESULTS.md](docs/VIOLATION_EXPANSION_RESULTS.md), [docs/VIOLATION_API_INTEGRATION.md](docs/VIOLATION_API_INTEGRATION.md) | расширение правил: план, результаты, сквозная проверка через HTTP и WebSocket |
+| [docs/RULE_WRONG_WAY.md](docs/RULE_WRONG_WAY.md), [docs/RULE_ZONE_DWELL.md](docs/RULE_ZONE_DWELL.md), [docs/RULE_ZONE_OVERCAPACITY.md](docs/RULE_ZONE_OVERCAPACITY.md) | новые правила: движение против направления, пребывание в зоне, превышение числа людей |
+| [docs/RULE_OBSERVATIONS.md](docs/RULE_OBSERVATIONS.md), [docs/RULE_CONFIG_VALIDATION.md](docs/RULE_CONFIG_VALIDATION.md), [docs/RULE_ZONE_METADATA.md](docs/RULE_ZONE_METADATA.md), [docs/RULE_CONFIG_UI.md](docs/RULE_CONFIG_UI.md) | статус наблюдения моделей, проверка конфигурации правил, `zone_schema`, редактор правил |
 | [docs/CPU_MULTICAMERA.md](docs/CPU_MULTICAMERA.md), [docs/RABBIT_ACCEPTANCE.md](docs/RABBIT_ACCEPTANCE.md) | границы CPU и AMQP-приёмок |
+| [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), [docs/MAIN_INTEGRATION_20261024.md](docs/MAIN_INTEGRATION_20261024.md) | план развития и результаты интеграции 24.10 |
+| [docs/ROLES.md](docs/ROLES.md) | контракт ролей и прав: сотрудник, диспетчер смены, инженер по ОТ, администратор; кода `guard/auth` в main пока нет |
 | [docs/ANALYTICS.md](docs/ANALYTICS.md) | целевая аудитория, проблемы UX, конкуренты и аналоги |
 | [docs/PITCH.md](docs/PITCH.md) | структура защиты и экономика внедрения |
+| [docs/REQUIREMENTS_MATRIX.md](docs/REQUIREMENTS_MATRIX.md), [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | матрица требований R1–R7, D1–D5 и сценарий показа на защите (снимок 24.10 17:55) |
+| [docs/EXPERT_CALL.md](docs/EXPERT_CALL.md) | решение, данные и результаты — к созвону с экспертами |
 | [docs/CHECKPOINT_2.md](docs/CHECKPOINT_2.md) | материал к чек-поинту 2 (24.10 11:00) |
+| [docs/CHECKPOINT_3.md](docs/CHECKPOINT_3.md) | материал к чек-поинту 3 (24.10 18:00) |
 | [frontend/README.md](frontend/README.md) | экраны, режимы сборки, мок-режим |
 
 ## Модели и лицензии
 
 - YOLOv8n и YOLOv8n-pose (COCO), Ultralytics, AGPL-3.0 — основа det и pose на TPU.
 - PPE-кандидат: [constructelligence/construction-site-safety-hazards](https://huggingface.co/constructelligence/construction-site-safety-hazards); provenance, карты классов, экспериментальный статус и ограничения — в [MODELS](docs/MODELS.md) и [PPE_EVALUATION](docs/PPE_EVALUATION.md).
-- Источник модели огня/дыма: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n); наличие её записи в реестре не подтверждает активную работу текущей TPU-программы.
+- Источник модели огня/дыма: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n); наличие её записи в реестре не подтверждает активную работу текущей TPU-программы. Сверка программы `fire_640s1` с CPU — [LINQ_NOTES](docs/LINQ_NOTES.md) §17; в конфигурации стенда камеры с правилом огня нет.
+- Погрузчик: `forklift-v1` — YOLOv8n COCO, дообученная на открытых наборах `forklift-ds-v1`; источники наборов — [DATASETS](docs/DATASETS.md), метрики — `ml/model_cards/forklift-v1.json`. Модель есть в реестре, на камерах и на стенде не включена.
 - Источники и лицензии демо-видео — в `tools/data_manifest.json` и `data/labels/*.json` (поле `sources`).
