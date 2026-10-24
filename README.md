@@ -109,6 +109,9 @@ cd frontend && npm ci && npm run build && cd ..
 # 5. Сервис: API + UI на http://127.0.0.1:8000
 GUARD_BACKEND=onnx-cpu scripts/run_dev.sh
 
+# 5а. То же с распознаванием на LinQ TPU: edge на стенде, ноутбук — шлюз (нужен VPN-контейнер, схема ниже)
+scripts/run_tpu.sh            # SYNC=1 — сначала залить код на стенд и перезапустить edge
+
 # Тесты
 .venv/bin/python -m pytest -q
 ```
@@ -130,7 +133,7 @@ GUARD_BACKEND=onnx-cpu scripts/run_dev.sh
 | Программы TPU | `tpu/compile.py --cut-preset yolov8 --preset O5 ...` на сервере (команда — `docs/LINQ_NOTES.md` §13), затем копия в `/auto/cache/<логин>/` | готово: det и pose, 480 и 640 |
 | Проверка бэкенда TPU в окружении конвейера | `cd ~/work/guard_repo && GUARD_MODELS_DIR=$HOME/work/models OMP_NUM_THREADS=2 ~/guard311/bin/python tpu/smoke_backend.py` | готово |
 | Канал «стенд → ноутбук» | свой exchange и очереди в Rabbit проверены `tpu/chan_bench.py`: событие 2 КБ доходит за 0.47 с | готово |
-| Процесс `edge` на стенде и режим `gateway` на ноутбуке | запуск конвейера с `GUARD_BACKEND=linq-tpu` на стенде, публикация в `zazerkalye`, приём и журнал на ноутбуке | **в работе (A3)**, к чек-поинту 3 |
+| Процесс `edge` на стенде и режим `gateway` на ноутбуке | `scripts/run_tpu.sh`: проверяет VPN, запускает edge на стенде (`tools/stand.py`), очищает очередь шлюза от старых сообщений и поднимает UI в режиме `gateway`. 4 камеры по 4.8–4.9 к/с, от подтверждения на стенде до ноутбука ~0.5 с (`docs/EDGE.md`) | готово |
 | Защита от остановки сервера стенда | `tools/jhub_keepalive.sh` раз в 5 минут пингует JupyterHub, чтобы idle-culler не погасил контейнер | готово |
 
 Пока режим edge не готов, весь конвейер можно запустить на ноутбуке с `GUARD_BACKEND=linq-tpu` через VPN. Работать будет, но медленно: около 0.3 к/с (`docs/BENCHMARKS.md` §4.2). Годится только для проверки связи, не для демо.

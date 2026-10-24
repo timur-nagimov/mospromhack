@@ -47,6 +47,8 @@ Jupyter-контейнер стенда (1.5 CPU, 4 ГиБ)                     
 
 ## 3. Запуск, проверка, остановка
 
+Демо одной командой — `scripts/run_tpu.sh`: VPN-контейнер → edge на стенде (если не запущен; `SYNC=1` — залить код и перезапустить) → очистка `zazerkalye.gateway` от накопленного без шлюза → шлюз с UI на `127.0.0.1:8000`. Остановка шлюза — Ctrl+C, edge на стенде — `python tools/stand.py stop`.
+
 ```bash
 python tools/stand.py start          # ~/guard311/bin/python -m guard.edge --config configs/cameras.stand.yaml
 python tools/stand.py status         # PID, RSS, CPU и хвост лога
@@ -71,7 +73,7 @@ python -m guard.edge_probe --duration 300 --out .orchestra/metrics/edge-tpu-$(da
 ```
 
 - Подписчик читает `zazerkalye.gateway` через `127.0.0.1:5672` и печатает сводку (события, задержки, потери, часы).
-- Очередь общая. Если gateway A3 запущен на тот же брокер, сообщения делятся между ним и замером. Подписчик предупреждает об этом (`consumers_before`).
+- **Если шлюз работает, замер запускать только с `--tap`.** У общей очереди брокер раздаёт сообщения потребителям по очереди: шлюз недосчитывается половины `event`, создаёт событие из `event_update` уже без снапшота и с опозданием на 6–14 с (так было 24.10 12:34–12:44, когда замер стабильности шёл параллельно с демо). `--tap` читает копию потока через свою временную очередь на тех же ключах и шлюзу не мешает. Без `--tap` подписчик предупреждает о чужом потребителе (`consumers_before`).
 - `--prefetch 1 --ack-every 1` воспроизводит поведение `RabbitSource` шлюза (§7.1).
 
 ## 4. Что публикует edge
@@ -181,7 +183,7 @@ python -m guard.edge_probe --duration 300 --out .orchestra/metrics/edge-tpu-$(da
 
 ## 7. Проблемы и ограничения
 
-### 7.1. Шлюз берёт сообщения по одному (`RabbitSource`, prefetch 1) — главное, что нужно исправить к демо
+### 7.1. Шлюз брал сообщения по одному (`RabbitSource`, prefetch 1) — исправлено в 79a8920 (`CONSUMER_PREFETCH = 200`)
 
 `guard/transport/rabbit.py::_connect` для потребителя вызывает `basic_qos(prefetch_count=1)` и подтверждает каждое сообщение отдельно. Брокер отдаёт следующее сообщение только после ack, поэтому через VPN (RTT 225 мс) потребитель берёт не больше ~4 сообщений/с. Edge шлёт 20.7 сообщения/с. Замер `.orchestra/metrics/edge-tpu-prefetch1-20261024-1009.json` (150 с, `--prefetch 1 --ack-every 1`, тот же edge на TPU):
 

@@ -55,7 +55,8 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
             assert required[rule.type] <= models, (cid, rule.type)
         if cid in demo:  # gateway показывает камеры по своему конфигу: зоны и правила совпадают
             assert [z.model_dump() for z in cam.zones] == [z.model_dump() for z in demo[cid].zones]
-            assert [r.type for r in cam.rules] == [r.type for r in demo[cid].rules]
+            # и параметры правил тоже: иначе на TPU работают одни пороги, а в отчёте о качестве — другие
+            assert [r.model_dump() for r in cam.rules] == [r.model_dump() for r in demo[cid].rules]
             assert Path(cam.source.uri).name == Path(demo[cid].source.uri).name
     assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4"}
 

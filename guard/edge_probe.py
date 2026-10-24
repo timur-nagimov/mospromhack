@@ -38,6 +38,8 @@ from guard.transport.messages import EventMsg, FrameMetaMsg, HeartbeatMsg, Metri
 
 DEFAULT_URL = "amqp://guest:guest@127.0.0.1:5672/"
 GATEWAY_QUEUE = "zazerkalye.gateway"
+EXCHANGE = "zazerkalye"
+BINDINGS = ("edge.event", "edge.frame_meta", "edge.metrics")
 
 
 def stats(values: list[float], scale: float = 1.0, digits: int = 1) -> dict[str, Any] | None:
@@ -140,12 +142,19 @@ def broker_rtt(url: str, queue: str, n: int = 15) -> dict[str, Any]:
 
 
 def consume(url: str, queue: str, duration: float, prefetch: int, ack_every: int, rec: Recorder,
-            purge: bool = False) -> None:
+            purge: bool = False, tap: bool = False) -> None:
     import pika
 
     conn = pika.BlockingConnection(pika.URLParameters(url))
     ch = conn.channel()
-    if purge:
+    if tap:
+        # Своя временная очередь на тех же ключах: замер получает копию потока, а не делит очередь шлюза
+        # (у общей очереди брокер раздаёт сообщения потребителям по очереди, и шлюз теряет часть событий).
+        queue = ch.queue_declare(queue="", exclusive=True, auto_delete=True,
+                                 arguments={"x-max-length": 5000}).method.queue
+        for routing_key in BINDINGS:
+            ch.queue_bind(queue=queue, exchange=EXCHANGE, routing_key=routing_key)
+    elif purge:
         ch.queue_purge(queue)
     ch.basic_qos(prefetch_count=prefetch)
     deadline = time.monotonic() + duration
@@ -377,6 +386,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--prefetch", type=int, default=200, help="1 — как RabbitSource шлюза")
     p.add_argument("--ack-every", type=int, default=50, help="групповой ack; 1 — как RabbitSource")
     p.add_argument("--purge", action="store_true", help="очистить очередь перед приёмом (старые сообщения)")
+    p.add_argument("--tap", action="store_true",
+                   help="копия потока через свою очередь: не мешает работающему шлюзу. frame_meta и metrics "
+                        "edge шлёт, только пока у очереди шлюза есть потребитель (docs/EDGE.md §4)")
     p.add_argument("--no-ntp", action="store_true")
     p.add_argument("--label", default="edge-tpu")
     p.add_argument("--out", help="JSON с результатами")
@@ -390,10 +402,10 @@ def main(argv: list[str] | None = None) -> int:
     rtt = broker_rtt(args.url, args.queue)
     print(f"broker rtt {rtt['rtt_ms']}, consumers before {rtt['consumers_before']}, "
           f"messages before {rtt['messages_before']}; laptop ntp {laptop_ntp}", flush=True)
-    if rtt["consumers_before"]:
+    if rtt["consumers_before"] and not args.tap:
         print("ВНИМАНИЕ: у очереди уже есть потребитель (шлюз?) — сообщения делятся между ним и замером", flush=True)
     rec = Recorder()
-    consume(args.url, args.queue, args.duration, args.prefetch, args.ack_every, rec, purge=args.purge)
+    consume(args.url, args.queue, args.duration, args.prefetch, args.ack_every, rec, purge=args.purge, tap=args.tap)
     if not args.no_ntp:
         again = ntp_best(ntp_servers, samples=6)
         if again and "offset_ms" in again and (not laptop_ntp or "offset_ms" not in laptop_ntp

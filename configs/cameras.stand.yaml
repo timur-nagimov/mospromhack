@@ -38,7 +38,7 @@ cameras:
     type: zone_intrusion
     enabled: true
     zones: [behind_tape]
-    params: {min_conf: 0.35, min_box_h_px: 40}
+    params: {min_conf: 0.5, min_box_h_px: 40}
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
@@ -57,7 +57,7 @@ cameras:
     enabled: true
     zones: null
     params: {required: [helmet], min_box_h_px: 60}
-    min_duration_s: 2.0
+    min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
     cooldown_s: 10.0
@@ -74,9 +74,9 @@ cameras:
     type: fall_immobile
     enabled: true
     zones: null
-    params: {min_lying_s: 1.0, immobile_window_s: 2.0}
+    params: {min_lying_s: 1.0, immobile_window_s: 1.5}
     min_duration_s: 1.0
-    min_ratio: 0.6
+    min_ratio: 0.5
     close_after_s: 3.0
     cooldown_s: 10.0
     severity: critical
@@ -92,7 +92,7 @@ cameras:
     type: vehicle_proximity
     enabled: true
     zones: null
-    params: {}
+    params: {min_vehicle_speed_bh: 0.05}
     min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
