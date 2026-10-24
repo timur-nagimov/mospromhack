@@ -116,20 +116,32 @@ export function createMockApi(): GuardApi {
         timings_ms: timings,
       };
     });
-    const utilization = Math.min(0.95, (fpsTotal * inferP50) / 1000 + 0.06 + rng() * 0.03);
+    const utilization = Math.min(0.95, (fpsTotal * inferP50 * 1.6) / 1000 + 0.05 + rng() * 0.03);
+    const r1 = (v: number) => Math.round(v * 10) / 10;
+    const model = (share: number, infer: number, transfer: number, calls: number) => ({
+      timings_ms: {
+        transfer: { p50: r1(transfer), p95: r1(transfer * 1.8) },
+        infer: { p50: r1(infer), p95: r1(infer * 1.25) },
+      },
+      fps: r1(fpsTotal * share),
+      calls,
+      items: calls * 3,
+      max_batch_seen: 4,
+      errors: 0,
+      last_error: null,
+    });
+    const tick = Math.floor(t - startedAt);
     return {
       backend: 'linq-tpu',
       cameras: camMetrics,
       inference: {
         backend: 'linq-tpu',
         device: 'LinQ TPU (стенд хакатона)',
-        models: ['det', 'ppe', 'pose'],
-        batch_size: 4,
-        fps: Math.round(fpsTotal * 10) / 10,
-        errors: 0,
         utilization: Math.round(utilization * 1000) / 1000,
-        timings_ms: {
-          infer: { p50: Math.round(inferP50 * 10) / 10, p95: Math.round(inferP50 * 1.25 * 10) / 10 },
+        models: {
+          det: model(1, inferP50, 16.8, 4200 + tick * 8),
+          ppe: model(0.55, inferP50 * 0.62, 9.4, 2300 + tick * 4),
+          pose: model(0.3, inferP50 * 0.85, 12.1, 1250 + tick * 2),
         },
       },
     };

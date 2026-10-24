@@ -113,3 +113,17 @@ Source (file/rtsp/images) → sampler (sample_fps) → batcher → Detector(mode
 | `frontend/` | A4 frontend |
 | `data/` (вне git), `docs/DATA.md`, `tools/fetch_data.*` | A5 data-demo |
 | `guard/vision/`, `guard/tracking/`, `guard/events/{manager,journal}.py` и их тесты | Codex |
+
+## Уточнения API (24.10, по итогам интеграции фронтенда)
+
+- `GET /api/events`:
+  - дополнительный фильтр `severity=`;
+  - `from` и `to` — epoch-секунды, фильтр по `confirmed_at`;
+  - фильтры принимают значения через запятую.
+- `GET /api/stats?group_by=`: допустимы `type`, `camera`, `zone`, `severity`, `status`, `site`, `hour`, `day`, `weekday_hour` (ключ `"<0-6>:<0-23>"`, понедельник = 0, время МСК).
+- `GET /api/cameras`: поле `status` (running, stopped, error плюс fps) — только для чтения. В PUT и POST оно игнорируется.
+- `GET /api/metrics`: `inference` = `{backend, device, utilization (0..1, если известно), models: {id: {fps, calls, max_batch_seen, timings_ms: {transfer, queue, infer}, errors, last_error}}}`.
+- `PATCH /api/events/{id}`: возвращает полный Event и рассылает `event_update` по WS. Когда клип готов, тоже рассылается `event_update` с `clip_path`.
+- Ключи `Event.details`, которые понимает UI: `missing`, `vehicle`, `distance_bh`, `distance_m`, `immobile_s`, `speed_bh`, `pose_state`, `source`, `cls`, `conf`.
+- Оверлеи MJPEG компактные: ID трека, а у нарушителя — короткая метка нарушения. Неизвестные атрибуты («?») не выводить.
+- Режимы запуска (D-005): `local`, `edge` (сервер стенда) и `gateway` (ноутбук). Сообщения транспорта edge → gateway: `event`, `frame_meta`, `metrics`.

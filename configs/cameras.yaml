@@ -1,0 +1,73 @@
+# Камеры сервиса «Зазеркалье». Файл меняет API (/api/cameras), правки руками тоже допустимы.
+# source.uri для file/images: абсолютный путь или относительно GUARD_DATA_DIR.
+# Полигоны зон — нормированные координаты 0..1; active_hours — по Europe/Moscow.
+cameras:
+- camera_id: cam_shop
+  name: Цех 1, участок станков
+  site: Цех 1
+  source: {type: file, uri: videos/a3dev_worker_zone_detection/worker-zone-detection.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones:
+  - zone_id: z_machine
+    name: Зона у станка (нахождение запрещено)
+    kind: danger
+    polygon: [[0.17, 0.74], [0.31, 0.74], [0.32, 0.8], [0.16, 0.8]]
+    active_hours: null
+  rules:
+  - rule_id: s1_machine
+    type: zone_intrusion
+    enabled: true
+    zones: [z_machine]
+    params: {min_conf: 0.35, min_box_h_px: 40}
+    min_duration_s: 2.0
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 30.0
+    severity: high
+- camera_id: cam_warehouse
+  name: Склад, стеллажный проход
+  site: Склад
+  source: {type: file, uri: videos/a3dev_store_aisle_detection/store-aisle-detection.mp4, loop: true, realtime: true}
+  sample_fps: 4.0
+  enabled: true
+  zones:
+  - zone_id: z_loading
+    name: Проезд погрузчика (дневная смена)
+    kind: vehicle_path
+    polygon: [[0.3, 0.42], [0.42, 0.42], [0.5, 1.0], [0.22, 1.0]]
+    active_hours: ['08:00-20:00']
+  rules:
+  - rule_id: s1_loading
+    type: zone_intrusion
+    enabled: true
+    zones: [z_loading]
+    params: {min_conf: 0.35, min_box_h_px: 30}
+    min_duration_s: 2.0
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 30.0
+    severity: high
+- camera_id: cam_corridor
+  name: Коридор у электрощитовой
+  site: АБК
+  source: {type: file, uri: videos/a3dev_people_detection/people-detection.mp4, loop: true, realtime: true}
+  sample_fps: 4.0
+  enabled: true
+  zones:
+  - zone_id: z_switchboard
+    name: Подход к электрощитовой (только допуск)
+    kind: danger
+    polygon: [[0.0, 0.5], [0.16, 0.48], [0.22, 0.78], [0.0, 0.86]]
+    active_hours: ['08:00-20:00']
+  rules:
+  - rule_id: s1_switchboard
+    type: zone_intrusion
+    enabled: true
+    zones: [z_switchboard]
+    params: {min_conf: 0.35, min_box_h_px: 30}
+    min_duration_s: 2.0
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 30.0
+    severity: high

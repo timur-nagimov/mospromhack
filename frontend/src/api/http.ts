@@ -72,6 +72,34 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
 
 const enc = encodeURIComponent;
 
+/**
+ * Тело PUT/POST — только поля CameraConfig из контракта: GET может отдавать
+ * рантайм-поля (например status), их нельзя отправлять обратно.
+ */
+function cameraPayload(c: CameraConfig): CameraConfig {
+  return {
+    camera_id: c.camera_id,
+    name: c.name,
+    site: c.site,
+    source: { type: c.source.type, uri: c.source.uri, loop: c.source.loop, realtime: c.source.realtime },
+    sample_fps: c.sample_fps,
+    enabled: c.enabled,
+    zones: c.zones.map((z) => ({ zone_id: z.zone_id, name: z.name, kind: z.kind, polygon: z.polygon, active_hours: z.active_hours })),
+    rules: c.rules.map((r) => ({
+      rule_id: r.rule_id,
+      type: r.type,
+      enabled: r.enabled,
+      zones: r.zones,
+      params: r.params,
+      min_duration_s: r.min_duration_s,
+      min_ratio: r.min_ratio,
+      close_after_s: r.close_after_s,
+      cooldown_s: r.cooldown_s,
+      severity: r.severity,
+    })),
+  };
+}
+
 export function createHttpApi(): GuardApi {
   const socket = new EventSocket(wsUrl('/ws/events'));
 
@@ -79,8 +107,8 @@ export function createHttpApi(): GuardApi {
     mode: 'http',
     health: () => request<Health>('/health'),
     listCameras: () => request<CameraConfig[]>('/api/cameras'),
-    createCamera: (camera) => request<CameraConfig>('/api/cameras', { method: 'POST', json: camera }),
-    updateCamera: (id, camera) => request<CameraConfig>(`/api/cameras/${enc(id)}`, { method: 'PUT', json: camera }),
+    createCamera: (camera) => request<CameraConfig>('/api/cameras', { method: 'POST', json: cameraPayload(camera) }),
+    updateCamera: (id, camera) => request<CameraConfig>(`/api/cameras/${enc(id)}`, { method: 'PUT', json: cameraPayload(camera) }),
     deleteCamera: (id) => request<void>(`/api/cameras/${enc(id)}`, { method: 'DELETE' }),
     listRuleTypes: () => request<RuleTypeInfo[]>('/api/rules/types'),
     listEvents: (q: EventQuery, signal?: AbortSignal) =>

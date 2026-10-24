@@ -22,3 +22,5 @@ frontend/dist/
 /data
 /models
 /vendor
+.orchestra/memwatch.log
+.orchestra/keepalive.log

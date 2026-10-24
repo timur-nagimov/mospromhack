@@ -154,18 +154,25 @@ class JHub:
 
     # ---------- сессия ----------
 
-    def _xsrf(self) -> str | None:
+    def _xsrf(self, url_path: str | None = None) -> str | None:
+        """Значение cookie _xsrf для пути запроса: у hub (/hub/) и single-user сервера (/user/<u>/) они разные."""
+        best, best_len = None, -1
         for c in self.s.cookies:
-            if c.name == "_xsrf":
-                return c.value
-        return None
+            if c.name != "_xsrf":
+                continue
+            cp = c.path or "/"
+            if url_path is not None and not url_path.startswith(cp.rstrip("/") or "/"):
+                continue
+            if len(cp) > best_len:
+                best, best_len = c.value, len(cp)
+        return best
 
-    def _headers(self, extra: dict[str, str] | None = None) -> dict[str, str]:
+    def _headers(self, extra: dict[str, str] | None = None, url_path: str | None = None) -> dict[str, str]:
         h: dict[str, str] = {}
         tok = self.token or self.hub_api_token
         if tok:
             h["Authorization"] = f"token {tok}"
-        x = self._xsrf()
+        x = self._xsrf(url_path)
         if x:
             h["X-XSRFToken"] = x
         if extra:
@@ -212,7 +219,7 @@ class JHub:
         """Восстановить сессию из кеша и проверить её; при неудаче — войти заново."""
         if self.api_base is None and self.load_session():
             try:
-                r = self.s.get(self.api_base + "/api/status", headers=self._headers(), timeout=self.timeout,
+                r = self.s.get(self.api_base + "/api/status", headers=self._headers(url_path=urlsplit(self.api_base).path + "/api/status"), timeout=self.timeout,
                                allow_redirects=True)
                 if r.status_code == 200 and r.headers.get("content-type", "").startswith("application/json"):
                     return self
@@ -246,7 +253,7 @@ class JHub:
 
     def _login_token(self) -> dict[str, Any]:
         # Пробуем как hub-токен, потом как токен одиночного сервера.
-        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(), timeout=self.timeout)
+        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(url_path="/hub/"), timeout=self.timeout)
         if r.status_code == 200:
             u = r.json()
             self.mode, self.user = "hub", u.get("name", self.user)
@@ -281,7 +288,7 @@ class JHub:
             r = self.s.post(
                 f"{self.base}/hub/api/users/{quote(self.user)}/tokens",
                 json={"note": "zazerkalye-jhub", "expires_in": 3 * 24 * 3600},
-                headers=self._headers(),
+                headers=self._headers(url_path="/hub/"),
                 timeout=self.timeout,
             )
             if r.status_code in (200, 201):
@@ -297,11 +304,11 @@ class JHub:
         return {"auth": "hub-form", "user": self.user, "token_issued": bool(self.hub_api_token)}
 
     def _hub_get_user(self) -> dict[str, Any] | None:
-        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(), timeout=self.timeout)
+        r = self.s.get(self.base + "/hub/api/user", headers=self._headers(url_path="/hub/"), timeout=self.timeout)
         if r.status_code == 200:
             return r.json()
         if self.user:
-            r = self.s.get(f"{self.base}/hub/api/users/{quote(self.user)}", headers=self._headers(),
+            r = self.s.get(f"{self.base}/hub/api/users/{quote(self.user)}", headers=self._headers(url_path="/hub/"),
                            timeout=self.timeout)
             if r.status_code == 200:
                 return r.json()
@@ -316,7 +323,7 @@ class JHub:
         if ready(u):
             return u
         self._log("single-user сервер не запущен, запускаем")
-        r = self.s.post(f"{self.base}/hub/api/users/{quote(self.user)}/server", headers=self._headers(),
+        r = self.s.post(f"{self.base}/hub/api/users/{quote(self.user)}/server", headers=self._headers(url_path="/hub/"),
                         timeout=self.timeout)
         if r.status_code not in (201, 202, 400):  # 400 = уже запущен/запускается
             # запасной путь: /hub/spawn через браузерный поток
@@ -354,7 +361,7 @@ class JHub:
         self.ensure()
         extra = kw.pop("headers", None)
         kw.setdefault("timeout", self.timeout)
-        r = self.s.request(method, self.api_base + path, headers=self._headers(extra), **kw)
+        r = self.s.request(method, self.api_base + path, headers=self._headers(extra, urlsplit(self.api_base).path + path), **kw)
         expired = r.status_code == 401 or (r.status_code == 403 and "xsrf" in r.text.lower())
         if expired and (self.password or self.token):
             self._log(method, path, "->", r.status_code, "релогин")
@@ -362,7 +369,7 @@ class JHub:
             self.hub_api_token = None
             self.api_base = None
             self.login()
-            r = self.s.request(method, self.api_base + path, headers=self._headers(extra), **kw)
+            r = self.s.request(method, self.api_base + path, headers=self._headers(extra, urlsplit(self.api_base).path + path), **kw)
         return r
 
     @staticmethod
@@ -434,6 +441,77 @@ class JHub:
         dt = time.time() - t0
         return {"remote": remote, "bytes": size, "seconds": round(dt, 3), "MBps": round(size / 1e6 / max(dt, 1e-9), 3)}
 
+    def clone(self) -> "JHub":
+        """Независимая копия клиента с той же авторизацией (для параллельных потоков)."""
+        self.ensure()
+        c = JHub(self.base, self.user, self.password, self.token, self.timeout, session_file=None,
+                 verbose=self.verbose)
+        c.mode, c.api_base, c.hub_api_token = self.mode, self.api_base, self.hub_api_token
+        for ck in self.s.cookies:
+            c.s.cookies.set(ck.name, ck.value, domain=ck.domain, path=ck.path)
+        return c
+
+    def upload_parallel(self, local: str | Path, remote: str, workers: int = 6, part_mb: float = 4.0) -> dict:
+        """Загрузка частями в несколько потоков + склейка и sha256 на сервере.
+
+        Через VPN один поток упирается в окно TCP (~0.3 МБ/с при RTT 240 мс), потоки складываются."""
+        import concurrent.futures as cf
+        import hashlib
+
+        local = Path(local)
+        size = local.stat().st_size
+        part = int(part_mb * 1024 * 1024)
+        nparts = max(1, (size + part - 1) // part)
+        if nparts == 1:
+            return self.upload(local, remote)
+        sha = hashlib.sha256(local.read_bytes()).hexdigest()
+        rdir = remote.strip("/").rsplit("/", 1)[0] if "/" in remote.strip("/") else ""
+        if rdir:
+            self.mkdirs(rdir)
+        tmpdir = f"{rdir}/_parts_{Path(remote).name}" if rdir else f"_parts_{Path(remote).name}"
+        self.mkdirs(tmpdir)
+        clients = [self.clone() for _ in range(min(workers, nparts))]
+        t0 = time.time()
+
+        def put(i: int) -> int:
+            c = clients[i % len(clients)]
+            with local.open("rb") as f:
+                f.seek(i * part)
+                data = f.read(part)
+            body = {"type": "file", "format": "base64", "name": f"p{i:05d}", "content": base64.b64encode(data).decode()}
+            for attempt in range(3):
+                try:
+                    r = c._api("PUT", f"/api/contents/{self._cpath(tmpdir)}/p{i:05d}", json=body, timeout=600)
+                    if r.status_code in (200, 201):
+                        return len(data)
+                except requests.RequestException:
+                    pass
+                time.sleep(1 + attempt)
+            raise JHubError(f"часть {i} не загрузилась")
+
+        with cf.ThreadPoolExecutor(len(clients)) as ex:
+            sent = sum(ex.map(put, range(nparts)))
+        t_up = time.time() - t0
+        # пути contents API — от корня сервера (~/work в стенде LinQ); склеиваем через ядро
+        res = self.execute(
+            "import os, glob, hashlib, shutil\n"
+            f"root = os.path.expanduser(os.environ.get('JUPYTER_SERVER_ROOT', '~/work'))\n"
+            f"tmp = os.path.join(root, {tmpdir!r}); dst = os.path.join(root, {remote.strip('/')!r})\n"
+            "h = hashlib.sha256()\n"
+            "with open(dst + '.tmp', 'wb') as out:\n"
+            "    for p in sorted(glob.glob(os.path.join(tmp, 'p*'))):\n"
+            "        b = open(p, 'rb').read(); h.update(b); out.write(b)\n"
+            "os.replace(dst + '.tmp', dst); shutil.rmtree(tmp)\n"
+            "print(h.hexdigest(), os.path.getsize(dst))\n",
+            timeout=300,
+        )
+        got = (res.stdout.split() or ["", "0"])
+        if not res.ok or got[0] != sha:
+            raise JHubError(f"склейка/sha256 не совпали: {res.stdout} {res.error}")
+        dt = time.time() - t0
+        return {"remote": remote, "bytes": size, "parts": nparts, "workers": len(clients), "seconds": round(dt, 2),
+                "upload_seconds": round(t_up, 2), "MBps": round(size / 1e6 / max(dt, 1e-9), 3), "sha256": sha}
+
     def download(self, remote: str, local: str | Path | None = None) -> dict:
         local = Path(local) if local else Path(Path(remote).name)
         if local.is_dir():
@@ -497,13 +575,25 @@ class JHub:
         own = kernel_id is None
         kid = kernel_id or self.start_kernel(kernel_name)
         session_id = uuid.uuid4().hex
-        hdrs = [f"{k}: {v}" for k, v in self._headers().items()]
-        cookie = "; ".join(f"{c.name}={c.value}" for c in self.s.cookies)
-        if cookie:
-            hdrs.append(f"Cookie: {cookie}")
+        hdrs = [f"{k}: {v}" for k, v in self._headers(url_path=urlsplit(self.api_base).path + "/api/kernels").items()]
+        if not (self.token or self.hub_api_token):  # без токена — cookie-авторизация
+            cookie = "; ".join(f"{c.name}={c.value}" for c in self.s.cookies)
+            if cookie:
+                hdrs.append(f"Cookie: {cookie}")
         res = ExecResult()
         t0 = time.time()
-        ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60))
+        # Origin не шлём: за nginx стенда Host без порта, и проверка origin в jupyter_server отклоняет
+        # «http://127.0.0.1:8888» (Cross origin websockets not allowed); без Origin запрос пропускается.
+        try:
+            ws = websocket.create_connection(self._ws_url(kid, session_id), header=hdrs, timeout=min(timeout, 60),
+                                             suppress_origin=True)
+        except Exception:
+            if own:  # не оставляем «висящее» ядро при неудачном рукопожатии
+                try:
+                    self.stop_kernel(kid)
+                except Exception:  # noqa: BLE001
+                    pass
+            raise
         try:
             msg_id = uuid.uuid4().hex
             msg = {
@@ -590,7 +680,7 @@ class JHub:
         if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
             raise JHubError("name: только буквы, цифры, _.-")
         script = (
-            f"mkdir -p ~/jhub_bg && cd {workdir} && "
+            f"mkdir -p ~/jhub_bg; cd {workdir} || exit 1; "
             f"nohup setsid bash -lc {shlex.quote(cmd)} > ~/jhub_bg/{name}.log 2>&1 < /dev/null & "
             f"echo $! > ~/jhub_bg/{name}.pid; "
             f"printf '%s\\n' {shlex.quote(cmd)} > ~/jhub_bg/{name}.cmd; cat ~/jhub_bg/{name}.pid"
@@ -640,6 +730,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("local")
     p.add_argument("remote")
     p.add_argument("--chunk-mb", type=float, default=UPLOAD_CHUNK / 1024 / 1024)
+    p.add_argument("--parallel", type=int, default=1, help="потоков (части по --chunk-mb, склейка+sha256)")
     p = sub.add_parser("download", help="скачать файл")
     p.add_argument("remote")
     p.add_argument("local", nargs="?")
@@ -676,7 +767,10 @@ def main(argv: list[str] | None = None) -> int:
                 size = it.get("size")
                 print(f"{kind} {size if size is not None else '':>12} {it.get('last_modified', '')[:19]}  {it['path']}")
         elif a.cmd == "upload":
-            _print_json(jh.upload(a.local, a.remote, chunk=int(a.chunk_mb * 1024 * 1024), progress=a.verbose))
+            if a.parallel > 1:
+                _print_json(jh.upload_parallel(a.local, a.remote, workers=a.parallel, part_mb=a.chunk_mb))
+            else:
+                _print_json(jh.upload(a.local, a.remote, chunk=int(a.chunk_mb * 1024 * 1024), progress=a.verbose))
         elif a.cmd == "download":
             _print_json(jh.download(a.remote, a.local))
         elif a.cmd in ("exec", "sh"):

@@ -18,7 +18,7 @@ models:
     input_size: [640, 640]
     input_dtype: float32
     output_format: yolov8
-    conf_threshold: 0.35
+    conf_threshold: 0.25           # как у A3 в конвейере (трекеру нужны и слабые детекции)
     iou_threshold: 0.5
     classes: &coco80 [person, bicycle, car, motorcycle, airplane, bus, train, truck, boat, traffic light,
       fire hydrant, stop sign, parking meter, bench, bird, cat, dog, horse, sheep, cow, elephant, bear,
@@ -59,7 +59,7 @@ models:
     onnx_path: yolov8n-pose-640.onnx
     input_size: [640, 640]
     output_format: yolov8-pose
-    conf_threshold: 0.35
+    conf_threshold: 0.3            # как у A3
     iou_threshold: 0.5
     classes: [person]
   - model_id: pose_n480

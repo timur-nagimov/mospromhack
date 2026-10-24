@@ -1,0 +1,737 @@
+{
+  "version": 1,
+  "encode": {
+    "width": 1280,
+    "height": 720,
+    "fps": 25,
+    "crf": 28,
+    "preset": "medium",
+    "threads": 4
+  },
+  "sources": {
+    "intel_worker_zone": {
+      "url": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/worker-zone-detection.mp4",
+      "page": "https://github.com/intel-iot-devkit/sample-videos",
+      "license": "CC BY 4.0",
+      "author": "Intel Corporation (intel-iot-devkit/sample-videos)"
+    },
+    "intel_store_aisle": {
+      "url": "https://raw.githubusercontent.com/intel-iot-devkit/sample-videos/master/store-aisle-detection.mp4",
+      "page": "https://github.com/intel-iot-devkit/sample-videos",
+      "license": "CC BY 4.0",
+      "author": "Intel Corporation (intel-iot-devkit/sample-videos)"
+    },
+    "intel_safety_gear": {
+      "url": "https://raw.githubusercontent.com/intel-iot-devkit/safety-gear-detector-python/master/resources/Safety_Full_Hat_and_Vest.mp4",
+      "page": "https://github.com/intel-iot-devkit/safety-gear-detector-python",
+      "license": "BSD-3-Clause (лицензия репозитория, видео лежит в resources/)",
+      "author": "Intel Corporation"
+    },
+    "mixkit_23237": {
+      "url": "https://assets.mixkit.co/videos/23237/23237-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/business-people-walking-in-the-warehouse-23237/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_24049": {
+      "url": "https://assets.mixkit.co/videos/24049/24049-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/quality-control-check-at-construction-site-24049/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_23814": {
+      "url": "https://assets.mixkit.co/videos/23814/23814-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/tired-man-falls-in-the-snow-23814/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "gmdcsa_s3_07": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/07.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "gmdcsa_s2_10": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/10.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "gmdcsa_s3_05": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/05.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "gmdcsa_s2_04": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/04.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "gmdcsa_s3_18": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%203/Fall/18.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "gmdcsa_s2_13": {
+      "url": "https://raw.githubusercontent.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos/master/Subject%202/Fall/13.mp4",
+      "page": "https://github.com/ekramalam/GMDCSA24-A-Dataset-for-Human-Fall-Detection-in-Videos",
+      "license": "MIT (GMDCSA24, doi:10.5281/zenodo.12921216)",
+      "author": "E. Alam et al."
+    },
+    "mixkit_25444": {
+      "url": "https://assets.mixkit.co/videos/25444/25444-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/excavator-loading-up-a-truck-25444/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_23174": {
+      "url": "https://assets.mixkit.co/videos/23174/23174-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/worker-leading-a-freight-truck-in-the-parking-23174/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_22983": {
+      "url": "https://assets.mixkit.co/videos/22983/22983-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/loading-a-cargo-truck-22983/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_23852": {
+      "url": "https://assets.mixkit.co/videos/23852/23852-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/working-giving-directions-to-freight-truck-23852/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_23107": {
+      "url": "https://assets.mixkit.co/videos/23107/23107-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/group-of-workers-in-an-electrical-plant-23107/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_23224": {
+      "url": "https://assets.mixkit.co/videos/23224/23224-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/workers-conversation-on-a-construction-site-23224/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_24078": {
+      "url": "https://assets.mixkit.co/videos/24078/24078-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/young-construction-worker-talking-on-the-phone-24078/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    },
+    "mixkit_414": {
+      "url": "https://assets.mixkit.co/videos/414/414-720.mp4",
+      "page": "https://mixkit.co/free-stock-video/man-smoking-in-an-abandoned-building-414/",
+      "license": "Mixkit Stock Video Free License (https://mixkit.co/license/#videoFree)",
+      "author": "Mixkit"
+    }
+  },
+  "videos": [
+    {
+      "name": "s1_01.mp4",
+      "scenario": "S1",
+      "title": "Цех: рабочие заходят за ограничительную ленту",
+      "segments": [
+        {
+          "source": "intel_worker_zone",
+          "ss": 0,
+          "to": 60
+        }
+      ],
+      "frame_step_s": 2.5,
+      "description": "Статичная камера сверху-сбоку, пустой цех с колоннами, на полу красная разметка и жёлто-чёрная ограничительная лента. По очереди проходят 1–2 рабочих в касках и жилетах, один стоит за лентой ~11 с.",
+      "persons": "1–2 человека, высота фигуры 0.4–0.7 кадра; все в касках и жилетах",
+      "rules_to_enable": [
+        "zone_intrusion",
+        "ppe_missing"
+      ],
+      "zones": [
+        {
+          "zone_id": "behind_tape",
+          "name": "За ограничительной лентой (левый передний сектор)",
+          "kind": "danger",
+          "polygon": [
+            [
+              0.0,
+              0.3
+            ],
+            [
+              0.07,
+              0.31
+            ],
+            [
+              0.4,
+              0.7
+            ],
+            [
+              0.22,
+              1.0
+            ],
+            [
+              0.0,
+              1.0
+            ]
+          ],
+          "reference_frame_s": 11.1,
+          "rationale": "Кадр 11.1 с, цех пуст. Жёлто-чёрная лента идёт по полу от (0.22, 1.0) к основанию колонны (0.525, 0.48); красная линия разметки идёт от (0.07, 0.31) и пересекает ленту в (0.40, 0.70). Зона — сектор слева от ленты и ниже красной линии. Проверка — по точке опоры (низ-центр рамки)."
+        }
+      ],
+      "events": [
+        {
+          "type": "zone_intrusion",
+          "t_start": 15.4,
+          "t_end": 26.6,
+          "uncertain": false,
+          "note": "Рабочий переходит ленту и ~11 с стоит за ней; точка опоры ≈ (0.25, 0.78)"
+        },
+        {
+          "type": "zone_intrusion",
+          "t_start": 36.2,
+          "t_end": 39.6,
+          "uncertain": false,
+          "note": "Двое идут вдоль ленты; женщина (светлые волосы, жилет) проходит через зону, опора ≈ (0.21–0.31, 0.75–0.91)"
+        },
+        {
+          "type": "zone_intrusion",
+          "t_start": 50.2,
+          "t_end": 51.8,
+          "uncertain": true,
+          "note": "Рабочий срезает угол зоны за ~1.5 с, опора ≈ (0.22–0.33, 0.65–0.90); короче обычного min_duration"
+        }
+      ]
+    },
+    {
+      "name": "s1_02.mp4",
+      "scenario": "S1",
+      "title": "Проход между стеллажами: люди заходят в дальний конец прохода",
+      "segments": [
+        {
+          "source": "intel_store_aisle",
+          "ss": 0,
+          "to": 60
+        }
+      ],
+      "frame_step_s": 2.5,
+      "description": "Статичная камера над проходом магазина посуды: два прохода между стеллажами и островной выкладкой. С 9 с в кадре 2–6 человек, есть перекрытия. Разрешение источника 720×404 (не увеличивали).",
+      "persons": "2–6 человек, высота фигуры 0.2–0.7 кадра; перекрытия, присевшие люди",
+      "rules_to_enable": [
+        "zone_intrusion"
+      ],
+      "zones": [
+        {
+          "zone_id": "aisle_far_right",
+          "name": "Дальний конец правого прохода (условная зона штабелирования)",
+          "kind": "danger",
+          "polygon": [
+            [
+              0.47,
+              0.22
+            ],
+            [
+              0.6,
+              0.22
+            ],
+            [
+              0.75,
+              0.56
+            ],
+            [
+              0.5,
+              0.56
+            ]
+          ],
+          "reference_frame_s": 3.0,
+          "rationale": "Кадр 3 с, проход пуст. Пол правого прохода между правым краем островной выкладки (левая граница) и основанием правого стеллажа (правая граница), от y = 0.56 до дальнего конца прохода."
+        }
+      ],
+      "events": [
+        {
+          "type": "zone_intrusion",
+          "t_start": 22.5,
+          "t_end": 25.5,
+          "uncertain": true,
+          "note": "Мужчина в шляпе и женщина в оранжевом заходят в дальний конец прохода; ноги перекрыты"
+        },
+        {
+          "type": "zone_intrusion",
+          "t_start": 26.8,
+          "t_end": 47.0,
+          "uncertain": false,
+          "note": "Женщина в серой кофте (рыжие волосы) стоит в дальнем конце прохода и берёт посуду, опора ≈ (0.55–0.62, 0.30–0.50)"
+        },
+        {
+          "type": "zone_intrusion",
+          "t_start": 38.0,
+          "t_end": 45.0,
+          "uncertain": true,
+          "note": "Вторая покупательница присела у правого стеллажа на границе зоны, перекрыта"
+        },
+        {
+          "type": "zone_intrusion",
+          "t_start": 48.0,
+          "t_end": 60.0,
+          "uncertain": false,
+          "note": "Женщина в коричневом пальто проходит в дальний конец прохода и остаётся там, опора ≈ (0.53–0.58, 0.40–0.45)"
+        }
+      ]
+    },
+    {
+      "name": "s2_01.mp4",
+      "scenario": "S2",
+      "title": "Коридор: люди в касках и жилетах и без них",
+      "segments": [
+        {
+          "source": "intel_safety_gear",
+          "ss": 0,
+          "to": 60
+        }
+      ],
+      "frame_step_s": 2.5,
+      "description": "Статичная камера в коридоре, люди идут к камере. Нарушители: женщина в чёрном без каски и жилета, девушка в жилете без каски; мужчина в чёрном в каске, но без жилета. Остальные полностью в СИЗ.",
+      "persons": "1–3 человека, высота фигуры 0.3–0.7 кадра",
+      "rules_to_enable": [
+        "ppe_missing"
+      ],
+      "events": [
+        {
+          "type": "ppe_missing",
+          "t_start": 18.0,
+          "t_end": 25.0,
+          "uncertain": false,
+          "note": "Женщина в чёрной футболке: нет каски и жилета; идёт слева рядом с мужчиной в каске и жилете"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 37.5,
+          "t_end": 46.5,
+          "uncertain": false,
+          "note": "Девушка справа в группе из трёх: жилет есть, каски нет"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 37.5,
+          "t_end": 46.5,
+          "uncertain": true,
+          "note": "Мужчина в чёрном в центре группы: каска есть, жилета нет (нарушение только по жилету)"
+        }
+      ]
+    },
+    {
+      "name": "s2_02.mp4",
+      "scenario": "S2",
+      "title": "Склад и стройка: люди без касок рядом с рабочими в касках",
+      "segments": [
+        {
+          "source": "mixkit_23237"
+        },
+        {
+          "source": "mixkit_24049"
+        }
+      ],
+      "frame_step_s": 1.5,
+      "description": "Склейка двух стоковых роликов. 0–20.1 с: склад, к камере идут рабочий в оранжевой каске и трое в деловой одежде без касок (камера едет перед ними). 20.1–36.9 с: стройка внутри здания, трое в касках и женщина в очках без каски справа.",
+      "persons": "3–4 человека, крупный план (высота фигуры 0.6–1.0 кадра)",
+      "rules_to_enable": [
+        "ppe_missing"
+      ],
+      "events": [
+        {
+          "type": "ppe_missing",
+          "t_start": 0.0,
+          "t_end": 20.1,
+          "uncertain": false,
+          "note": "Склад: лысый мужчина в костюме (второй слева) без каски"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 0.0,
+          "t_end": 20.1,
+          "uncertain": false,
+          "note": "Склад: женщина в чёрном пальто (третья слева) без каски"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 0.0,
+          "t_end": 20.1,
+          "uncertain": false,
+          "note": "Склад: мужчина в тёмном костюме (справа) без каски"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 0.0,
+          "t_end": 20.1,
+          "uncertain": true,
+          "note": "Склад: рабочий в оранжевой каске в спецовке без сигнального жилета"
+        },
+        {
+          "type": "ppe_missing",
+          "t_start": 20.1,
+          "t_end": 35.0,
+          "uncertain": false,
+          "note": "Стройка: женщина в очках справа без каски; часть времени у края кадра"
+        }
+      ]
+    },
+    {
+      "name": "s3_01.mp4",
+      "scenario": "S3",
+      "title": "Человек падает в снег и не встаёт",
+      "segments": [
+        {
+          "source": "mixkit_23814"
+        }
+      ],
+      "frame_step_s": 1.0,
+      "description": "Статичная камера, снежное поле. Мужчина поднимается со снега, идёт к камере, на 16.8 с падает лицом вниз и лежит неподвижно до конца ролика (~5 с).",
+      "persons": "1 человек, высота 0.1–0.35 кадра; лежащий на снегу — низкий контраст",
+      "rules_to_enable": [
+        "fall_immobile"
+      ],
+      "events": [
+        {
+          "type": "fall_immobile",
+          "t_start": 16.8,
+          "t_end": 21.7,
+          "uncertain": false,
+          "note": "Падение вперёд и неподвижное лежание, центр ≈ (0.5, 0.85)"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 0.0,
+          "t_end": 5.0,
+          "uncertain": true,
+          "note": "В начале человек на четвереньках поднимается со снега — поза низкая, но он двигается"
+        }
+      ]
+    },
+    {
+      "name": "s3_02.mp4",
+      "scenario": "S3",
+      "title": "Шесть падений в комнате с лежанием 4–7 с (GMDCSA24)",
+      "segments": [
+        {
+          "source": "gmdcsa_s3_07",
+          "ss": 0,
+          "to": 9.0
+        },
+        {
+          "source": "gmdcsa_s2_10",
+          "ss": 0,
+          "to": 11.0
+        },
+        {
+          "source": "gmdcsa_s3_05",
+          "ss": 0,
+          "to": 10.0
+        },
+        {
+          "source": "gmdcsa_s2_04",
+          "ss": 0,
+          "to": 10.0
+        },
+        {
+          "source": "gmdcsa_s3_18",
+          "ss": 0,
+          "to": 11.5
+        },
+        {
+          "source": "gmdcsa_s2_13",
+          "ss": 0,
+          "to": 8.5
+        }
+      ],
+      "frame_step_s": 2.5,
+      "description": "Склейка шести постановочных падений из датасета GMDCSA24 (комната, статичная камера, двое актёров). Склейки на 9.0, 20.0, 30.0, 40.0, 51.5 с. Последний отрезок 640×480 вписан в 1280×720 с полями.",
+      "persons": "1 человек, высота 0.4–0.8 кадра",
+      "rules_to_enable": [
+        "fall_immobile"
+      ],
+      "events": [
+        {
+          "type": "fall_immobile",
+          "t_start": 1.8,
+          "t_end": 9.0,
+          "uncertain": false,
+          "note": "Падение из положения стоя на пол, лежит до склейки"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 12.3,
+          "t_end": 20.0,
+          "uncertain": false,
+          "note": "Падение на бок после ходьбы (ночь), лежит до склейки"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 24.6,
+          "t_end": 30.0,
+          "uncertain": false,
+          "note": "Медленное падение назад, лежит до склейки"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 34.8,
+          "t_end": 40.0,
+          "uncertain": false,
+          "note": "Падение назад после стояния у окна, лежит до склейки"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 45.4,
+          "t_end": 51.5,
+          "uncertain": false,
+          "note": "Падение с кровати на пол, лежит до склейки"
+        },
+        {
+          "type": "fall_immobile",
+          "t_start": 55.3,
+          "t_end": 60.2,
+          "uncertain": false,
+          "note": "Падение назад с оседанием, лежит до конца"
+        }
+      ]
+    },
+    {
+      "name": "s4_01.mp4",
+      "scenario": "S4",
+      "title": "Рабочий направляет сдающую фуру между двумя фурами",
+      "segments": [
+        {
+          "source": "mixkit_23852"
+        }
+      ],
+      "frame_step_s": 1.5,
+      "description": "Низкая ручная камера: рабочий в каске стоит в узком проезде между двумя фурами и жестами направляет движущуюся фуру. Человек всё время в пределах 1 м от борта.",
+      "persons": "1 человек, высота 0.55–0.7 кадра; две фуры по краям кадра",
+      "rules_to_enable": [
+        "vehicle_proximity",
+        "ppe_missing"
+      ],
+      "zones": [],
+      "zone_note": "Камера движется — фиксированный полигон неприменим. Правило — по расстоянию человек–ТС (рамки фур в кадре всегда, проезд между ними ≈ x 0.50–0.66).",
+      "events": [
+        {
+          "type": "vehicle_proximity",
+          "t_start": 0.0,
+          "t_end": 20.1,
+          "uncertain": false,
+          "note": "Рабочий в проезде между фурами, одна фура движется рядом"
+        }
+      ]
+    },
+    {
+      "name": "s4_02.mp4",
+      "scenario": "S4",
+      "title": "Грузовик подъезжает к рабочему, затем погрузчик проезжает рядом",
+      "segments": [
+        {
+          "source": "mixkit_23174"
+        },
+        {
+          "source": "mixkit_22983"
+        }
+      ],
+      "frame_step_s": 2.0,
+      "description": "Склейка. 0–17.8 с: рабочий стоит на пути грузовика и машет, грузовик подъезжает вплотную. 17.8–34.3 с: камера в кузове, погрузчик с паллетой проезжает в 1–2 м от рабочего у ворот, затем отъезжает рядом с ним во дворе. Погрузчика нет в классах COCO.",
+      "persons": "1 человек; 0–17.8 с крупно (спина, 0.8–0.95 кадра), дальше мелко (0.2–0.35 кадра)",
+      "rules_to_enable": [
+        "vehicle_proximity"
+      ],
+      "zones": [],
+      "zone_note": "Камера движется и есть склейка — фиксированный полигон неприменим, правило по расстоянию человек–ТС.",
+      "events": [
+        {
+          "type": "vehicle_proximity",
+          "t_start": 7.0,
+          "t_end": 17.8,
+          "uncertain": false,
+          "note": "Грузовик подъезжает к рабочему, стоящему на его пути, до 1–2 м"
+        },
+        {
+          "type": "vehicle_proximity",
+          "t_start": 20.5,
+          "t_end": 26.5,
+          "uncertain": false,
+          "note": "Погрузчик с паллетой выезжает из ворот в 1–2 м от рабочего"
+        },
+        {
+          "type": "vehicle_proximity",
+          "t_start": 32.0,
+          "t_end": 34.3,
+          "uncertain": false,
+          "note": "Погрузчик сдаёт назад во дворе рядом с рабочим; кадр частично перекрыт паллетой"
+        }
+      ]
+    },
+    {
+      "name": "s4_03.mp4",
+      "scenario": "S4",
+      "title": "Котлован сверху: экскаватор грузит самосвал, по краю ходят рабочие",
+      "segments": [
+        {
+          "source": "mixkit_25444"
+        }
+      ],
+      "frame_step_s": 4.0,
+      "description": "Статичная камера сверху на котлован: экскаватор грузит самосвал, самосвал уезжает (~28–35 с), экскаватор разворачивается. Рабочие проходят по левому краю в 1.5–3 ростах от техники. Пограничные случаи; экскаватора нет в классах COCO.",
+      "persons": "1–2 человека, мелко (0.13–0.27 кадра)",
+      "rules_to_enable": [
+        "vehicle_proximity",
+        "zone_intrusion"
+      ],
+      "zones": [
+        {
+          "zone_id": "excavator_pit",
+          "name": "Котлован: радиус работы экскаватора и место погрузки",
+          "kind": "vehicle_path",
+          "polygon": [
+            [
+              0.14,
+              0.0
+            ],
+            [
+              0.52,
+              0.0
+            ],
+            [
+              0.56,
+              1.0
+            ],
+            [
+              0.1,
+              1.0
+            ]
+          ],
+          "reference_frame_s": 5.0,
+          "rationale": "Кадр 5 с: самосвал (x 0.31–0.48, y 0–0.6) и экскаватор (x 0.30–0.51, y 0.45–0.85). Зона — дно котлована между отвалом слева (x≈0.12) и бровкой справа (x≈0.55); фонарный столб x≈0.43 — ориентир неподвижности камеры."
+        }
+      ],
+      "events": [
+        {
+          "type": "vehicle_proximity",
+          "t_start": 9.5,
+          "t_end": 18.5,
+          "uncertain": true,
+          "note": "Рабочий у кабины самосвала (верх кадра, ≈(0.5, 0.05–0.17)) во время погрузки экскаватором"
+        },
+        {
+          "type": "vehicle_proximity",
+          "t_start": 17.0,
+          "t_end": 27.5,
+          "uncertain": true,
+          "note": "Рабочий идёт по левому краю (x 0.03–0.12) мимо самосвала и экскаватора, ~2 роста от техники"
+        },
+        {
+          "type": "vehicle_proximity",
+          "t_start": 42.0,
+          "t_end": 52.5,
+          "uncertain": true,
+          "note": "Двое рабочих идут по левому краю, экскаватор разворачивает стрелу в их сторону"
+        }
+      ]
+    },
+    {
+      "name": "clean_01.mp4",
+      "scenario": "clean",
+      "title": "Подстанция: инженеры в касках разговаривают",
+      "segments": [
+        {
+          "source": "mixkit_23107"
+        }
+      ],
+      "frame_step_s": 2.0,
+      "description": "Камера на штативе, открытая подстанция. Четверо в касках: трое в сигнальных жилетах, четвёртый (с 12 с) в синем комбинезоне без жилета. На заднем плане двое в белых касках без жилетов. Нарушений по каскам нет.",
+      "persons": "3–4 человека крупно + мелкие на фоне",
+      "rules_to_enable": [
+        "ppe_missing",
+        "zone_intrusion",
+        "fall_immobile",
+        "vehicle_proximity"
+      ],
+      "rules_note": "Правило жилета не включать: на четвёртом комбинезон вместо жилета. Каски у всех.",
+      "events": []
+    },
+    {
+      "name": "clean_02.mp4",
+      "scenario": "clean",
+      "title": "Стройплощадка: двое в касках идут и разговаривают",
+      "segments": [
+        {
+          "source": "mixkit_23224"
+        }
+      ],
+      "frame_step_s": 2.0,
+      "description": "Камера едет перед двумя рабочими на стройплощадке: оба в касках, один в жилете, второй в спецовке. Техники рядом нет, падений нет. Нарушений нет.",
+      "persons": "2 человека, высота 0.5–0.9 кадра",
+      "rules_to_enable": [
+        "ppe_missing",
+        "fall_immobile",
+        "vehicle_proximity"
+      ],
+      "rules_note": "Правило жилета не включать (спецовка у второго). Зоны не задавать: камера движется.",
+      "events": []
+    },
+    {
+      "name": "s6_01.mp4",
+      "scenario": "S6",
+      "title": "Строитель в каске говорит по телефону",
+      "segments": [
+        {
+          "source": "mixkit_24078"
+        }
+      ],
+      "frame_step_s": 1.0,
+      "description": "Камера на штативе под эстакадой: рабочий в каске и жилете говорит по телефону, на 16 с опускает телефон и держит его у пояса.",
+      "persons": "1 человек, крупный план (0.7–1.0 кадра)",
+      "rules_to_enable": [
+        "phone_usage",
+        "ppe_missing"
+      ],
+      "events": [
+        {
+          "type": "phone_usage",
+          "t_start": 0.0,
+          "t_end": 16.0,
+          "uncertain": false,
+          "note": "Телефон у уха"
+        },
+        {
+          "type": "phone_usage",
+          "t_start": 16.0,
+          "t_end": 22.6,
+          "uncertain": true,
+          "note": "Телефон в руке у пояса, не разговаривает"
+        }
+      ]
+    },
+    {
+      "name": "s7_01.mp4",
+      "scenario": "S7",
+      "title": "Курение в заброшенном здании",
+      "segments": [
+        {
+          "source": "mixkit_414"
+        }
+      ],
+      "frame_step_s": 1.0,
+      "description": "Несколько планов: мужчина сидит на столе и курит, выдыхает дым (видно на 19–25 с). Сигарета мелкая, часто закрыта рукой.",
+      "persons": "1 человек, средний и крупный план",
+      "rules_to_enable": [
+        "smoking_fire"
+      ],
+      "events": [
+        {
+          "type": "smoking_fire",
+          "t_start": 0.0,
+          "t_end": 35.1,
+          "uncertain": false,
+          "note": "Курит весь ролик: рука с сигаретой у рта, дым на 19–25 с"
+        }
+      ]
+    }
+  ]
+}

@@ -15,7 +15,7 @@ import csv
 import threading
 import uuid
 from collections import defaultdict, deque
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -217,7 +217,7 @@ def draw_zones(frame: np.ndarray, zones: Iterable[Zone], active_ids: set[str] | 
             continue
         cv2.fillPoly(overlay, [pts], _ZONE_COLORS.get(z.kind, _RED))
     cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, dst=frame)
-    scale = max(0.45, w / 1600)
+    scale = max(0.42, w / 2000)
     for z in zones:
         pts = np.array([[x * w, y * h] for x, y in z.polygon], dtype=np.int32)
         if len(pts) < 3:
@@ -235,32 +235,33 @@ def draw_overlay(
     people: Sequence[Track],
     objects: Sequence[Track],
     zones: Sequence[Zone],
-    events_highlight: Iterable[int] | None = None,
+    events_highlight: Iterable[int] | Mapping[int, str] | None = None,
 ) -> np.ndarray:
-    """Зоны, рамки, ID треков; нарушители (track_id из events_highlight) — красным."""
-    highlight = set(events_highlight or ())
+    """Компактный оверлей: зоны, рамки, «#ID»; нарушители красным с короткой меткой.
+
+    events_highlight — track_id нарушителей или словарь {track_id: метка ("ZONE", "PPE", ...)}."""
+    if isinstance(events_highlight, Mapping):
+        labels = {int(k): str(v) for k, v in events_highlight.items()}
+    else:
+        labels = {int(k): "ALERT" for k in (events_highlight or ())}
     h, w = frame.shape[:2]
-    scale = max(0.45, w / 1600)
+    scale = max(0.42, w / 2000)
     thick = max(2, w // 640)
     draw_zones(frame, zones)
     for t in objects:
         x1, y1, x2, y2 = (int(v) for v in t.bbox)
-        cv2.rectangle(frame, (x1, y1), (x2, y2), _ORANGE, thick)
-        _label(frame, f"{t.cls} #{t.track_id}", (x1, y1), _ORANGE, scale)
+        bad = t.track_id in labels
+        color = _RED if bad else _ORANGE
+        cv2.rectangle(frame, (x1, y1), (x2, y2), color, thick)
+        _label(frame, f"{t.cls} #{t.track_id}" + (f" {labels[t.track_id]}" if bad else ""), (x1, y1), color, scale)
     for t in people:
         x1, y1, x2, y2 = (int(v) for v in t.bbox)
-        bad = t.track_id in highlight
+        bad = t.track_id in labels
         color = _RED if bad else _GREEN
         cv2.rectangle(frame, (x1, y1), (x2, y2), color, thick + (1 if bad else 0))
-        attrs = []
-        for key, short in (("helmet", "H"), ("vest", "V")):
-            val = t.attributes.get(key)
-            if val is not None:
-                attrs.append(f"{short}{'+' if val else '-'}")
-        text = f"#{t.track_id} {t.conf:.2f}" + (" " + " ".join(attrs) if attrs else "") + (" ALERT" if bad else "")
-        _label(frame, text, (x1, y1), color, scale)
+        _label(frame, f"#{t.track_id}" + (f" {labels[t.track_id]}" if bad else ""), (x1, y1), color, scale)
         fx, fy = foot_point(t.bbox)
-        cv2.circle(frame, (int(fx), int(fy)), thick + 2, color, -1)
+        cv2.circle(frame, (int(fx), int(fy)), thick + 1, color, -1)
         if t.keypoints is not None:
             kp = np.asarray(t.keypoints)
             for a, b in _SKELETON:
@@ -600,7 +601,7 @@ class SimpleEventManager:
 # CX-004: журнал событий (в памяти)
 # ======================================================================
 
-_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details", "latency_ms"}
+_UPDATABLE = {"status", "operator_note", "ended_at", "snapshot_path", "clip_path", "details"}
 _GROUP_FIELDS = {"type": "type", "camera": "camera_id", "zone": "zone_id", "severity": "severity", "status": "status"}
 
 
@@ -629,14 +630,14 @@ class MemoryJournal:
             ev = self._events.get(event_id)
             return ev.model_copy(deep=True) if ev else None
 
-    def update(self, event_id: str, **fields: Any) -> Event | None:
+    def update(self, event_id: str, **fields: Any) -> Event:
         bad = set(fields) - _UPDATABLE
         if bad:
             raise ValueError(f"fields not updatable: {sorted(bad)}")
         with self._lock:
             ev = self._events.get(event_id)
             if ev is None:
-                return None
+                raise KeyError(event_id)
             data = ev.model_dump()
             data.update(fields)
             new = Event.model_validate(data)

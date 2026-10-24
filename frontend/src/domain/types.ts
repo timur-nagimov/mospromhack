@@ -149,15 +149,27 @@ export interface CameraMetrics {
   fps_processed: number;
   lag_s: number;
   timings_ms: Partial<Record<string, Percentiles>>;
+  frames_processed?: number;
+  errors?: number;
+}
+
+/** Статистика модели из BackendStats.snapshot() (guard/inference/base.py) */
+export interface ModelStats {
+  timings_ms?: Partial<Record<string, Percentiles & { n?: number }>>;
+  fps?: number;
+  calls?: number;
+  items?: number;
+  max_batch_seen?: number;
+  errors?: number;
+  last_error?: string | null;
 }
 
 /** backend.stats(): форма в контракте не зафиксирована, читаем известные поля мягко */
 export interface InferenceStats {
-  fps?: number;
-  errors?: number;
+  backend?: string;
+  models?: Record<string, ModelStats>;
   /** доля занятости ускорителя 0..1 — ожидание сверх контракта */
   utilization?: number;
-  timings_ms?: Partial<Record<string, Percentiles>>;
   [key: string]: unknown;
 }
 

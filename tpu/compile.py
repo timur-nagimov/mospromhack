@@ -43,7 +43,15 @@ SDK_VERSION = "2026.9.45"
 # Иначе выход output0 [1,84,8400] смешивает координаты 0..640 и вероятности 0..1 в одном int8-тензоре.
 CUT_PRESETS: dict[str, list[str]] = {
     "yolov8": ["/model.22/dfl/conv/Conv_output_0", "/model.22/Sigmoid_output_0"],
-    "yolov8-pose": [  # дословно из pdf стр. 36, сноска 6
+    # pose для экспорта ultralytics (models/yolov8n-pose-*.onnx от A2): рамки (DFL), score (Sigmoid),
+    # сырые xy keypoint'ов (Slice_2, до *2+anchor) и видимость (Sigmoid_1) — разные диапазоны в разных тензорах
+    "yolov8-pose": [
+        "/model.22/dfl/conv/Conv_output_0",
+        "/model.22/Sigmoid_output_0",
+        "/model.22/Slice_2_output_0",
+        "/model.22/Sigmoid_1_output_0",
+    ],
+    "yolov8-pose-vendor": [  # дословно из pdf стр. 36, сноска 6 (другой экспорт, в наших ONNX части узлов нет)
         "/model.22/Mul_6_output_0",
         "/model.22/Concat_6_output_0",
         "/model.22/Concat_5_output_0",
@@ -161,6 +169,16 @@ def remove_initialized_inputs(model) -> None:  # из compile.py SDK
             model.graph.input.remove(name_to_input[init.name])
 
 
+def prune_initializers(model) -> int:
+    """Удалить initializer'ы, на которые не ссылается ни один узел (get_sub_model оставляет все веса сети)."""
+    used = {i for n in model.graph.node for i in n.input}
+    used |= {o.name for o in model.graph.output}
+    dead = [init for init in model.graph.initializer if init.name not in used]
+    for init in dead:
+        model.graph.initializer.remove(init)
+    return len(dead)
+
+
 def split_model(onnx_path: Path, cut: list[str], out_dir: Path, name: str) -> tuple[Path, Path, list[str], list[str]]:
     """Голова (вход -> cut) для TPU и хвост (cut -> исходные выходы) для CPU."""
     import onnx
@@ -175,6 +193,8 @@ def split_model(onnx_path: Path, cut: list[str], out_dir: Path, name: str) -> tu
 
         head = get_sub_model(model=m, ordered_input_names=in_names, ordered_output_names=cut)
         tail = get_sub_model(model=m, ordered_input_names=cut, ordered_output_names=out_names)
+        prune_initializers(head)
+        prune_initializers(tail)
         onnx.save(head, str(head_path))
         onnx.save(tail, str(tail_path))
         how = "tpu_framework.get_sub_model"
@@ -293,6 +313,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--samplewise-percentile", type=float, default=None,
                     help="устойчивость к выбросам на больших наборах (pdf стр. 12)")
     ap.add_argument("--thresholds", help="готовые thresholds.json (пропустить калибровку)")
+    ap.add_argument("--finetune-epochs", type=int, default=0,
+                    help="дообучить пороги fine_tune_torch (дистилляция к fp32, pdf стр. 13-14) на кадрах калибровки")
+    ap.add_argument("--finetune-lr", type=float, default=0.001)
+    ap.add_argument("--finetune-limit", type=int, default=None, help="макс. шагов оптимизатора")
     ap.add_argument("--no-validate", action="store_true", help="не сверять квантованную модель с fp32")
     ap.add_argument("--validate-image", help="картинка для сверки (по умолчанию первый кадр калибровки)")
     ap.add_argument("--docker", action="store_true", help="выполнить в Docker-образе SDK (для мака)")
@@ -407,6 +431,16 @@ def main(argv: list[str] | None = None) -> int:
             am = regular.anchors_mapping
             thresholds = regular.calibrate({am[k]: v for k, v in calib_dict.items()}, **kw)
     RegularModel.dump_thresholds(str(thr_path), thresholds)
+    if a.finetune_epochs > 0:
+        t1 = time.time()
+        ft_kw = {"thresholds": thresholds, "fine_tuning_data": calib_dict, "fine_tuning_epochs": a.finetune_epochs,
+                 "learning_rate": a.finetune_lr, "device": "cpu"}
+        if a.finetune_limit:
+            ft_kw["limit"] = a.finetune_limit
+        thresholds = regular.fine_tune_torch(**ft_kw)
+        RegularModel.dump_thresholds(str(out_dir / "thresholds_finetuned.json"), thresholds)
+        manifest["finetune"] = {"epochs": a.finetune_epochs, "lr": a.finetune_lr, "seconds": round(time.time() - t1, 1)}
+        log(f"fine_tune_torch {a.finetune_epochs} эп. за {time.time() - t1:.1f} с")
     log(f"калибровка {time.time() - t0:.1f} с -> {thr_path}")
     t0 = time.time()
     qm = regular.quantize(thresholds)
@@ -422,7 +456,7 @@ def main(argv: list[str] | None = None) -> int:
             x = preprocess(vimg, a.preproc, hwsz) if vimg else calib[:1]
             if batch > 1:
                 x = np.repeat(x, batch, axis=0)
-            ref = ort_run(opt_path, {in_name: x})
+            ref = ort_run(work_onnx, {in_name: x})  # opt.onnx содержит tpu:swish — ORT его не знает
             got = run_quantized(qm, {in_name: x}, out_names, batch, cwl)
             val = {n: compare(ref[n], got[n]) for n in out_names if n in got}
             if cut and set(got) == set(out_names):

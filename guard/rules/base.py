@@ -35,6 +35,7 @@ class RulePlugin(ABC):
 
 
 _REGISTRY: dict[str, type[RulePlugin]] = {}
+_PLUGINS_LOADED = False
 
 
 def register_rule(cls: type[RulePlugin]) -> type[RulePlugin]:
@@ -45,15 +46,20 @@ def register_rule(cls: type[RulePlugin]) -> type[RulePlugin]:
 
 
 def load_plugins() -> None:
+    """Импортирует все модули плагинов один раз. Флаг, а не пустота реестра:
+    если какой-то плагин уже импортирован напрямую, остальные всё равно должны загрузиться."""
+    global _PLUGINS_LOADED
+    if _PLUGINS_LOADED:
+        return
     from guard.rules import plugins
 
     for mod in pkgutil.iter_modules(plugins.__path__):
         importlib.import_module(f"{plugins.__name__}.{mod.name}")
+    _PLUGINS_LOADED = True
 
 
 def get_rule(rule_type: str) -> type[RulePlugin]:
-    if not _REGISTRY:
-        load_plugins()
+    load_plugins()
     return _REGISTRY[rule_type]
 
 
@@ -62,8 +68,7 @@ def build_rules(camera: CameraConfig) -> list[RulePlugin]:
 
 
 def available_rules() -> list[dict[str, Any]]:
-    if not _REGISTRY:
-        load_plugins()
+    load_plugins()
     return [
         {
             "type": cls.type,

@@ -19,6 +19,7 @@ from __future__ import annotations
 import os
 import threading
 import time
+from collections import deque
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, ClassVar
@@ -84,9 +85,11 @@ class BackendStats:
 
     STAGES = ("transfer", "infer")
 
-    def __init__(self) -> None:
+    def __init__(self, util_window_s: float = 5.0) -> None:
         self._lock = threading.Lock()
         self._models: dict[str, dict[str, Any]] = {}
+        self._busy: deque[tuple[float, float]] = deque(maxlen=4096)  # (monotonic, мс работы бэкенда)
+        self._util_window_s = util_window_s
 
     def _model(self, model_id: str) -> dict[str, Any]:
         with self._lock:
@@ -115,6 +118,7 @@ class BackendStats:
         for _ in range(items):
             m["fps"].tick(now)
         with self._lock:
+            self._busy.append((now, float(stage_ms.get("infer", 0.0)) + float(stage_ms.get("transfer", 0.0))))
             m["calls"] += 1
             m["items"] += items
             m["max_batch_seen"] = max(m["max_batch_seen"], items)
@@ -124,6 +128,13 @@ class BackendStats:
         with self._lock:
             m["errors"] += 1
             m["last_error"] = f"{type(exc).__name__}: {exc}"[:300]
+
+    def utilization(self) -> float:
+        """Доля времени окна, когда бэкенд был занят (0..1; параллельные вызовы обрезаются до 1)."""
+        edge = time.monotonic() - self._util_window_s
+        with self._lock:
+            busy_ms = sum(ms for t, ms in self._busy if t >= edge)
+        return round(min(1.0, busy_ms / (self._util_window_s * 1000.0)), 3)
 
     def snapshot(self) -> dict[str, Any]:
         with self._lock:

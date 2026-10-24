@@ -419,13 +419,13 @@ const TYPE_WEIGHT: Record<string, number> = {
   ppe_missing: 3.2,
   zone_intrusion: 2.4,
   phone_usage: 1.6,
-  vehicle_proximity: 1.1,
+  vehicle_proximity: 0.45,
   running: 1.0,
   smoking_fire: 0.8,
   height_no_harness: 0.8,
   unsafe_carry: 0.7,
   fence_climb: 0.6,
-  fall_immobile: 0.3,
+  fall_immobile: 0.12,
 };
 
 /** Доля ложных срабатываний по типам — даёт правдоподобную «точность» */
