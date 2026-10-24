@@ -1,0 +1,513 @@
+{
+  "model_id": "pose",
+  "version": "pose-falls-v1",
+  "parent": "yolov8n-pose",
+  "created_at": "2026-10-24T21:34:25+0300",
+  "task": "pose",
+  "classes": [
+    "person"
+  ],
+  "train": {
+    "datasets": [
+      {
+        "name": "urfd",
+        "images": 1712,
+        "url": "http://fenix.ur.edu.pl/~mkepski/ds/uf.html",
+        "dataset": "falls-pose-ds-v1"
+      },
+      {
+        "name": "cauca",
+        "images": 1526,
+        "url": "https://data.mendeley.com/datasets/7w7fccy7ky",
+        "dataset": "falls-pose-ds-v1"
+      },
+      {
+        "name": "coco",
+        "images": 1179,
+        "url": "http://images.cocodataset.org/zips/val2017.zip",
+        "dataset": "falls-pose-ds-v1"
+      },
+      {
+        "name": "calib",
+        "images": 170,
+        "url": "data/calib/manifest.csv (без demo_camera)",
+        "dataset": "falls-pose-ds-v1"
+      }
+    ],
+    "data_yaml": "data/datasets/falls/yolo/data.yaml",
+    "epochs": 60,
+    "imgsz": 480,
+    "device": "mps",
+    "minutes": 40.3,
+    "batch": 16,
+    "workers": 4,
+    "patience": 10,
+    "time_min": 40.0,
+    "hsv_v": 0.5,
+    "seed": 0,
+    "base_weights": "yolov8n-pose.pt",
+    "epochs_done": 22,
+    "best_epoch": 20,
+    "val_map50": 0.8844,
+    "val_map50_95": 0.6241
+  },
+  "weights": "models/weights/pose-falls-v1.pt",
+  "onnx": null,
+  "tpu_program": null,
+  "holdout": {
+    "dataset_test": {
+      "name": "yolo test",
+      "images": 2012,
+      "map50": 0.8781,
+      "per_class": {
+        "person": {
+          "ap50": 0.8781,
+          "p": 0.938,
+          "r": 0.791,
+          "n_gt": 3038
+        }
+      },
+      "conf_op": 0.35
+    },
+    "dataset_test_lying": {
+      "name": "lying test",
+      "images": 899,
+      "map50": 0.99,
+      "per_class": {
+        "person": {
+          "ap50": 0.99,
+          "p": 0.997,
+          "r": 0.997,
+          "n_gt": 899
+        }
+      },
+      "conf_op": 0.35
+    },
+    "dataset_test_upright": {
+      "name": "upright test",
+      "images": 650,
+      "map50": 1.0,
+      "per_class": {
+        "person": {
+          "ap50": 1.0,
+          "p": 0.998,
+          "r": 0.997,
+          "n_gt": 650
+        }
+      },
+      "conf_op": 0.35
+    },
+    "dataset_test_coco": {
+      "name": "coco test",
+      "images": 463,
+      "map50": 0.701,
+      "per_class": {
+        "person": {
+          "ap50": 0.701,
+          "p": 0.846,
+          "r": 0.577,
+          "n_gt": 1489
+        }
+      },
+      "conf_op": 0.35
+    },
+    "events": {
+      "tp": 26,
+      "fp": 6,
+      "fn": 14,
+      "duplicates": 0,
+      "precision": 0.8125,
+      "recall": 0.65,
+      "false_alarms_per_hour": 20.941144354564152,
+      "latency_p50_s": 3.27,
+      "latency_p95_s": 5.08,
+      "videos": [
+        "S08_FallBackwards",
+        "S08_FallForward",
+        "S08_FallLeft",
+        "S08_FallRight",
+        "S08_FallSitting",
+        "S08_Hop",
+        "S08_Kneel",
+        "S08_Pickupobject",
+        "S08_SitDown",
+        "S08_Walk",
+        "S09_FallBackwards",
+        "S09_FallForward",
+        "S09_FallLeft",
+        "S09_FallRight",
+        "S09_FallSitting",
+        "S09_Hop",
+        "S09_Kneel",
+        "S09_Pickupobject",
+        "S09_SitDown",
+        "S09_Walk",
+        "S10_FallBackwards",
+        "S10_FallForward",
+        "S10_FallLeft",
+        "S10_FallRight",
+        "S10_FallSitting",
+        "S10_Hop",
+        "S10_Kneel",
+        "S10_Pickupobject",
+        "S10_SitDown",
+        "S10_Walk",
+        "adl-12",
+        "adl-13",
+        "adl-14",
+        "adl-15",
+        "adl-16",
+        "adl-17",
+        "adl-18",
+        "adl-19",
+        "adl-20",
+        "adl-21",
+        "adl-22",
+        "adl-23",
+        "adl-28",
+        "adl-29",
+        "adl-31",
+        "adl-32",
+        "adl-34",
+        "adl-35",
+        "adl-36",
+        "adl-37",
+        "fall-07",
+        "fall-08",
+        "fall-09",
+        "fall-10",
+        "fall-11",
+        "fall-12",
+        "fall-25",
+        "fall-26",
+        "fall-27",
+        "fall-28",
+        "fall-29",
+        "fall-30",
+        "s1_adl_01",
+        "s1_adl_02",
+        "s1_adl_03",
+        "s1_adl_04",
+        "s1_adl_05",
+        "s1_adl_06",
+        "s1_adl_07",
+        "s1_adl_08",
+        "s1_adl_09",
+        "s1_adl_10",
+        "s1_adl_11",
+        "s1_adl_12",
+        "s1_adl_13",
+        "s1_adl_14",
+        "s1_adl_15",
+        "s1_adl_16",
+        "s1_fall_01",
+        "s1_fall_02",
+        "s1_fall_03",
+        "s1_fall_04",
+        "s1_fall_05",
+        "s1_fall_06",
+        "s1_fall_07",
+        "s1_fall_08",
+        "s1_fall_09",
+        "s1_fall_10",
+        "s1_fall_11",
+        "s1_fall_12",
+        "s1_fall_13",
+        "s1_fall_14",
+        "s1_fall_15",
+        "s1_fall_16",
+        "s4_adl_01",
+        "s4_adl_02",
+        "s4_adl_03",
+        "s4_adl_04",
+        "s4_adl_05",
+        "s4_adl_06",
+        "s4_adl_07",
+        "s4_adl_08",
+        "s4_adl_09",
+        "s4_adl_10",
+        "s4_adl_11",
+        "s4_adl_12",
+        "s4_adl_13",
+        "s4_adl_14",
+        "s4_adl_15",
+        "s4_adl_16",
+        "s4_adl_17",
+        "s4_adl_18",
+        "s4_adl_19",
+        "s4_adl_20",
+        "s4_fall_01",
+        "s4_fall_02",
+        "s4_fall_03",
+        "s4_fall_04",
+        "s4_fall_05",
+        "s4_fall_06",
+        "s4_fall_07",
+        "s4_fall_08",
+        "s4_fall_09",
+        "s4_fall_10",
+        "s4_fall_11",
+        "s4_fall_12",
+        "s4_fall_13",
+        "s4_fall_14",
+        "s4_fall_15",
+        "s4_fall_16",
+        "s4_fall_17"
+      ],
+      "by_type": {
+        "fall_immobile": {
+          "tp": 26,
+          "fp": 6,
+          "fn": 14,
+          "duplicates": 0
+        }
+      },
+      "report": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/datasets/falls/metrics/falls-480-v1-fill.json"
+    }
+  },
+  "baseline": {
+    "version": "pose_n480 (yolov8n-pose COCO, 480), люди только из det",
+    "holdout": {
+      "dataset_test": {
+        "name": "yolo test",
+        "images": 2012,
+        "map50": 0.8269,
+        "per_class": {
+          "person": {
+            "ap50": 0.8269,
+            "p": 0.93,
+            "r": 0.66,
+            "n_gt": 3038
+          }
+        },
+        "conf_op": 0.35
+      },
+      "events": {
+        "tp": 23,
+        "fp": 9,
+        "fn": 17,
+        "duplicates": 0,
+        "precision": 0.71875,
+        "recall": 0.575,
+        "false_alarms_per_hour": 31.41171653184623,
+        "latency_p50_s": 2.71,
+        "latency_p95_s": 4.18,
+        "videos": [
+          "S08_FallBackwards",
+          "S08_FallForward",
+          "S08_FallLeft",
+          "S08_FallRight",
+          "S08_FallSitting",
+          "S08_Hop",
+          "S08_Kneel",
+          "S08_Pickupobject",
+          "S08_SitDown",
+          "S08_Walk",
+          "S09_FallBackwards",
+          "S09_FallForward",
+          "S09_FallLeft",
+          "S09_FallRight",
+          "S09_FallSitting",
+          "S09_Hop",
+          "S09_Kneel",
+          "S09_Pickupobject",
+          "S09_SitDown",
+          "S09_Walk",
+          "S10_FallBackwards",
+          "S10_FallForward",
+          "S10_FallLeft",
+          "S10_FallRight",
+          "S10_FallSitting",
+          "S10_Hop",
+          "S10_Kneel",
+          "S10_Pickupobject",
+          "S10_SitDown",
+          "S10_Walk",
+          "adl-12",
+          "adl-13",
+          "adl-14",
+          "adl-15",
+          "adl-16",
+          "adl-17",
+          "adl-18",
+          "adl-19",
+          "adl-20",
+          "adl-21",
+          "adl-22",
+          "adl-23",
+          "adl-28",
+          "adl-29",
+          "adl-31",
+          "adl-32",
+          "adl-34",
+          "adl-35",
+          "adl-36",
+          "adl-37",
+          "fall-07",
+          "fall-08",
+          "fall-09",
+          "fall-10",
+          "fall-11",
+          "fall-12",
+          "fall-25",
+          "fall-26",
+          "fall-27",
+          "fall-28",
+          "fall-29",
+          "fall-30",
+          "s1_adl_01",
+          "s1_adl_02",
+          "s1_adl_03",
+          "s1_adl_04",
+          "s1_adl_05",
+          "s1_adl_06",
+          "s1_adl_07",
+          "s1_adl_08",
+          "s1_adl_09",
+          "s1_adl_10",
+          "s1_adl_11",
+          "s1_adl_12",
+          "s1_adl_13",
+          "s1_adl_14",
+          "s1_adl_15",
+          "s1_adl_16",
+          "s1_fall_01",
+          "s1_fall_02",
+          "s1_fall_03",
+          "s1_fall_04",
+          "s1_fall_05",
+          "s1_fall_06",
+          "s1_fall_07",
+          "s1_fall_08",
+          "s1_fall_09",
+          "s1_fall_10",
+          "s1_fall_11",
+          "s1_fall_12",
+          "s1_fall_13",
+          "s1_fall_14",
+          "s1_fall_15",
+          "s1_fall_16",
+          "s4_adl_01",
+          "s4_adl_02",
+          "s4_adl_03",
+          "s4_adl_04",
+          "s4_adl_05",
+          "s4_adl_06",
+          "s4_adl_07",
+          "s4_adl_08",
+          "s4_adl_09",
+          "s4_adl_10",
+          "s4_adl_11",
+          "s4_adl_12",
+          "s4_adl_13",
+          "s4_adl_14",
+          "s4_adl_15",
+          "s4_adl_16",
+          "s4_adl_17",
+          "s4_adl_18",
+          "s4_adl_19",
+          "s4_adl_20",
+          "s4_fall_01",
+          "s4_fall_02",
+          "s4_fall_03",
+          "s4_fall_04",
+          "s4_fall_05",
+          "s4_fall_06",
+          "s4_fall_07",
+          "s4_fall_08",
+          "s4_fall_09",
+          "s4_fall_10",
+          "s4_fall_11",
+          "s4_fall_12",
+          "s4_fall_13",
+          "s4_fall_14",
+          "s4_fall_15",
+          "s4_fall_16",
+          "s4_fall_17"
+        ],
+        "by_type": {
+          "fall_immobile": {
+            "tp": 23,
+            "fp": 9,
+            "fn": 17,
+            "duplicates": 0
+          }
+        },
+        "report": "/Users/nagimov-timur/Desktop/mosprom-heavy.noindex/data/datasets/falls/metrics/falls-480-base-full.json"
+      }
+    }
+  },
+  "tpu_check": null,
+  "gate": {
+    "promote": true,
+    "reasons": [
+      "recall 0.650 против 0.575 (TP 26 против 23, FN 14 против 17)",
+      "precision 0.812 против 0.719 (FP 6 против 9)",
+      "ложных тревог в час 20.9 против 31.4",
+      "дублей 0 против 0",
+      "mAP50 на тесте 0.878 против 0.827 (допуск −0.01)",
+      "fall_immobile: 26/40 против 23/40, FP 6 против 9"
+    ],
+    "at": "2026-10-24T22:36:22+0300",
+    "rule": "recall и precision не ниже, ложных в час и дублей не больше, mAP50 −0.01"
+  },
+  "status": "candidate",
+  "note": "ds-falls: лежачие люди URFD и CAUCAFall (train-люди), точки учителя yolov8x-pose, повтор COCO и калибровки",
+  "references": {
+    "pose_n480": {
+      "onnx": "yolov8n-pose-480.onnx",
+      "dataset_test": {
+        "images": 2012,
+        "map50": 0.8269,
+        "per_class": {
+          "person": {
+            "ap50": 0.8269,
+            "p": 0.93,
+            "r": 0.66,
+            "n_gt": 3038
+          }
+        },
+        "conf_op": 0.35
+      },
+      "dataset_test_lying": {
+        "images": 899,
+        "map50": 0.8482,
+        "per_class": {
+          "person": {
+            "ap50": 0.8482,
+            "p": 0.881,
+            "r": 0.586,
+            "n_gt": 899
+          }
+        },
+        "conf_op": 0.35
+      },
+      "dataset_test_upright": {
+        "images": 650,
+        "map50": 0.9603,
+        "per_class": {
+          "person": {
+            "ap50": 0.9603,
+            "p": 0.988,
+            "r": 0.868,
+            "n_gt": 650
+          }
+        },
+        "conf_op": 0.35
+      },
+      "dataset_test_coco": {
+        "images": 463,
+        "map50": 0.7458,
+        "per_class": {
+          "person": {
+            "ap50": 0.7458,
+            "p": 0.926,
+            "r": 0.613,
+            "n_gt": 1489
+          }
+        },
+        "conf_op": 0.35
+      }
+    }
+  }
+}

@@ -120,6 +120,8 @@ class Settings:
     tracker_match_iou: float = 0.25
     tracker_buffer_s: float = 3.0
     tracker_min_hits: int = 2
+    # люди для трекера: к det добавить людей pose, которых det не видит (лежачие, S3; docs/QUALITY.md)
+    person_pose_fill: bool = False
     ort_threads: int = 2
     cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"])
     # маховик данных (docs/FLYWHEEL.md): сбор кадров в обучающую выборку
@@ -199,6 +201,7 @@ class Settings:
             clip_max_width=_env_int("GUARD_CLIP_MAX_WIDTH", 640),
             clip_buffer_mb=_env_int("GUARD_CLIP_BUFFER_MB", 512),
             stream_fps=_env_float("GUARD_STREAM_FPS", 10.0),
+            person_pose_fill=_env_bool("GUARD_PERSON_POSE_FILL", False),
             ort_threads=_env_int("GUARD_ORT_THREADS", 2),
             flywheel=_env_bool("GUARD_FLYWHEEL", True),
             flywheel_dir=Path(os.environ["GUARD_FLYWHEEL_DIR"]).expanduser() if os.environ.get("GUARD_FLYWHEEL_DIR") else None,

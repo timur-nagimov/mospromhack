@@ -155,8 +155,22 @@ def _split_dirs(yaml_path: Path, meta: dict[str, Any], key: str) -> list[str]:
     return [str(Path(v) if Path(v).is_absolute() else base / v) for v in items]
 
 
+POSE_KEYS = ("kpt_shape", "flip_idx")
+
+
+def data_task(data_yaml: Path) -> str:
+    """Задача по data.yaml: pose, если задан kpt_shape (набор ключевых точек), иначе detect."""
+    import yaml
+
+    meta = yaml.safe_load(data_yaml.read_text(encoding="utf-8"))
+    return "pose" if meta.get("kpt_shape") else "detect"
+
+
 def mix_data(primary: Path, mixes: list[Path], out: Path) -> tuple[Path, list[str]]:
-    """data.yaml смеси: train и val — всех наборов, test — только основного. Классы обязаны совпадать."""
+    """data.yaml смеси: train и val — всех наборов, test — только основного. Классы обязаны совпадать.
+
+    Для pose-наборов kpt_shape и flip_idx берутся из основного; у смешиваемых kpt_shape должен совпадать.
+    """
     import yaml
 
     meta = yaml.safe_load(primary.read_text(encoding="utf-8"))
@@ -166,10 +180,13 @@ def mix_data(primary: Path, mixes: list[Path], out: Path) -> tuple[Path, list[st
         m = yaml.safe_load(extra.read_text(encoding="utf-8"))
         if _names(m) != names:
             raise ValueError(f"{extra}: классы {_names(m)} не совпадают с {names} из {primary}")
+        if m.get("kpt_shape") != meta.get("kpt_shape"):
+            raise ValueError(f"{extra}: kpt_shape {m.get('kpt_shape')} не совпадает с {meta.get('kpt_shape')}")
         train += _split_dirs(extra, m, "train")
         val += _split_dirs(extra, m, "val")
     mixed = {"train": train, "val": val, "test": _split_dirs(primary, meta, "test"),
              "names": dict(enumerate(names))}
+    mixed.update({key: meta[key] for key in POSE_KEYS if meta.get(key) is not None})
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(yaml.safe_dump(mixed, allow_unicode=True, sort_keys=False), encoding="utf-8")
     return out, names
@@ -260,7 +277,7 @@ def main(argv: list[str] | None = None) -> int:
         "version": args.version,
         "parent": args.parent or base_version,
         "created_at": now_iso(),
-        "task": "detect",
+        "task": data_task(data_yaml),
         "classes": names,
         "train": {
             "datasets": dataset_entries(data_yaml, [m.resolve() for m in args.mix]),
