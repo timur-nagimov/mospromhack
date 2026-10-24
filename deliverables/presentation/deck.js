@@ -149,8 +149,9 @@
     svg.setAttribute("height", H);
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
     s("text", { x: x0, y: 16, class: "tick" }, svg, "доля найденных событий (recall)");
+    const sepY = top + (rows.length - 1) * rowH + gapTotal / 2;   // над строкой «Все типы» сетки нет: там подпись ДИ
     [0, 0.25, 0.5, 0.75, 1].forEach(t => {
-      s("line", { x1: sx(t), x2: sx(t), y1: top - 8, y2: plotB, class: t ? "grid" : "base" }, svg);
+      s("line", { x1: sx(t), x2: sx(t), y1: top - 8, y2: t ? sepY : plotB, class: t ? "grid" : "base" }, svg);
       s("text", { x: sx(t), y: plotB + 24, "text-anchor": t === 1 ? "end" : (t ? "middle" : "start"), class: "tick" }, svg, t === 0 ? "0" : String(t));
     });
     rows.forEach((r, i) => {
@@ -214,13 +215,16 @@
     const lg = document.getElementById("lat-legend");
     if (lg) lg.append(...parts.map(p => swatch(p.color, p.label)));
     const W = +svg.getAttribute("width"), x0 = 220, x1 = W - 200, max = 3.5, sx = v => x0 + (v / max) * (x1 - x0);
-    const top = 8, rowH = 92, bh = 24;
+    const top = 8, rowH = 84, bh = 24;
     const plotB = top + L.runs.length * rowH;
     const H = plotB + 28;
     svg.setAttribute("height", H);
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    // сетки нет: у каждого сегмента прямая подпись; ось — линия 0 и короткие деления внизу
+    s("line", { x1: sx(0), x2: sx(0), y1: top, y2: plotB, class: "base" }, svg);
+    s("line", { x1: sx(0), x2: sx(3), y1: plotB, y2: plotB, class: "grid" }, svg);
     for (let t = 0; t <= 3; t += 1) {
-      s("line", { x1: sx(t), x2: sx(t), y1: top, y2: plotB, class: t ? "grid" : "base" }, svg);
+      if (t) s("line", { x1: sx(t), x2: sx(t), y1: plotB - 6, y2: plotB, class: "base" }, svg);
       s("text", { x: sx(t), y: plotB + 22, "text-anchor": t ? "middle" : "start", class: "tick" }, svg, t ? t + " с" : "0");
     }
     s("text", { x: W - 186, y: top + 2, "font-family": "JBMono", "font-size": 14, fill: C.ink3, "dominant-baseline": "hanging" }, svg, "p50 / p95");
@@ -258,8 +262,10 @@
     const H = plotB + 34;
     svg.setAttribute("height", H);
     svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+    // сетки нет: у каждого бара прямая подпись; внизу ось с короткими делениями
+    s("line", { x1: x0, x2: sx(50), y1: plotB, y2: plotB, class: "grid" }, svg);
     for (let t = 0; t <= 50; t += 10) {
-      s("line", { x1: sx(t), x2: sx(t), y1: top - 6, y2: plotB, class: "grid" }, svg);
+      s("line", { x1: sx(t), x2: sx(t), y1: plotB - 6, y2: plotB, class: "base" }, svg);
       s("text", { x: sx(t), y: plotB + 26, "text-anchor": "middle", class: "tick" }, svg, t);
     }
     s("text", { x: sx(55), y: plotB + 26, "text-anchor": "middle", class: "tick" }, svg, "к/с");
@@ -289,8 +295,11 @@
     const colors = [C.cpu, C.lime];
     document.getElementById("win-legend").append(...D.series.map((x, i) => swatch(colors[i], x.label)));
     const W = 704, y0 = 410, y1 = 30, x0 = 60, max = 50, sy = v => y0 - (v / max) * (y0 - y1);
+    // сетки нет: у каждого столбца прямая подпись; слева ось с короткими делениями
+    s("line", { x1: x0, x2: W, y1: sy(0), y2: sy(0), class: "base" }, svg);
+    s("line", { x1: x0, x2: x0, y1: sy(50), y2: sy(0), class: "grid" }, svg);
     for (let t = 0; t <= 50; t += 10) {
-      s("line", { x1: x0, x2: W, y1: sy(t), y2: sy(t), class: t ? "grid" : "base" }, svg);
+      s("line", { x1: x0, x2: x0 + 6, y1: sy(t), y2: sy(t), class: "base" }, svg);
       s("text", { x: x0 - 12, y: sy(t) + 6, "text-anchor": "end", class: "tick" }, svg, t);
     }
     const gw = (W - x0) / D.windows.length, bw = 64;
@@ -375,7 +384,18 @@
     });
   }
 
+  /* ---- метки статуса: data-sst="путь.в.json" → done | part | wip (подписи — data.json → state_labels) ---- */
+  function states(data) {
+    const names = data.state_labels || { done: "работает", part: "частично", wip: "в работе" };
+    document.querySelectorAll("[data-sst]").forEach(n => {
+      const st = get(data, n.dataset.sst) || "wip";
+      n.textContent = names[st] || st;
+      n.classList.add(st);
+    });
+  }
+
   /* ---- вопросы экспертам (резерв) ---- */
+
   function questions(data) {
     const host = document.getElementById("questions"), Q = data.questions;
     if (!host || !Q) return;
@@ -383,7 +403,7 @@
     let n = 0;
     Q.groups.forEach(g => {
       const ol = h("ol", { start: String(n + 1) });
-      g.items.forEach(t => { n += 1; ol.append(h("li", { "data-n": String(n) }, t)); });
+      g.items.forEach(t => { n += 1; ol.append(h("li", null, h("span", { class: "qn" }, String(n)), t)); });
       host.append(h("div", { class: "panel" }, h("div", { class: "lbl" }, g.title), ol));
     });
   }
@@ -410,7 +430,7 @@
     try {
       bind(data); ptags(data); statusLines(data); shots(data);
       qualityTiles(data); forest(data); evalTpu(data); finetune(data); latencyChart(data);
-      tpuChart(data); winChart(data); cams(data); docLinks(data); scen(data); questions(data);
+      tpuChart(data); winChart(data); cams(data); docLinks(data); scen(data); questions(data); states(data);
     } catch (e) {
       fail("ошибка сборки: " + e.message);
     }

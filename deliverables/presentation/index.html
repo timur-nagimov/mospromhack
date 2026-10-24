@@ -16,7 +16,7 @@
     <div class="claim">Одно нарушение —<br>одно оповещение.<br><em>На LinQ TPU.</em></div>
     <div class="lead">Веб-сервис видеоаналитики техники безопасности в реальном времени. Камеры уже стоят — превращаем архив в систему предупреждения.</div>
     <div class="chips">
-      <span class="tag lime">10 типов нарушений — 10 плагинов</span>
+      <span class="tag lime">13 типов нарушений — 13 плагинов</span>
       <span class="tag lime">edge-узел рядом с LinQ TPU</span>
       <span class="tag lime">оповещение через 2.2 с (p50)</span>
       <span class="tag lime">замкнутый цикл качества</span>
@@ -137,7 +137,7 @@
         <rect x="591.2" y="16" width="250" height="176" rx="10" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
         <rect x="609.2" y="32" width="46" height="26" rx="3" fill="none" stroke="#a8d42c" stroke-width="1.5"/><text x="632.2" y="51" text-anchor="middle" class="rtag">R7</text>
         <text x="609.2" y="98" class="ct">Правила</text>
-        <text x="609.2" y="132" class="cd">10 плагинов, зоны</text>
+        <text x="609.2" y="132" class="cd">13 плагинов, зоны</text>
         <text x="609.2" y="156" class="cd">и расписания</text>
       </g>
       <!-- 4. подтверждение -->
@@ -174,10 +174,10 @@
         <line x1="1434.4" y1="104" x2="1473.4" y2="104" marker-end="url(#a3)"/>
       </g>
       <!-- обратная связь: решение оператора → маховик → дообучение -->
-      <path d="M1603,194 V236 H420.6 V198" fill="none" stroke="#a8d42c" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#a3l)"/>
-      <rect x="626" y="221" width="772" height="30" fill="#0b2333"/>
+      <path d="M1603,194 V236 H1404" fill="none" stroke="#a8d42c" stroke-width="2.5" stroke-dasharray="8 6"/>
+      <path d="M620,236 H420.6 V198" fill="none" stroke="#a8d42c" stroke-width="2.5" stroke-dasharray="8 6" marker-end="url(#a3l)"/>
       <text x="1012" y="243" text-anchor="middle" class="fb">D4 · решение оператора 1 / 2 / 3 → маховик данных → дообучение моделей</text>
-      <text x="1728" y="276" text-anchor="end" class="fbn">пунктир — замкнутый цикл качества, слайд 10</text>
+      <text x="1728" y="276" text-anchor="end" class="fbn">пунктир — замкнутый цикл качества: маховик данных</text>
     </svg>
     <div class="ev-row">
       <div class="panel ev"><div class="r">R1 · потоки</div><div class="v">4 камеры</div><div class="d">одновременно на edge-узле, 4.8–4.9 к/с каждая</div></div>
@@ -186,7 +186,7 @@
       <div class="panel ev hl"><div class="r">R4 · одно на нарушение</div><div class="v">0 дублей</div><div class="d">на 13 размеченных роликах</div></div>
       <div class="panel ev"><div class="r">R5 · журнал</div><div class="v">6 фильтров</div><div class="d">период, тип, камера, зона, статус, важность; CSV</div></div>
       <div class="panel ev"><div class="r">R6 · LinQ TPU</div><div class="v">45.7 к/с</div><div class="d">YOLOv8n det 480; в 4.9–7.1 раза больше CPU</div></div>
-      <div class="panel ev"><div class="r">R7 · модули</div><div class="v">1 файл</div><div class="d">на новый тип нарушения; сейчас 10 плагинов</div></div>
+      <div class="panel ev"><div class="r">R7 · модули</div><div class="v">1 файл</div><div class="d">на новый тип нарушения; сейчас 13 правил</div></div>
     </div>
     <div class="dline"><span class="lbl">Желательное</span><span><b>D1</b> зоны и расписания из UI</span><span><b>D2</b> подавление повторов</span><span><b>D3</b> дашборд</span><span><b>D4</b> статусы оператора</span><span><b>D5</b> несколько потоков на узле</span></div>
   </div>
@@ -233,7 +233,7 @@
           <text x="1108" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">СИЗ, поза, телефон</text></g>
         <g><rect x="1252" y="52" width="212" height="132" rx="8" fill="rgba(10,32,49,.9)" stroke="rgba(84,170,204,.55)" stroke-width="2"/>
           <text x="1358" y="98" text-anchor="middle" font-weight="650" fill="#eef4f1">Правила</text>
-          <text x="1358" y="128" text-anchor="middle" font-size="18" fill="#b9cbd2">10 плагинов, зоны</text>
+          <text x="1358" y="128" text-anchor="middle" font-size="18" fill="#b9cbd2">13 плагинов, зоны</text>
           <text x="1358" y="152" text-anchor="middle" font-size="18" fill="#b9cbd2">и расписания</text></g>
         <g><rect x="1502" y="52" width="204" height="132" rx="8" fill="rgba(10,32,49,.9)" stroke="#a8d42c" stroke-width="2.5"/>
           <text x="1604" y="98" text-anchor="middle" font-weight="650" fill="#eef4f1">EventManager</text>
@@ -294,8 +294,54 @@
   </div>
 </section>
 
+<!-- ============================ Реальные видеопотоки ============================ -->
+<section class="slide" id="streams" data-src="Источники: guard/sources/ (file, images, rtsp, webcam в main), переподключение — guard/sources/video.py · проверка потока POST /api/cameras/probe — docs/ROLES.md «API» · итог проверки — docs/STREAMS.md · скриншоты — deliverables/screens/streams-*">
+  <div class="head">
+    <div class="kicker">Реальные камеры <span class="crit">П · В</span></div>
+    <h1>Подключаем реальные потоки: <em>RTSP, MJPEG, HLS</em>, веб-камера</h1>
+  </div>
+  <div class="body">
+    <div class="st-grid">
+      <div class="st-left">
+        <div class="st-kinds">
+          <div class="panel sk"><div class="hd"><span class="nm">RTSP</span><span class="sst" data-sst="streams.kinds.rtsp"></span></div><div class="ds">IP-камеры и видеорегистраторы — основной источник на производстве</div></div>
+          <div class="panel sk"><div class="hd"><span class="nm">HTTP MJPEG</span><span class="sst" data-sst="streams.kinds.mjpeg"></span></div><div class="ds">простые IP-камеры и шлюзы, кадр за кадром по HTTP</div></div>
+          <div class="panel sk"><div class="hd"><span class="nm">HLS</span><span class="sst" data-sst="streams.kinds.hls"></span></div><div class="ds">видеосерверы и облачные архивы, поток .m3u8</div></div>
+          <div class="panel sk"><div class="hd"><span class="nm">Веб-камера</span><span class="sst" data-sst="streams.kinds.webcam"></span></div><div class="ds">USB-камера у рабочего места или ноутбук для показа</div></div>
+        </div>
+        <div class="st-flow">
+          <div class="panel sf"><div class="no">01</div><div class="nm">Проверка до подключения</div><div class="ds">адрес → разрешение, к/с, кодек, время до первого кадра и превью. Ошибка — понятным текстом</div><span class="sst" data-sst="streams.features.probe"></span></div>
+          <svg class="sf-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M1,10 H24" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M23,3 L33,10 L23,17 z" fill="#a8d42c"/></svg>
+          <div class="panel sf"><div class="no">02</div><div class="nm">Статус камеры</div><div class="ds">работает, нет сигнала, переподключение — на плитке камеры и в API</div><span class="sst" data-sst="streams.features.status"></span></div>
+          <svg class="sf-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M1,10 H24" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M23,3 L33,10 L23,17 z" fill="#a8d42c"/></svg>
+          <div class="panel sf"><div class="no">03</div><div class="nm">Переподключение</div><div class="ds">обрыв не роняет конвейер: пауза 1 → 2 → 4 … 15 с, затем снова поток</div><span class="sst" data-sst="streams.features.reconnect"></span></div>
+        </div>
+      </div>
+      <div class="st-right">
+        <div class="panel st-res pending-box" data-status="pending.streams">
+          <div class="hd"><span class="lbl">Что проверено</span><span class="ptag" data-ptag="pending.streams">будет обновлено к защите</span></div>
+          <table class="t stt">
+            <thead><tr><th>Поток</th><th class="num">1-й кадр, с</th><th class="num">к/с</th><th class="num">обрыв → кадр, с</th></tr></thead>
+            <tbody>
+              <tr><td>RTSP</td><td class="num" data-bind="pending.streams.rtsp.first_s">—</td><td class="num" data-bind="pending.streams.rtsp.fps">—</td><td class="num" data-bind="pending.streams.rtsp.recover_s">—</td></tr>
+              <tr><td>HTTP MJPEG</td><td class="num" data-bind="pending.streams.mjpeg.first_s">—</td><td class="num" data-bind="pending.streams.mjpeg.fps">—</td><td class="num" data-bind="pending.streams.mjpeg.recover_s">—</td></tr>
+              <tr><td>HLS</td><td class="num" data-bind="pending.streams.hls.first_s">—</td><td class="num" data-bind="pending.streams.hls.fps">—</td><td class="num" data-bind="pending.streams.hls.recover_s">—</td></tr>
+              <tr><td>Веб-камера</td><td class="num" data-bind="pending.streams.webcam.first_s">—</td><td class="num" data-bind="pending.streams.webcam.fps">—</td><td class="num" data-bind="pending.streams.webcam.recover_s">—</td></tr>
+            </tbody>
+          </table>
+          <div class="src-in"><span data-status-text></span></div>
+        </div>
+        <div class="win shot pending-box" data-shot="pending.streams_screen">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t" data-bind="pending.streams_screen.title">Камеры · проверка потока</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><div class="ph"><span class="ptag" data-ptag="pending.streams_screen">будет обновлено к защите</span><div data-bind="pending.streams_screen.caption"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ============================ 5. Живое демо ============================ -->
-<section class="slide" id="s5" data-src="Сквозной сценарий — кейс LinQ · скриншоты: deliverables/screens/05b, 02b — мок-режим UI; real-04 — живой бэкенд, local, CPU, 24.10 01:10 · задержка: docs/EDGE.md §6.1">
+<section class="slide" id="s5" data-src="Сквозной сценарий — кейс LinQ · скриншоты deliverables/screens: 05b — мок-режим UI; tpu-01 — шлюз на ноутбуке, edge на стенде LinQ TPU, 24.10 12:35; real-04 — живой бэкенд, local, CPU, 24.10 01:10 · задержка: docs/EDGE.md §6.1">
   <div class="head">
     <div class="kicker">Живое демо <span class="crit">П · О · UX</span></div>
     <h1>Демо: 07:55 зона → 14:05 падение → отчёт</h1>
@@ -305,7 +351,7 @@
       <div class="beat">
         <div class="when"><span class="tm">07:55</span><span class="who">специалист ОТ</span></div>
         <div class="win shot">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Камеры и правила · зона «Проход у стеллажей»</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Камеры и правила · зона</span><span class="b"><i></i><i></i><i></i></span></div>
           <div class="pane"><img src="../screens/05b-zone-drawing.jpg" alt="Редактор зон" style="object-position: 30% 20%"></div>
         </div>
         <div class="what"><span class="tag mock">мок-режим UI</span> Рисует зону мышью на кадре и ставит расписание «07:55–12:00» — без кода</div>
@@ -313,15 +359,15 @@
       <div class="beat crit">
         <div class="when"><span class="tm">14:05</span><span class="who">мастер смены</span></div>
         <div class="win shot">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Карточка события · S3 «Падение, неподвижность»</span><span class="b"><i></i><i></i><i></i></span></div>
-          <div class="pane"><img src="../screens/02b-event-clip.jpg" alt="Карточка события о падении" style="object-position: 30% 30%"></div>
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Мониторинг · LinQ TPU</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><img src="../screens/tpu-01-monitoring.jpg" alt="Мониторинг: падение — критическая тревога, бэкенд LinQ TPU" style="object-position: 0% 0%"></div>
         </div>
-        <div class="what"><span class="tag mock">мок-режим UI</span> Падение → критическая тревога со звуком: одна карточка с кадром и клипом ±5 с, клавиша 3 — мастеру</div>
+        <div class="what"><span class="tag lime">живой TPU</span> Падение → критическая тревога со звуком сверху ленты; в карточке кадр и клип ±5 с, клавиша 3 — мастеру</div>
       </div>
       <div class="beat">
         <div class="when"><span class="tm">Конец месяца</span><span class="who">менеджмент</span></div>
         <div class="win shot">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Аналитика · по типам, участкам и времени</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Аналитика · типы, участки, время</span><span class="b"><i></i><i></i><i></i></span></div>
           <div class="pane"><img src="../screens/real-04-analytics.jpg" alt="Аналитика"></div>
         </div>
         <div class="what"><span class="tag lime">живой бэкенд</span> Где, когда и что нарушали; «день недели × час»; доля ложных по каждому правилу</div>
@@ -341,20 +387,20 @@
   </div>
 </section>
 
-<!-- ============================ 6. Одно нарушение — одно оповещение ============================ -->
-<section class="slide" id="s6" data-src="docs/ARCHITECTURE.md §5 · guard/events/manager.py · задержка: docs/EDGE.md §6.1, §6.4 — edge-tpu-20261024-1002.json, edge-tpu-stability-tap-20261024-1338.json · дубли и ложные: docs/QUALITY.md">
+<!-- ============================ Одно нарушение — одно оповещение ============================ -->
+<section class="slide" id="s6" data-src="docs/ARCHITECTURE.md §5 · guard/events/manager.py · доставка: docs/EDGE_PROTOCOL.md, docs/RABBIT_ACCEPTANCE.md · задержка: docs/EDGE.md §6.1, §6.4 — edge-tpu-20261024-1002.json, edge-tpu-stability-tap-20261024-1338.json · дубли и ложные: docs/QUALITY.md">
   <div class="head">
     <div class="kicker">Скорость и надёжность оповещения <span class="crit">О · В</span></div>
-    <h1>Одно нарушение — <em>одно</em> оповещение, без дублей</h1>
+    <h1>Одно нарушение — <em>одно</em> оповещение, без дублей и потерь</h1>
   </div>
   <div class="body">
-    <svg id="frames" width="1728" height="150" viewBox="0 0 1728 150" role="img" aria-label="Окно подтверждения по кадрам"></svg>
+    <svg id="frames" width="1728" height="144" viewBox="0 0 1728 144" role="img" aria-label="Окно подтверждения по кадрам"></svg>
     <div class="steps">
       <div class="panel stp"><div class="no">01</div><div class="nm">Правило без памяти</div><div class="ds">Плагин отвечает только «есть ли нарушение на этом кадре»</div></div>
       <div class="panel stp"><div class="no">02</div><div class="nm">Окно подтверждения</div><div class="ds">Нарушение длится 1–2 с на большей части кадров окна</div></div>
-      <div class="panel stp"><div class="no">03</div><div class="nm">Одно событие на трек</div><div class="ds">Ключ — камера, правило, трек. Пока трек жив, повторов нет</div></div>
-      <div class="panel stp"><div class="no">04</div><div class="nm">Дедуп при смене ID</div><div class="ds">Рядом с недавним событием того же правила — не новое</div></div>
-      <div class="panel stp"><div class="no">05</div><div class="nm">Осторожные правила</div><div class="ds">«СИЗ не видно» — не нарушение; пороги подобраны под int8</div></div>
+      <div class="panel stp"><div class="no">03</div><div class="nm">Одно событие на трек</div><div class="ds">Ключ — камера, правило, трек. Смена ID рядом — не новое</div></div>
+      <div class="panel stp"><div class="no">04</div><div class="nm">Осторожные правила</div><div class="ds">«СИЗ не видно» — не нарушение; пороги подобраны под int8</div></div>
+      <div class="panel stp hl"><div class="no">05</div><div class="nm">Доставка без потерь</div><div class="ds">Очередь на диске edge, запись на шлюзе без дублей</div></div>
     </div>
     <div class="evid">
       <div class="win chart">
@@ -362,14 +408,14 @@
         <div class="pane">
           <div class="legend" id="lat-legend"></div>
           <svg id="lat-chart" width="980" height="230" viewBox="0 0 980 230" role="img" aria-label="Из чего складывается задержка оповещения"></svg>
-          <div class="src-in">TPU, 4 камеры, edge на стенде, шлюз на ноутбуке. Средние складываются в сквозную; справа — p50 и p95. Окно правила задаёт специалист ОТ, разброс даёт только VPN хакатона</div>
+          <div class="src-in">TPU, 4 камеры, edge на стенде, шлюз на ноутбуке; справа — p50 / p95. Разброс даёт только VPN хакатона</div>
         </div>
       </div>
       <div class="panel rel">
-        <div class="lbl">На 13 размеченных роликах</div>
-        <div class="rt"><div class="v">0</div><div class="t"><b>дублей</b><span>в базовой настройке — 2</span></div></div>
+        <div class="lbl">Проверено</div>
+        <div class="rt"><div class="v">0</div><div class="t"><b>дублей на 13 роликах</b><span>в базовой настройке — 2</span></div></div>
         <div class="rt"><div class="v">0</div><div class="t"><b>ложных тревог на 535 с</b><span>в базовой настройке — 3, все из-за жилета</span></div></div>
-        <div class="rt"><div class="v sm">2.35<small>с</small></div><div class="t"><b>задержка p50 по всем типам</b><span>офлайн-прогон всего конвейера</span></div></div>
+        <div class="rt"><div class="v sm">7 / 7</div><div class="t"><b>фаз приёмки доставки на RabbitMQ 4.4</b><span>брокер отключали, edge и шлюз роняли в худший момент — 1 событие, 0 дублей</span></div></div>
       </div>
     </div>
   </div>
@@ -417,7 +463,7 @@
 </section>
 
 <!-- ============================ 8. Качество ============================ -->
-<section class="slide" id="s8" data-src="Офлайн-прогон всего конвейера, CPU, 24.10 13:42 · .orchestra/metrics/eval-onnx-cpu-phone-nearest-stress-20261024-1342.json · docs/QUALITY.md · 95 % ДИ — интервал Уилсона, расчёт по k и n">
+<section class="slide" id="s8" data-src="Офлайн-прогон всего конвейера, CPU, 24.10 13:42 · eval-onnx-cpu-phone-nearest-stress-20261024-1342.json · docs/QUALITY.md · 95 % ДИ — интервал Уилсона, расчёт по k и n">
   <div class="head">
     <div class="kicker">Качество — честно <span class="crit">О · В · А</span></div>
     <h1>На 13 роликах: precision <em>1.00</em>, recall <em>0.78</em></h1>
@@ -426,7 +472,7 @@
     <div class="kpis" id="q-tiles"></div>
     <div class="qgrid">
       <div class="win chart">
-        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Найдено событий по типам · точка — доля, линия — 95 % доверительный интервал</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Найдено событий по типам · точка — доля, линия — 95 % ДИ</span><span class="b"><i></i><i></i><i></i></span></div>
         <div class="pane">
           <svg id="forest" width="900" height="420" viewBox="0 0 900 420" role="img" aria-label="Recall по типам нарушений с доверительными интервалами"></svg>
         </div>
@@ -451,164 +497,153 @@
   </div>
 </section>
 
-<!-- ============================ 9. Слабые места → дообучение ============================ -->
-<section class="slide" id="s9" data-src="Слабые места: docs/QUALITY.md «Разбор ошибок», docs/DATASETS.md · решение D-006 · наборы — план, итог в docs/DATASETS.md · результаты: ml/model_cards/*.json">
+<!-- ============================ Отложенная выборка ============================ -->
+<section class="slide" id="holdout" data-src="Методика и итог — docs/QUALITY.md «Отложенная выборка» · падения — docs/QUALITY.md «Отложенная выборка падений (ds-falls)», docs/DATASETS.md «Падения», ml/eval/scenarios_falls.yaml · CPU, onnxruntime, реестр стенда det и pose 480">
   <div class="head">
-    <div class="kicker">Что улучшаем <span class="crit">О · Н</span></div>
-    <h1>Слабые места → открытые наборы и дообучение</h1>
+    <div class="kicker">Честная оценка <span class="crit">О · А</span></div>
+    <h1>Отложенная выборка: новые ролики, <em>двойная разметка</em></h1>
   </div>
   <div class="body">
-    <table class="t ft">
-      <thead><tr><th style="width:330px">Сценарий</th><th style="width:420px">Почему ошибаемся</th><th style="width:200px">Сейчас</th><th>Открытые наборы</th><th style="width:300px">После дообучения</th></tr></thead>
-      <tbody id="ft-rows"></tbody>
-    </table>
-    <div class="chain">
-      <div class="lbl">Как модель попадает в продукт</div>
-      <div class="ch">
-        <span class="c">открытый набор + сэмплы маховика</span><i>→</i><span class="c">дообучение</span><i>→</i><span class="c">ONNX</span><i>→</i><span class="c lime">программа LinQ TPU</span><i>→</i><span class="c">сверка с CPU</span><i>→</i><span class="c">гейт на отложенных</span><i>→</i><span class="c">карточка модели</span>
+    <div class="ho-grid">
+      <div class="ho-steps">
+        <div class="panel hs"><div class="no">01</div><div class="nm">Новые ролики</div><div class="ds">Реальные камеры наблюдения: другие сцены, свет и ракурсы. Ни один кадр не участвовал в подборе и обучении</div></div>
+        <div class="panel hs"><div class="no">02</div><div class="nm">Двойная слепая разметка</div><div class="ds">Два разметчика независимо отмечают начало и конец нарушения, расхождения решает арбитр</div></div>
+        <div class="panel hs"><div class="no">03</div><div class="nm">Без подстройки</div><div class="ds">Параметры правил заморожены до прогона. Один прогон всего конвейера, итог — как есть</div></div>
+        <div class="panel hs"><div class="no">04</div><div class="nm">Те же метрики</div><div class="ds">События, а не кадры: precision, recall, ложные тревоги в час, задержка оповещения</div></div>
       </div>
-    </div>
-    <div class="rules">
-      <div class="panel"><b>Отложенная выборка неприкосновенна.</b> Кадры 13 оценочных роликов и тестовые части наборов в обучение не попадают; падения делим по людям и сериям</div>
-      <div class="panel"><b>«До» и «после» — на одних данных.</b> Модель хуже базы не выкатываем: в карточке модели — статус rejected и причины</div>
+      <div class="ho-right">
+        <div class="panel ho-res pending-box" data-status="pending.holdout">
+          <div class="hd"><span class="lbl">Итог на отложенной выборке</span><span class="ptag" data-ptag="pending.holdout">будет обновлено к защите</span></div>
+          <div class="ho-tiles">
+            <div class="tile"><div class="k">Роликов</div><div class="pval" data-bind="pending.holdout.videos">—</div></div>
+            <div class="tile"><div class="k">Событий</div><div class="pval" data-bind="pending.holdout.events">—</div></div>
+            <div class="tile"><div class="k">Согласие разметчиков</div><div class="pval" data-bind="pending.holdout.agreement">—</div></div>
+            <div class="tile"><div class="k">Precision</div><div class="pval" data-bind="pending.holdout.precision">—</div></div>
+            <div class="tile"><div class="k">Recall</div><div class="pval" data-bind="pending.holdout.recall">—</div></div>
+            <div class="tile"><div class="k">Ложных в час</div><div class="pval" data-bind="pending.holdout.fa_per_hour">—</div></div>
+          </div>
+          <div class="src-in"><span data-status-text></span></div>
+        </div>
+        <div class="panel ho-falls">
+          <div class="lbl">Уже измерено: отложенные падения</div>
+          <div class="hf">
+            <div class="kv"><b>14 из 25</b><span>падений найдено на 101 ролике чужих наборов (URFD, GMDCSA24), 695 с</span></div>
+            <div class="kv"><b>P 0.70 · R 0.56</b><span>против 6 из 7 на подобранном наборе: на новых сценах правило находит около половины</span></div>
+            <div class="kv"><b>31 в час</b><span>ложных: люди на полу и в кровати. Это база для дообучения на позах лёжа</span></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- ============================ 10. Маховик данных ============================ -->
-<section class="slide" id="s10" data-src="docs/FLYWHEEL.md — контракт маховика · решение D-007 · frontend/src/features/flywheel/ · ограничение трафика edge: docs/EDGE.md §6.1">
+<!-- ============================ Маховик данных ============================ -->
+<section class="slide" id="s10" data-src="docs/FLYWHEEL.md — контракт и статус звеньев · первый оборот: docs/MODELS.md «Погрузчик (S4)», ml/model_cards/forklift-v1.json · скриншот «Данные»: интерфейс с живым API маховика, 24.10 · трафик edge: docs/EDGE.md §6.1">
   <div class="head">
     <div class="kicker">Маховик данных <span class="crit">Н · В · Э</span></div>
     <h1>Замкнутый цикл качества: система сама собирает данные</h1>
   </div>
   <div class="body">
     <div class="fw-grid">
-      <svg id="fw" width="1110" height="560" viewBox="0 0 1110 560" role="img" aria-label="Цикл маховика данных">
-        <defs>
-          <marker id="fwa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#a8d42c"/></marker>
-        </defs>
-        <!-- верхний ряд: 1 → 4 -->
-        <g class="nd hu"><rect x="0" y="20" width="245" height="140" rx="10"/><text x="20" y="56" class="no">01</text><text x="20" y="92" class="tt">«Ложное» — клав. 2</text><text x="20" y="122" class="dd">решение оператора</text><text x="20" y="146" class="dd">в карточке события</text></g>
-        <g class="nd"><rect x="288" y="20" width="245" height="140" rx="10"/><text x="308" y="56" class="no">02</text><text x="308" y="92" class="tt">Кадр в выборке</text><text x="308" y="122" class="dd">сырой кадр, детекции</text><text x="308" y="146" class="dd">и причина отбора</text></g>
-        <g class="nd"><rect x="576" y="20" width="245" height="140" rx="10"/><text x="596" y="56" class="no">03</text><text x="596" y="92" class="tt">Учитель разметил</text><text x="596" y="122" class="dd">YOLOv8x, YOLO-World:</text><text x="596" y="146" class="dd">forklift, cigarette…</text></g>
-        <g class="nd hu"><rect x="864" y="20" width="245" height="140" rx="10"/><text x="884" y="56" class="no">04</text><text x="884" y="92" class="tt">Человек проверил</text><text x="884" y="122" class="dd">клавиши 1 / 2</text><text x="884" y="146" class="dd">на странице «Данные»</text></g>
-        <!-- нижний ряд: 5 → 7 справа налево -->
-        <g class="nd"><rect x="780" y="400" width="329" height="140" rx="10"/><text x="800" y="436" class="no">05</text><text x="800" y="472" class="tt">Дообучение</text><text x="800" y="502" class="dd">версия датасета без</text><text x="800" y="526" class="dd">кадров отложенных роликов</text></g>
-        <g class="nd tp"><rect x="390" y="400" width="329" height="140" rx="10"/><text x="410" y="436" class="no">06</text><text x="410" y="472" class="tt">Сборка под LinQ</text><text x="410" y="502" class="dd">ONNX → программа TPU</text><text x="410" y="526" class="dd">→ сверка с CPU</text></g>
-        <g class="nd gt"><rect x="0" y="400" width="329" height="140" rx="10"/><text x="20" y="436" class="no">07</text><text x="20" y="472" class="tt">Гейт → выкатка</text><text x="20" y="502" class="dd">на отложенных не хуже:</text><text x="20" y="526" class="dd">recall, precision, ложные</text></g>
-        <g stroke="#a8d42c" stroke-width="2.5" fill="none">
-          <line x1="247" y1="90" x2="284" y2="90" marker-end="url(#fwa)"/>
-          <line x1="535" y1="90" x2="572" y2="90" marker-end="url(#fwa)"/>
-          <line x1="823" y1="90" x2="860" y2="90" marker-end="url(#fwa)"/>
-          <path d="M1000,162 V396" marker-end="url(#fwa)"/>
-          <line x1="778" y1="470" x2="723" y2="470" marker-end="url(#fwa)"/>
-          <line x1="388" y1="470" x2="333" y2="470" marker-end="url(#fwa)"/>
-          <path d="M120,398 V164" marker-end="url(#fwa)"/>
-        </g>
-        <text x="555" y="252" text-anchor="middle" class="ring">ЗАМКНУТЫЙ ЦИКЛ КАЧЕСТВА</text>
-        <text x="555" y="292" text-anchor="middle" class="mid">Без человека метки в обучение не идут:</text>
-        <text x="555" y="320" text-anchor="middle" class="mid">модель на своих метках закрепляет свои ошибки</text>
-        <text x="555" y="358" text-anchor="middle" class="sm">рамка «ложного» срабатывания → трудный негатив</text>
-        <text x="138" y="286" class="side">новая модель</text>
-        <text x="138" y="308" class="side">на узле</text>
-        <text x="1018" y="286" class="side">версия</text>
-        <text x="1018" y="308" class="side">датасета</text>
-      </svg>
+      <div class="fw">
+        <div class="fw-row">
+          <div class="fw-c hu"><div class="hd"><span class="no">01</span><span class="sst" data-sst="flywheel.steps.0"></span></div><div class="tt">Решение оператора</div><div class="dd">клавиши 1 / 2 / 3 в карточке события</div></div>
+          <svg class="fw-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M1,10 H24" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M23,3 L33,10 L23,17 z" fill="#a8d42c"/></svg>
+          <div class="fw-c"><div class="hd"><span class="no">02</span><span class="sst" data-sst="flywheel.steps.1"></span></div><div class="tt">Кадр в выборке</div><div class="dd">сырой кадр, детекции и причина отбора</div></div>
+          <svg class="fw-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M1,10 H24" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M23,3 L33,10 L23,17 z" fill="#a8d42c"/></svg>
+          <div class="fw-c"><div class="hd"><span class="no">03</span><span class="sst" data-sst="flywheel.steps.2"></span></div><div class="tt">Разметка учителем</div><div class="dd">тяжёлые модели предлагают рамки: forklift, cigarette…</div></div>
+          <svg class="fw-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M1,10 H24" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M23,3 L33,10 L23,17 z" fill="#a8d42c"/></svg>
+          <div class="fw-c hu"><div class="hd"><span class="no">04</span><span class="sst" data-sst="flywheel.steps.3"></span></div><div class="tt">Проверка человеком</div><div class="dd">клавиши 1 / 2 на странице «Данные»</div></div>
+        </div>
+        <div class="fw-mid">
+          <div class="fw-v up"><i class="vl"></i><svg class="ah" width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1,13 L10,1 L19,13 z" fill="#a8d42c"/></svg><span class="vt">новая модель<br>на узле</span></div>
+          <div class="fw-center">
+            <div class="ring">ЗАМКНУТЫЙ ЦИКЛ КАЧЕСТВА</div>
+            <div class="mid">Без человека метки в обучение не идут: модель на своих метках закрепляет свои ошибки. Рамка «ложного» — трудный негатив</div>
+            <div class="srcs">
+              <div class="lbl">Откуда сэмплы</div>
+              <ul class="px">
+                <li>событие и решение оператора по нему</li>
+                <li>неуверенная детекция у порога, «мигание» трека</li>
+                <li>кнопка «в выборку» у камеры, открытые наборы</li>
+                <li class="wipl">расхождение TPU и CPU fp32 — в работе</li>
+              </ul>
+              <div class="src-in">Сбор идёт в фоне: обработка кадра 0.571 → 0.583 мс (p50), оповещение не ждёт. Бюджет на edge — до 10 КБ/с на камеру</div>
+            </div>
+          </div>
+          <div class="fw-v down"><i class="vl"></i><svg class="ah" width="20" height="14" viewBox="0 0 20 14" aria-hidden="true"><path d="M1,1 L19,1 L10,13 z" fill="#a8d42c"/></svg><span class="vt">версия<br>датасета</span></div>
+        </div>
+        <div class="fw-row">
+          <div class="fw-c gt"><div class="hd"><span class="no">07</span><span class="sst" data-sst="flywheel.steps.6"></span></div><div class="tt">Гейт → выкатка</div><div class="dd">на отложенных не хуже: recall, precision, ложные</div></div>
+          <svg class="fw-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M10,10 H33" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M11,3 L1,10 L11,17 z" fill="#a8d42c"/></svg>
+          <div class="fw-c tp"><div class="hd"><span class="no">06</span><span class="sst" data-sst="flywheel.steps.5"></span></div><div class="tt">Сборка под LinQ</div><div class="dd">ONNX → программа TPU → сверка с CPU</div></div>
+          <svg class="fw-ar" width="34" height="20" viewBox="0 0 34 20" aria-hidden="true"><path d="M10,10 H33" stroke="#a8d42c" stroke-width="2.5" fill="none"/><path d="M11,3 L1,10 L11,17 z" fill="#a8d42c"/></svg>
+          <div class="fw-c"><div class="hd"><span class="no">05</span><span class="sst" data-sst="flywheel.steps.4"></span></div><div class="tt">Дообучение</div><div class="dd">версия датасета без кадров отложенных роликов</div></div>
+        </div>
+      </div>
       <div class="fw-side">
-        <div class="win shot pending-box" data-shot="pending.flywheel_screen">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t" data-bind="pending.flywheel_screen.title">Данные · маховик</span><span class="b"><i></i><i></i><i></i></span></div>
-          <div class="pane"><div class="ph"><span class="ptag" data-ptag="pending.flywheel_screen">будет обновлено к защите</span><div data-bind="pending.flywheel_screen.caption"></div></div></div>
-        </div>
-        <div class="status pending-box" data-status="pending.flywheel"><span class="ptag" data-ptag="pending.flywheel">будет обновлено к защите</span><span data-status-text></span></div>
-        <div class="panel pr">
-          <div class="lbl">Откуда сэмплы</div>
-          <ul class="px">
-            <li>каждое событие и решение оператора по нему</li>
-            <li>неуверенная детекция у порога правила, «мигание» трека</li>
-            <li>расхождение TPU и CPU fp32 на выборочных кадрах</li>
-            <li>кнопка «в выборку» у камеры, импорт открытых наборов</li>
-          </ul>
-          <div class="src-in">Сбор в фоне и не задерживает оповещение; на edge — до 10 КБ/с на камеру сверх потока событий</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ============================ 11. Расширяемость ============================ -->
-<section class="slide" id="s11" data-src="docs/ARCHITECTURE.md §6 · README.md «Как добавить новый тип нарушения» · guard/rules/plugins/ · скриншот 06-cameras-rules — мок-режим UI">
-  <div class="head">
-    <div class="kicker">Расширяемость <span class="crit">В · UX</span></div>
-    <h1>Новый тип нарушения — <em>один файл</em></h1>
-  </div>
-  <div class="body">
-    <div class="grid">
-      <div class="win code">
-        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">crowding.py · пример из README, сокращено</span><span class="b"><i></i><i></i><i></i></span></div>
-        <div class="pane"><pre><span class="d">@register_rule</span>
-<span class="k">class</span> CrowdingRule(RulePlugin):
-    type = <span class="s">"crowding"</span>
-    title = <span class="s">"Скопление людей в зоне"</span>
-    required_models = frozenset({<span class="s">"det"</span>})
-    params_schema = {...}  <span class="c"># по ней UI строит форму</span>
-
-    <span class="k">def</span> evaluate(self, ctx) -> list[Violation]:
-        <span class="c"># только кадр; окно и дубли — в EventManager</span>
-        limit = int(self.cfg.params.get(<span class="s">"max_people"</span>, 3))
-        out = []
-        <span class="k">for</span> zone <span class="k">in</span> self.camera.zones:
-            <span class="k">if not</span> is_zone_active(zone, ctx.ts):
-                <span class="k">continue</span>
-            n = sum(in_zone(t, zone) <span class="k">for</span> t <span class="k">in</span> ctx.people)
-            <span class="k">if</span> n > limit:
-                out.append(self.violation(ctx, zone_id=zone.zone_id))
-        <span class="k">return</span> out</pre></div>
-      </div>
-      <div class="main">
         <div class="win shot">
-          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Камеры и правила · формы правил из плагинов</span><span class="b"><i></i><i></i><i></i></span></div>
-          <div class="pane"><img src="../screens/06-cameras-rules.jpg" alt="Правила камеры" style="object-position: 70% 14%"></div>
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Данные · очередь проверки</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><img src="../screens/fw-01-review.jpg" alt="Страница «Данные»: очередь проверки сэмплов"></div>
         </div>
-        <div class="cap"><span class="tag mock">мок-режим UI</span> Тип и форма параметров приходят из плагина — интерфейс не правим</div>
+        <div class="panel fk">
+          <div class="lbl">Первый оборот: погрузчик для S4</div>
+          <div class="kv"><b><span data-bind="forklift.ap50">0.87</span> <small>vs <span data-bind="forklift.ap50_ref">0.50</span></small></b><span>AP50 погрузчика на тесте из <span data-bind="forklift.test_images">238</span> кадров: <span data-bind="forklift.version">forklift-v1</span> против открытой модели</span></div>
+          <div class="kv"><b><span data-bind="forklift.false_frames">0</span> <small>vs <span data-bind="forklift.false_frames_ref">35</span></small></b><span>кадров с ложным «погрузчиком» из <span data-bind="forklift.frames_total">338</span>: фуры, экскаватор, пустые сцены</span></div>
+          <div class="kv"><b><span data-bind="forklift.s4">2 из 4</span></b><span data-bind="forklift.s4_note">событий S4 — как до дообучения. Гейт «не хуже» пройден, нужны кадры погрузчика с грузом</span></div>
+        </div>
       </div>
-    </div>
-    <div class="ext">
-      <div class="panel"><div class="lbl">Новое нарушение</div><div class="w">файл в guard/rules/plugins/</div><div class="z">в конвейере, API и UI — <b>ничего</b></div></div>
-      <div class="panel"><div class="lbl">Новая модель</div><div class="w">ONNX → программа TPU → строка в реестре</div><div class="z">плагин просит её через <b>required_models</b></div></div>
-      <div class="panel"><div class="lbl">Новый ускоритель</div><div class="w">реализация InferenceBackend</div><div class="z">выбор одной переменной: <b>onnx-cpu</b> или <b>linq-tpu</b></div></div>
-      <div class="panel"><div class="lbl">Интеграции</div><div class="w">подписчик на поток событий</div><div class="z">СКУД, MES, мессенджеры, сигнал у зоны</div></div>
     </div>
   </div>
 </section>
 
-<!-- ============================ 12. Интерфейс для ролей ============================ -->
-<section class="slide" id="s12" data-src="docs/ANALYTICS.md §1.1–1.2 · роли — кейс LinQ, слайды 9–12 · скриншоты real-* — живой бэкенд на ноутбуке, local, CPU, 24.10 ~01:10">
+<!-- ============================ Роли и доступ ============================ -->
+<section class="slide" id="rbac" data-src="docs/ROLES.md — роли, 12 прав, принципы, API · guard/auth/roles.py — источник правды для матрицы · 152-ФЗ: изображение человека — персональные данные · скриншоты — deliverables/screens/rbac-*">
   <div class="head">
-    <div class="kicker">Интерфейс для ролей кейса <span class="crit">UX · А</span></div>
-    <h1>Семь ролей кейса — у каждой свой экран и своя польза</h1>
+    <div class="kicker">Роли и доступ <span class="crit">UX · В</span></div>
+    <h1>Четыре роли: видео — только тем, кто <em>отвечает за реакцию</em></h1>
   </div>
   <div class="body">
-    <table class="t">
-      <thead><tr><th style="width:330px">Роль</th><th style="width:440px">Боль сейчас</th><th>Что даёт «Зазеркалье»</th><th style="width:250px">Экран</th></tr></thead>
-      <tbody>
-        <tr><td><span class="n">1</span>Специалист по ОТ</td><td class="muted">не может быть на всех участках</td><td>рисует зону на кадре, ставит расписание, включает правило формой</td><td class="scr">Камеры и правила</td></tr>
-        <tr><td><span class="n">2</span>Мастер смены</td><td class="muted">узнаёт о нарушении поздно или не узнаёт</td><td>одно оповещение с кадром, камерой и зоной; без повторов</td><td class="scr">Карточка события</td></tr>
-        <tr><td><span class="n">3</span>Оператор, диспетчер</td><td class="muted">внимание падает через 20–30 минут</td><td>лента вместо стены мониторов, критичные сверху; клавиши 1 / 2 / 3</td><td class="scr">Мониторинг</td></tr>
-        <tr><td><span class="n">4</span>Работники, водители</td><td class="muted">контроль выборочный, «под проверку»</td><td>фиксация всегда и для всех одинаково; видео не покидает площадку</td><td class="scr dim">— косвенно</td></tr>
-        <tr><td><span class="n">5</span>Служба ОТ, юристы</td><td class="muted">нет визуальных доказательств</td><td>журнал: кадр, клип, решение и комментарий; фильтры, CSV</td><td class="scr">Журнал</td></tr>
-        <tr><td><span class="n">6</span>Менеджмент</td><td class="muted">нет статистики: где, когда, что</td><td>по типам, участкам, сменам; «день недели × час»; доля ложных</td><td class="scr">Аналитика</td></tr>
-        <tr><td><span class="n">7</span>ИТ-служба, интеграторы</td><td class="muted">сколько потоков выдержит железо</td><td>к/с и задержка по этапам, расчёт камер на TPU</td><td class="scr">Производительность</td></tr>
-      </tbody>
-    </table>
-    <div class="thumbs">
-      <div class="th"><div class="im"><img src="../screens/real-01-monitoring.jpg" alt=""></div><span>Мониторинг</span></div>
-      <div class="th"><div class="im"><img src="../screens/real-02-event-card.jpg" alt="" style="object-position: 30% 30%"></div><span>Карточка</span></div>
-      <div class="th"><div class="im"><img src="../screens/real-03-journal.jpg" alt=""></div><span>Журнал</span></div>
-      <div class="th"><div class="im"><img src="../screens/real-04-analytics.jpg" alt=""></div><span>Аналитика</span></div>
-      <div class="th"><div class="im"><img src="../screens/real-05-cameras-zones.jpg" alt=""></div><span>Камеры и правила</span></div>
-      <div class="th"><div class="im"><img src="../screens/real-07-performance.jpg" alt=""></div><span>Производительность</span></div>
+    <div class="rb-grid">
+      <div class="win rb-m">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Права ролей · проверяет сервер</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane">
+          <table class="t rbm">
+            <thead><tr><th>Право</th>
+              <th class="r"><b>Сотрудник</b><span>рабочий, бригадир</span></th>
+              <th class="r"><b>Диспетчер смены</b><span>мастер, диспетчер</span></th>
+              <th class="r"><b>Инженер по ОТ</b><span>охрана труда, ПБ</span></th>
+              <th class="r"><b>Администратор</b><span>ИТ, владелец</span></th></tr></thead>
+            <tbody>
+              <tr><td>Аналитика и отчёты</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Журнал событий без снимков</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr class="pd"><td>Видео, кадры и клипы событий</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Разбор событий: статус, заметка</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Камеры и производительность</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Опасные зоны и правила</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Проверка кадров маховика</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Журнал действий</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td><td class="y">✓</td></tr>
+              <tr><td>Подключение камер, проверка потока</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+              <tr><td>Обучение и выкатка моделей</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+              <tr><td>Учётные записи</td><td class="n">—</td><td class="n">—</td><td class="n">—</td><td class="y">✓</td></tr>
+            </tbody>
+          </table>
+          <div class="src-in">12 прав в docs/ROLES.md; «Камеры и производительность» здесь — два права просмотра одной строкой</div>
+        </div>
+      </div>
+      <div class="rb-side">
+        <div class="rb-pr">
+          <div class="panel"><div class="nm">Минимум прав</div><div class="ds">Каждый видит то, что нужно для работы. Стартовая страница — первая доступная</div></div>
+          <div class="panel hl"><div class="nm">Видео — ответственным</div><div class="ds">Изображение человека — персональные данные (152-ФЗ). Сотрудник видит сводки без кадров</div></div>
+          <div class="panel"><div class="nm">Разделение обязанностей</div><div class="ds">Что считать нарушением, решает инженер ОТ. Камеры, учётки и модели — администратор</div></div>
+          <div class="panel"><div class="nm">Сервер и журнал</div><div class="ds">Без права API отвечает 403. Вход и каждая правка — в журнале: кто, когда, что, откуда</div></div>
+        </div>
+        <div class="win shot pending-box" data-shot="pending.rbac_screen">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t" data-bind="pending.rbac_screen.title">Пользователи · роли</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><div class="ph"><span class="ptag" data-ptag="pending.rbac_screen">будет обновлено к защите</span><div data-bind="pending.rbac_screen.caption"></div></div></div>
+        </div>
+      </div>
     </div>
-    <div class="who"><span><b>Покупает</b> служба ОТ / ПБ и менеджмент</span><span><b>Пользуются каждый день</b> диспетчер, мастер, специалист ОТ</span><span><b>Внедряет</b> ИТ-служба или интегратор</span></div>
   </div>
 </section>
 
@@ -662,17 +697,151 @@
   </div>
 </section>
 
-<!-- ============================ 14. Аналоги ============================ -->
-<section class="slide" id="s14" data-src="docs/ANALYTICS.md §3 — страницы продуктов проверены 24.10.2026, ссылки там же · «—» — в открытых источниках не указано">
+<!-- ============================ 16. Главное и ссылки ============================ -->
+<section class="slide" id="s16" data-src="docs/EDGE.md §6.1 · docs/QUALITY.md · docs/RABBIT_ACCEPTANCE.md · docs/BENCHMARKS.md §2 · docs/ANALYTICS.md §3 · docs/FLYWHEEL.md · docs/PITCH.md">
   <div class="head">
-    <div class="kicker">Аналоги <span class="crit">А · Н</span></div>
+    <div class="kicker">Итог</div>
+    <h1>Одно нарушение — одно оповещение. <em>На LinQ TPU.</em></h1>
+  </div>
+  <div class="body">
+    <div class="closing">
+      <div class="win lime">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">главное</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane">
+          <div class="cl"><b>2.2 с</b><span>от начала нарушения до оповещения, p50 на стенде LinQ</span></div>
+          <div class="cl"><b>1.00 / 0.78</b><span>precision и recall на 13 размеченных роликах, 0 дублей; доставка событий — 7 из 7 фаз приёмки</span></div>
+          <div class="cl"><b>×4.9–7.1</b><span>кадров/с на TPU против CPU того же контейнера; у аналогов отечественный ускоритель не заявлен</span></div>
+          <div class="cl"><b>13 правил</b><span>новый тип нарушения — один файл; качество растёт через маховик данных</span></div>
+        </div>
+      </div>
+      <div class="side">
+        <div class="panel links">
+          <div class="lbl">Ссылки</div>
+          <div class="repo" data-bind="links.repo"></div>
+          <div id="doc-links"></div>
+        </div>
+        <div class="panel next">
+          <div class="lbl">Дальше</div>
+          <div>Пилот на 2–3 опасных участках → масштаб узлами LinQ → интеграции: СКУД, MES, наряды-допуски</div>
+        </div>
+      </div>
+    </div>
+    <div class="team"><span data-bind="meta.team">Команда «Зазеркалье»</span> · <span data-bind="meta.event">Хакатон «Открой#Моспром» · кейс LinQ</span></div>
+  </div>
+</section>
+
+<!-- ============================ 9. Слабые места → дообучение ============================ -->
+<section class="slide" id="s9" data-backup="1" data-src="Слабые места: docs/QUALITY.md «Разбор ошибок», docs/DATASETS.md · наборы — план, итог в docs/DATASETS.md · результаты: ml/model_cards/*.json">
+  <div class="head">
+    <div class="kicker">Резерв · что улучшаем</div>
+    <h1>Слабые места → открытые наборы и дообучение</h1>
+  </div>
+  <div class="body">
+    <table class="t ft">
+      <thead><tr><th style="width:330px">Сценарий</th><th style="width:420px">Почему ошибаемся</th><th style="width:200px">Сейчас</th><th>Открытые наборы</th><th style="width:300px">После дообучения</th></tr></thead>
+      <tbody id="ft-rows"></tbody>
+    </table>
+    <div class="chain">
+      <div class="lbl">Как модель попадает в продукт</div>
+      <div class="ch">
+        <span class="c">открытый набор + сэмплы маховика</span><i>→</i><span class="c">дообучение</span><i>→</i><span class="c">ONNX</span><i>→</i><span class="c lime">программа LinQ TPU</span><i>→</i><span class="c">сверка с CPU</span><i>→</i><span class="c">гейт на отложенных</span><i>→</i><span class="c">карточка модели</span>
+      </div>
+    </div>
+    <div class="rules">
+      <div class="panel"><b>Отложенная выборка неприкосновенна.</b> Кадры 13 оценочных роликов и тестовые части наборов в обучение не попадают; падения делим по людям и сериям</div>
+      <div class="panel"><b>«До» и «после» — на одних данных.</b> Модель хуже базы не выкатываем: в карточке модели — статус rejected и причины</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 11. Расширяемость ============================ -->
+<section class="slide" id="s11" data-backup="1" data-src="docs/ARCHITECTURE.md §6 · README.md «Как добавить новый тип нарушения» · guard/rules/plugins/ · скриншот 06-cameras-rules — мок-режим UI">
+  <div class="head">
+    <div class="kicker">Резерв · расширяемость</div>
+    <h1>Новый тип нарушения — <em>один файл</em></h1>
+  </div>
+  <div class="body">
+    <div class="grid">
+      <div class="win code">
+        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">crowding.py · пример из README, сокращено</span><span class="b"><i></i><i></i><i></i></span></div>
+        <div class="pane"><pre><span class="d">@register_rule</span>
+<span class="k">class</span> CrowdingRule(RulePlugin):
+    type = <span class="s">"crowding"</span>
+    title = <span class="s">"Скопление людей в зоне"</span>
+    required_models = frozenset({<span class="s">"det"</span>})
+    params_schema = {...}  <span class="c"># по ней UI строит форму</span>
+
+    <span class="k">def</span> evaluate(self, ctx) -> list[Violation]:
+        <span class="c"># только кадр; окно и дубли — в EventManager</span>
+        limit = int(self.cfg.params.get(<span class="s">"max_people"</span>, 3))
+        out = []
+        <span class="k">for</span> zone <span class="k">in</span> self.camera.zones:
+            <span class="k">if not</span> is_zone_active(zone, ctx.ts):
+                <span class="k">continue</span>
+            n = sum(in_zone(t, zone) <span class="k">for</span> t <span class="k">in</span> ctx.people)
+            <span class="k">if</span> n > limit:
+                out.append(self.violation(ctx, zone_id=zone.zone_id))
+        <span class="k">return</span> out</pre></div>
+      </div>
+      <div class="main">
+        <div class="win shot">
+          <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">Камеры и правила · формы правил из плагинов</span><span class="b"><i></i><i></i><i></i></span></div>
+          <div class="pane"><img src="../screens/06-cameras-rules.jpg" alt="Правила камеры" style="object-position: 70% 14%"></div>
+        </div>
+        <div class="cap"><span class="tag mock">мок-режим UI</span> Тип и форма параметров приходят из плагина — интерфейс не правим</div>
+      </div>
+    </div>
+    <div class="ext">
+      <div class="panel"><div class="lbl">Новое нарушение</div><div class="w">файл в guard/rules/plugins/</div><div class="z">в конвейере, API и UI — <b>ничего</b></div></div>
+      <div class="panel"><div class="lbl">Новая модель</div><div class="w">ONNX → программа TPU → строка в реестре</div><div class="z">плагин просит её через <b>required_models</b></div></div>
+      <div class="panel"><div class="lbl">Новый ускоритель</div><div class="w">реализация InferenceBackend</div><div class="z">выбор одной переменной: <b>onnx-cpu</b> или <b>linq-tpu</b></div></div>
+      <div class="panel"><div class="lbl">Интеграции</div><div class="w">подписчик на поток событий</div><div class="z">СКУД, MES, мессенджеры, сигнал у зоны</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ 12. Интерфейс для ролей ============================ -->
+<section class="slide" id="s12" data-backup="1" data-src="docs/ANALYTICS.md §1.1–1.2 · роли — кейс LinQ, слайды 9–12 · скриншоты real-* — живой бэкенд на ноутбуке, local, CPU, 24.10 ~01:10">
+  <div class="head">
+    <div class="kicker">Резерв · интерфейс для ролей кейса</div>
+    <h1>Семь ролей кейса — у каждой свой экран и своя польза</h1>
+  </div>
+  <div class="body">
+    <table class="t">
+      <thead><tr><th style="width:330px">Роль</th><th style="width:440px">Боль сейчас</th><th>Что даёт «Зазеркалье»</th><th style="width:250px">Экран</th></tr></thead>
+      <tbody>
+        <tr><td><span class="n">1</span>Специалист по ОТ</td><td class="muted">не может быть на всех участках</td><td>рисует зону на кадре, ставит расписание, включает правило формой</td><td class="scr">Камеры и правила</td></tr>
+        <tr><td><span class="n">2</span>Мастер смены</td><td class="muted">узнаёт о нарушении поздно или не узнаёт</td><td>одно оповещение с кадром, камерой и зоной; без повторов</td><td class="scr">Карточка события</td></tr>
+        <tr><td><span class="n">3</span>Оператор, диспетчер</td><td class="muted">внимание падает через 20–30 минут</td><td>лента вместо стены мониторов, критичные сверху; клавиши 1 / 2 / 3</td><td class="scr">Мониторинг</td></tr>
+        <tr><td><span class="n">4</span>Работники, водители</td><td class="muted">контроль выборочный, «под проверку»</td><td>фиксация всегда и для всех одинаково; видео не покидает площадку</td><td class="scr dim">— косвенно</td></tr>
+        <tr><td><span class="n">5</span>Служба ОТ, юристы</td><td class="muted">нет визуальных доказательств</td><td>журнал: кадр, клип, решение и комментарий; фильтры, CSV</td><td class="scr">Журнал</td></tr>
+        <tr><td><span class="n">6</span>Менеджмент</td><td class="muted">нет статистики: где, когда, что</td><td>по типам, участкам, сменам; «день недели × час»; доля ложных</td><td class="scr">Аналитика</td></tr>
+        <tr><td><span class="n">7</span>ИТ-служба, интеграторы</td><td class="muted">сколько потоков выдержит железо</td><td>к/с и задержка по этапам, расчёт камер на TPU</td><td class="scr">Производительность</td></tr>
+      </tbody>
+    </table>
+    <div class="thumbs">
+      <div class="th"><div class="im"><img src="../screens/real-01-monitoring.jpg" alt=""></div><span>Мониторинг</span></div>
+      <div class="th"><div class="im"><img src="../screens/real-02-event-card.jpg" alt="" style="object-position: 30% 30%"></div><span>Карточка</span></div>
+      <div class="th"><div class="im"><img src="../screens/real-03-journal.jpg" alt=""></div><span>Журнал</span></div>
+      <div class="th"><div class="im"><img src="../screens/real-04-analytics.jpg" alt=""></div><span>Аналитика</span></div>
+      <div class="th"><div class="im"><img src="../screens/real-05-cameras-zones.jpg" alt=""></div><span>Камеры и правила</span></div>
+      <div class="th"><div class="im"><img src="../screens/real-07-performance.jpg" alt=""></div><span>Производительность</span></div>
+    </div>
+    <div class="who"><span><b>Покупает</b> служба ОТ / ПБ и менеджмент</span><span><b>Пользуются каждый день</b> диспетчер, мастер, специалист ОТ</span><span><b>Внедряет</b> ИТ-служба или интегратор</span></div>
+  </div>
+</section>
+
+<!-- ============================ 14. Аналоги ============================ -->
+<section class="slide" id="s14" data-backup="1" data-src="docs/ANALYTICS.md §3 — страницы продуктов проверены 24.10.2026, ссылки там же · «—» — в открытых источниках не указано">
+  <div class="head">
+    <div class="kicker">Резерв · аналоги</div>
     <h1>У аналогов <em>отечественный ускоритель</em> не заявлен</h1>
   </div>
   <div class="body">
     <table class="t">
       <thead><tr><th style="width:290px">Продукт</th><th>Что детектирует</th><th style="width:480px">Железо по открытым данным</th><th style="width:220px">Отеч. ускоритель</th><th style="width:230px">«Камер на узел»</th></tr></thead>
       <tbody>
-        <tr class="us"><td>Зазеркалье</td><td>10 типов: зоны, СИЗ, падение, техника, бег, телефон, огонь, ограждения, высота, груз</td><td>edge-узел с LinQ TPU: люди, поза, СИЗ, огонь в int8</td><td class="yes">да, замерено</td><td class="yes">по своим замерам</td></tr>
+        <tr class="us"><td>Зазеркалье</td><td>13 типов: зоны, СИЗ, падение, техника, бег, телефон, огонь, ограждения, высота, груз, встречное движение, время и число людей в зоне</td><td>edge-узел с LinQ TPU: люди, поза, СИЗ, огонь в int8</td><td class="yes">да, замерено</td><td class="yes">по своим замерам</td></tr>
         <tr><td>TRASSIR<span class="sub">DSSL</span></td><td class="muted">каска, жилет, опасные зоны</td><td class="muted">серверы NeuroStation; GPU не указан</td><td class="no">не заявлен</td><td class="no">—</td></tr>
         <tr><td>Macroscop</td><td class="muted">каска, жилет, респиратор, очки, перчатки</td><td class="muted">NVIDIA с CUDA, от 4 ГБ памяти</td><td class="no">не заявлен</td><td class="no">—</td></tr>
         <tr><td>ITV<span class="sub">AxxonSoft</span></td><td class="muted">человек без экипировки: каски, жилеты</td><td class="muted">CPU, NVIDIA GPU, Intel GPU, Huawei NPU</td><td class="no">не заявлен</td><td class="no">—</td></tr>
@@ -684,21 +853,21 @@
     </table>
     <div class="take">
       <div class="panel"><div class="lbl">Что берём у лидеров</div>edge-обработка, наружу только события (Intenseye, Protex AI, Visionify) — наша схема устроена так же</div>
-      <div class="panel"><div class="lbl">Чем отличаемся</div>LinQ TPU с открытыми замерами, одно оповещение на нарушение для всех 10 типов, замкнутый цикл качества</div>
+      <div class="panel"><div class="lbl">Чем отличаемся</div>LinQ TPU с открытыми замерами, одно оповещение на нарушение для всех 13 типов, замкнутый цикл качества</div>
     </div>
   </div>
 </section>
 
 <!-- ============================ 15. Дорожная карта ============================ -->
-<section class="slide" id="s15" data-src="docs/PITCH.md · docs/ARCHITECTURE.md §6–7 · docs/ANALYTICS.md §3.2 · docs/FLYWHEEL.md · кейс LinQ, «Направления развития»">
+<section class="slide" id="s15" data-backup="1" data-src="docs/PITCH.md · docs/ARCHITECTURE.md §6–7 · docs/ANALYTICS.md §3.2 · docs/FLYWHEEL.md · кейс LinQ, «Направления развития»">
   <div class="head">
-    <div class="kicker">Дорожная карта <span class="crit">Э · Н</span></div>
+    <div class="kicker">Резерв · дорожная карта</div>
     <h1>Прототип → пилот → масштаб узлами → интеграции</h1>
   </div>
   <div class="body">
     <div class="road">
       <div class="st done"><div class="bar"></div><div class="no">Сейчас</div><h3>Прототип на LinQ TPU</h3>
-        <ul class="px"><li>Edge на стенде: 4 камеры, 10 плагинов</li><li>Журнал, аналитика, редактор зон</li><li>Маховик и дообучение — в работе</li></ul></div>
+        <ul class="px"><li>Edge на стенде: 4 камеры, 13 правил</li><li>Журнал, аналитика, редактор зон</li><li>Маховик: первый оборот — погрузчик; сборка под TPU и выкатка — в работе</li></ul></div>
       <div class="st"><div class="bar"></div><div class="no">Шаг 1</div><h3>Пилот на 2–3 опасных участках</h3>
         <ul class="px"><li>1–2 узла LinQ, зоны настраивает специалист ОТ</li><li>Маховик собирает кадры площадки, модели дообучаются под неё</li><li>Журнал сам меряет эффект: пресечённые нарушения, доля ложных</li></ul></div>
       <div class="st"><div class="bar"></div><div class="no">Шаг 2</div><h3>Масштаб узлами</h3>
@@ -709,41 +878,8 @@
   </div>
 </section>
 
-<!-- ============================ 16. Главное и ссылки ============================ -->
-<section class="slide" id="s16" data-src="docs/EDGE.md §6.1 · docs/QUALITY.md · docs/BENCHMARKS.md · docs/FLYWHEEL.md">
-  <div class="head">
-    <div class="kicker">Итог</div>
-    <h1>Одно нарушение — одно оповещение. <em>На LinQ TPU.</em></h1>
-  </div>
-  <div class="body">
-    <div class="closing">
-      <div class="win lime">
-        <div class="bar"><span class="s"></span><span class="s"></span><span class="s"></span><span class="t">главное</span><span class="b"><i></i><i></i><i></i></span></div>
-        <div class="pane">
-          <div class="cl"><b>2.2 с</b><span>от начала нарушения до оповещения, p50 на стенде LinQ</span></div>
-          <div class="cl"><b>1.00 / 0.78</b><span>precision и recall на 13 размеченных роликах, 0 дублей</span></div>
-          <div class="cl"><b>×4.9–7.1</b><span>кадров/с на TPU против CPU того же контейнера</span></div>
-          <div class="cl"><b>1 файл</b><span>на новый тип нарушения; качество растёт через маховик данных</span></div>
-        </div>
-      </div>
-      <div class="side">
-        <div class="panel links">
-          <div class="lbl">Ссылки</div>
-          <div class="repo" data-bind="links.repo"></div>
-          <div id="doc-links"></div>
-        </div>
-        <div class="panel vid pending-box" data-status="pending.video">
-          <span class="ptag" data-ptag="pending.video">будет обновлено к защите</span>
-          <div data-status-text></div>
-        </div>
-      </div>
-    </div>
-    <div class="team"><span data-bind="meta.team">Команда «Зазеркалье»</span> · <span data-bind="meta.event">Хакатон «Открой#Моспром» · кейс LinQ</span></div>
-  </div>
-</section>
-
 <!-- ============================ Б1. Замеры TPU целиком ============================ -->
-<section class="slide" id="b1" data-backup="1" data-src="docs/BENCHMARKS.md §1 · ключи jupyter.tpu.* и jupyter.combo_det_pose_per_frame в .orchestra/metrics/tpu-baseline.json · 24.10 01:17–01:40 МСК">
+<section class="slide" id="b1" data-backup="1" data-src="docs/BENCHMARKS.md §1 · ключи jupyter.tpu.* и jupyter.combo_det_pose_per_frame в tpu-baseline.json · 24.10 01:17–01:40 МСК">
   <div class="head">
     <div class="kicker">Резерв · замеры TPU</div>
     <h1>Окна 1 / 4 / 8, raw и не-raw: откуда скорость</h1>
@@ -851,7 +987,7 @@
 </section>
 
 <!-- ============================ Б4. Edge на стенде: все прогоны ============================ -->
-<section class="slide" id="b4" data-backup="1" data-src="docs/EDGE.md §6.1–6.4, §7.1 · .orchestra/metrics/edge-tpu-20261024-1002.json, edge-tpu-20261024-1133.json, edge-tpu-stability-tap-20261024-1338.json, edge-cpu-20261024-1109.json">
+<section class="slide" id="b4" data-backup="1" data-src="docs/EDGE.md §6.1–6.4, §7.1 · edge-tpu-20261024-1002.json, edge-tpu-20261024-1133.json, edge-tpu-stability-tap-20261024-1338.json, edge-cpu-20261024-1109.json">
   <div class="head">
     <div class="kicker">Резерв · edge на стенде</div>
     <h1>Три прогона на TPU и один на CPU того же контейнера</h1>
@@ -880,7 +1016,7 @@
 </section>
 
 <!-- ============================ Б5. Качество: разбор ============================ -->
-<section class="slide" id="b5" data-backup="1" data-src="docs/QUALITY.md · eval-onnx-cpu-base-20261024-0913.json, eval-onnx-cpu-phone-nearest-stress-20261024-1342.json, eval-onnx-cpu-variants-20261024.json · ml/eval/scenarios.yaml">
+<section class="slide" id="b5" data-backup="1" data-src="docs/QUALITY.md · eval-onnx-cpu-base-20261024-0913.json, eval-onnx-cpu-phone-nearest-stress-20261024-1342.json, eval-onnx-cpu-variants-20261024.json · ml/eval/scenarios.yaml · погрузчик: docs/MODELS.md «Погрузчик (S4)»">
   <div class="head">
     <div class="kicker">Резерв · качество подробно</div>
     <h1>База → подбор параметров → оставшиеся ошибки</h1>
@@ -906,7 +1042,7 @@
         <table class="t">
           <thead><tr><th>Осталось 5 пропусков</th><th>Причина</th><th>Что поможет</th></tr></thead>
           <tbody>
-            <tr><td>Погрузчик ×2</td><td class="muted">нет класса в моделях</td><td>детектор с forklift</td></tr>
+            <tr><td>Погрузчик ×2</td><td class="muted">нет класса в моделях</td><td>forklift-v1 видит выезд на 4 из 13 кадров — нужны кадры с грузом</td></tr>
             <tr><td>Падение с кровати</td><td class="muted">лежащего видно урывками</td><td>дообучение на позах лёжа</td></tr>
             <tr><td>Курение</td><td class="muted">сигарету модель огня не видит</td><td>детектор сигареты</td></tr>
             <tr><td>Без каски на склейке</td><td class="muted">трек переживает монтаж ролика</td><td>сброс трекера при смене сцены</td></tr>
@@ -919,7 +1055,7 @@
 </section>
 
 <!-- ============================ Б6. Данные и модели ============================ -->
-<section class="slide" id="b6" data-backup="1" data-src="docs/EXPERT_CALL.md §3 · docs/DATA.md · docs/MODELS.md · ссылки на источники и лицензии — там же">
+<section class="slide" id="b6" data-backup="1" data-src="docs/EXPERT_CALL.md §3 · docs/DATA.md · docs/MODELS.md · кандидаты: docs/YOLO11_CANDIDATE.md, docs/RFDETR_QUALITY_COMPARISON.md, docs/PPE_PERSON_ROI.md · источники и лицензии — там же">
   <div class="head">
     <div class="kicker">Резерв · данные и модели</div>
     <h1>Только открытые данные; разметку событий сделали сами</h1>
@@ -950,6 +1086,7 @@
             <tr><td>YOLOv8n-pose 480</td><td class="muted">падение, телефон, перелезание</td><td>то же: 50.1 к/с</td></tr>
             <tr><td>YOLOv8s СИЗ, 14 классов</td><td class="muted">каска, жилет, техника</td><td>лучшая из 6 открытых: AP50 каска 0.83, жилет 0.84</td></tr>
             <tr><td>YOLOv8n огонь и дым</td><td class="muted">открытый огонь</td><td>9 из 10 кадров с огнём, 0 ложных на 10 без огня</td></tr>
+            <tr><td>Пробовали, не взяли</td><td class="muted">RF-DETR 2XL, YOLO11x, СИЗ по кадру человека</td><td>событий не прибавили: YOLO11x на S1 — как текущая; каска по кадру человека — 4 из 6 против 6 из 6</td></tr>
           </tbody>
         </table>
         <div class="src-in" style="margin-top:16px">Веса YOLOv8 и найденных моделей — AGPL-3.0. Для коммерческого внедрения — дообучение на данных заказчика и лицензирование</div>
@@ -959,10 +1096,10 @@
 </section>
 
 <!-- ============================ Б7. Сценарии ============================ -->
-<section class="slide" id="b7" data-backup="1" data-src="docs/EXPERT_CALL.md §4.4 · docs/QUALITY.md · docs/MODELS.md · guard/rules/plugins/">
+<section class="slide" id="b7" data-backup="1" data-src="docs/EXPERT_CALL.md §4.4 · docs/QUALITY.md · docs/MODELS.md · guard/rules/plugins/ · новые правила: docs/VIOLATION_EXPANSION_RESULTS.md">
   <div class="head">
     <div class="kicker">Резерв · сценарии кейса</div>
-    <h1>Сценарии S1–S10: 10 плагинов, статус на <span data-bind="scenarios.as_of">24.10</span></h1>
+    <h1>Сценарии S1–S10 и 3 новых правила, статус на <span data-bind="scenarios.as_of">24.10</span></h1>
   </div>
   <div class="body">
     <table class="t">
@@ -974,11 +1111,12 @@
       <span><span class="st wip"></span>модель или прогон в работе</span>
       <span><span class="st ready"></span>плагин и тесты готовы</span>
     </div>
+    <div class="panel newr"><b>+3 правила, включаются явно:</b> встречное движение <span class="mono">wrong_way</span>, время в зоне <span class="mono">zone_dwell</span>, переполнение зоны <span class="mono">zone_overcapacity</span>. Без новых моделей, на треках людей из det; проверены синтетическими тестами, качество на объекте не измерялось</div>
   </div>
 </section>
 
 <!-- ============================ Б8. Риски ============================ -->
-<section class="slide" id="b8" data-backup="1" data-src="docs/EDGE.md §6.4, §7.2 · docs/QUALITY.md «Ограничения» · docs/BENCHMARKS.md · docs/EXPERT_CALL.md §5 · docs/MODELS.md">
+<section class="slide" id="b8" data-backup="1" data-src="docs/EDGE.md §6.4, §7.2 · docs/QUALITY.md «Ограничения» · docs/BENCHMARKS.md · docs/EXPERT_CALL.md §5 · docs/MODELS.md · TPU: eval-tpu-live-20261024-1845.json">
   <div class="head">
     <div class="kicker">Резерв · ограничения и риски</div>
     <h1>Что может помешать и что мы с этим делаем</h1>
@@ -994,7 +1132,8 @@
           <tr><td>Мало размеченных событий — 23</td><td class="muted">интервалы показываем; маховик и отложенные наборы падений и курения</td></tr>
           <tr><td>Подбор и оценка на одних роликах</td><td class="muted">параметры общие для типа, середина плато, стресс-тест — 0 ложных</td></tr>
           <tr><td>СИЗ — десятки пикселей, задержка каски до 18 с</td><td class="muted">только явное «нет каски»; дообучение на SH17 — в работе</td></tr>
-          <tr><td>Правка зон из UI в режиме edge</td><td class="muted">на узел — после синхронизации и рестарта; канал конфигурации — в плане</td></tr>
+          <tr><td>Правка зон из UI в режиме edge</td><td class="muted">на узел — после синхронизации и рестарта; канал конфигурации шлюз → edge — в работе</td></tr>
+          <tr><td>На TPU recall ниже, чем на CPU</td><td class="muted">первый прогон: 14 из 23 против 18 из 23; разбор по событиям — в работе</td></tr>
           <tr><td>Ноутбук падал по нехватке памяти</td><td class="muted">сторож памяти, тяжёлые задачи — строго по одной</td></tr>
         </tbody>
       </table>
@@ -1013,7 +1152,7 @@
 </section>
 
 <!-- ============================ Б9. Вопросы экспертам ============================ -->
-<section class="slide" id="b9" data-backup="1" data-src="docs/EXPERT_CALL.md §6 · .orchestra/QUESTIONS_FOR_ORGS.md · список правится в data.json → questions">
+<section class="slide" id="b9" data-backup="1" data-src="docs/EXPERT_CALL.md §6 · список правится в data.json → questions">
   <div class="head">
     <div class="kicker">Резерв · вопросы</div>
     <h1>Вопросы экспертам и организаторам</h1>

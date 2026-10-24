@@ -6,6 +6,9 @@
 //   node render.mjs --out FILE      другой путь PDF
 //   node render.mjs --serve         только локальный сервер для просмотра в браузере
 //   node render.mjs --data FILE     подставить другой data.json (проверить, как лягут новые цифры)
+//   node render.mjs --check         только проверки вёрстки и наложений, без PDF
+//   node render.mjs --png DIR --only s10,b9   PNG только этих слайдов
+//   --strict                        код выхода 1, если проверки что-то нашли
 //
 // Playwright берётся из frontend/node_modules (cd frontend && npm ci) или из PLAYWRIGHT_DIR.
 // На ноутбуке команды запускать через tools/heavy.sh: браузер — тяжёлый процесс.
@@ -85,6 +88,114 @@ function layoutCheck() {
   return [...new Set(out)];
 }
 
+// Проверка наложений: текст на текст, текст на линиях и стрелках SVG, текст за рамкой своей карточки,
+// соседние блоки друг на друге, выход за слайд. Плюс то, что конвертер в PPTX не перенесёт: текст в ::before/::after.
+function overlapCheck() {
+  const out = [];
+  const T = 2;
+  const label = n => {
+    const t = (n.textContent || "").trim().replace(/\s+/g, " ").slice(0, 40);
+    const cls = typeof n.className === "string" ? n.className : (n.className && n.className.baseVal) || "";
+    return (n.id ? "#" + n.id : n.tagName.toLowerCase() + (cls ? "." + cls.split(" ")[0] : "")) + (t ? " «" + t + "»" : "");
+  };
+  const area = (a, b) => Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) * Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+  const ovX = (a, b) => Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  const ovY = (a, b) => Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  const shown = n => { for (let e = n; e && e.nodeType === 1; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === "none" || cs.visibility === "hidden" || cs.opacity === "0") return false; } return true; };
+  const skip = n => !!n.closest(".chrome, .foot, svg.pixels, defs, marker, title");
+  const isBox = n => {
+    if (n instanceof SVGElement) return false;
+    const cs = getComputedStyle(n);
+    const bg = cs.backgroundColor, img = cs.backgroundImage;
+    const hasBg = (bg && bg !== "transparent" && !/rgba\(.*,\s*0\)$/.test(bg)) || (img && img !== "none");
+    const sides = ["Top", "Right", "Bottom", "Left"].filter(s => parseFloat(cs["border" + s + "Width"]) > 0 && cs["border" + s + "Style"] !== "none").length;
+    return hasBg || sides >= 3;
+  };
+  document.querySelectorAll(".slide").forEach((sl, i) => {
+    const sid = sl.id || "slide" + (i + 1);
+    const S = sl.getBoundingClientRect();
+    // 1. Прямоугольники строк текста
+    const texts = [];
+    const tw = document.createTreeWalker(sl, NodeFilter.SHOW_TEXT);
+    for (let t; (t = tw.nextNode());) {
+      const el = t.parentElement;
+      if (!t.nodeValue.trim() || !el || skip(el) || !shown(el)) continue;
+      let rects = [];
+      if (el instanceof SVGElement) { const te = el.closest("text"); if (te) rects = [te.getBoundingClientRect()]; }
+      else { const rg = document.createRange(); rg.selectNodeContents(t); rects = [...rg.getClientRects()]; }
+      rects.filter(r => r.width > 1 && r.height > 1).forEach(r => texts.push({ el: el instanceof SVGElement ? el.closest("text") : el, r }));
+    }
+    // 1а. Текст на текст (разные элементы, не вложенные друг в друга)
+    for (let a = 0; a < texts.length; a++) for (let b = a + 1; b < texts.length; b++) {
+      const A = texts[a], B = texts[b];
+      if (A.el === B.el || A.el.contains(B.el) || B.el.contains(A.el)) continue;
+      const h = Math.min(A.r.height, B.r.height);
+      if (ovX(A.r, B.r) > 4 && ovY(A.r, B.r) > 0.3 * h) out.push(sid + ": текст на тексте — " + label(A.el) + " × " + label(B.el));
+    }
+    // 1б. Текст за рамкой своей карточки (HTML-блок с фоном или рамкой; в SVG — rect своей группы)
+    texts.forEach(({ el, r }) => {
+      let box = null;
+      if (el instanceof SVGElement) {
+        const g = el.closest("g"); const rc = g && g.querySelector(":scope > rect");
+        if (rc) box = rc.getBoundingClientRect();
+      } else {
+        for (let e = el; e && e !== sl; e = e.parentElement) if (isBox(e)) { box = e.getBoundingClientRect(); break; }
+      }
+      if (!box) return;
+      const d = Math.max(box.left - r.left, r.right - box.right, box.top - r.top, r.bottom - box.bottom);
+      if (d > T) out.push(sid + ": текст выходит за рамку карточки на " + Math.round(d) + "px — " + label(el));
+    });
+    // 2. Текст на линиях и стрелках SVG
+    sl.querySelectorAll("svg").forEach(svg => {
+      if (skip(svg)) return;
+      const ctm = svg.getScreenCTM(); if (!ctm) return;
+      svg.querySelectorAll("line, path, polyline").forEach(sh => {
+        if (skip(sh)) return;
+        const cs = getComputedStyle(sh);
+        if (cs.stroke === "none" || !(parseFloat(cs.strokeWidth) > 0)) return;
+        const m = sh.getScreenCTM() || ctm;
+        const len = sh.getTotalLength ? sh.getTotalLength() : 0; if (!len) return;
+        const arrow = sh.getAttribute("marker-end") || cs.markerEnd !== "none";
+        const sw = parseFloat(cs.strokeWidth) * (m.a || 1);
+        const pts = [];
+        for (let s = 0; s <= len; s += 3) {
+          const p = sh.getPointAtLength(s); const q = new DOMPoint(p.x, p.y).matrixTransform(m);
+          pts.push({ x: q.x, y: q.y, pad: sw / 2 + (arrow && len - s < 8 * sw / 2 + 4 ? 4 * sw / 2 : 0) });
+        }
+        for (const { el, r } of texts) {
+          if (!svg.contains(el) && area(r, svg.getBoundingClientRect()) === 0) continue;
+          if (pts.some(p => p.x > r.left - p.pad + 1 && p.x < r.right + p.pad - 1 && p.y > r.top - p.pad + 1 && p.y < r.bottom + p.pad - 1)) {
+            out.push(sid + ": текст на линии или стрелке — " + label(el));
+          }
+        }
+      });
+    });
+    // 3. Соседние блоки друг на друге и выход за слайд
+    sl.querySelectorAll("*").forEach(n => {
+      if (skip(n) || !shown(n)) return;
+      const r = n.getBoundingClientRect();
+      if (r.width && r.height && !n.closest("svg") && (r.left < S.left - 1 || r.top < S.top - 1 || r.right > S.right + 1 || r.bottom > S.bottom + 1)) out.push(sid + ": за краем слайда — " + label(n));
+      if (n instanceof SVGElement) return;
+      const kids = [...n.children].filter(c => {
+        if (c instanceof SVGElement && c.tagName !== "svg") return false;
+        const cs = getComputedStyle(c);
+        if (cs.position === "absolute" || cs.position === "fixed" || cs.display === "none" || cs.display === "contents") return false;
+        if (cs.display.startsWith("inline") && !cs.display.includes("block") && !cs.display.includes("flex") && !cs.display.includes("grid")) return false;
+        const b = c.getBoundingClientRect(); return b.width > 2 && b.height > 2;
+      });
+      for (let a = 0; a < kids.length; a++) for (let b = a + 1; b < kids.length; b++) {
+        const A = kids[a].getBoundingClientRect(), B = kids[b].getBoundingClientRect();
+        if (ovX(A, B) > T && ovY(A, B) > T) out.push(sid + ": блоки наложились — " + label(kids[a]) + " × " + label(kids[b]));
+      }
+      for (const p of ["::before", "::after"]) {
+        const c = getComputedStyle(n, p).content;
+        if (c && c !== "none" && c !== "normal" && c !== '""' && c !== "''") out.push(sid + ": текст в " + p + " (в PPTX не перенесётся) — " + label(n));
+      }
+    });
+  });
+  return [...new Set(out)];
+}
+
 async function main() {
   const server = await startServer();
   const base = "http://127.0.0.1:" + server.address().port + "/presentation/index.html";
@@ -109,16 +220,26 @@ async function main() {
     const issues = await page.evaluate(layoutCheck);
     if (issues.length) { console.warn("Вёрстка — проверьте:\n  " + issues.join("\n  ")); }
     else console.log("Вёрстка: переполнений не найдено");
+    const over = await page.evaluate(overlapCheck);
+    if (over.length) { console.warn("Наложения — проверьте:\n  " + over.join("\n  ")); }
+    else console.log("Наложения: не найдено");
+    if ((issues.length || over.length) && args.includes("--strict")) code = 1;
 
     const n = await page.locator(".slide").count();
+    const ids = await page.locator(".slide").evaluateAll(els => els.map(e => e.id));
     if (PNG_DIR) {
       fs.mkdirSync(PNG_DIR, { recursive: true });
+      const only = typeof opt("--only") === "string" ? opt("--only").split(",") : null;
+      let k = 0;
       for (let i = 0; i < n; i++) {
-        const f = path.join(PNG_DIR, "slide-" + String(i + 1).padStart(2, "0") + ".png");
+        if (only && !only.includes(ids[i])) continue;
+        const f = path.join(PNG_DIR, "slide-" + String(i + 1).padStart(2, "0") + "-" + ids[i] + ".png");
         await page.locator(".slide").nth(i).screenshot({ path: f });
+        k++;
       }
-      console.log("PNG: " + n + " шт. в " + PNG_DIR);
+      console.log("PNG: " + k + " шт. в " + PNG_DIR);
     }
+    if (args.includes("--check")) { console.log("Слайдов: " + n + " (" + ids.join(" ") + ")"); return; }
     await page.emulateMedia({ media: "print" });
     await page.pdf({ path: OUT, width: "1920px", height: "1080px", printBackground: true, preferCSSPageSize: true });
     console.log("PDF: " + OUT + " (" + n + " слайдов)");
