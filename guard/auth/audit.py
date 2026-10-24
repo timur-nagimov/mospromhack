@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
@@ -24,19 +25,30 @@ AUTH_LOGOUT = "auth.logout"
 CAMERA_CREATE = "camera.create"
 CAMERA_UPDATE = "camera.update"
 CAMERA_DELETE = "camera.delete"
+CAMERA_PROBE = "camera.probe"
 ZONES_UPDATE = "zones.update"
 RULES_UPDATE = "rules.update"
 EVENT_UPDATE = "event.update"
+EVENT_ASSIGN = "event.assign"
+EMPLOYEE_CREATE = "employee.create"
 USER_CREATE = "user.create"
 USER_UPDATE = "user.update"
 FLYWHEEL_REVIEW = "flywheel.review"
+FLYWHEEL_CAPTURE = "flywheel.capture"
 FLYWHEEL_JOB = "flywheel.job"
 
 ACTIONS = (
-    AUTH_LOGIN, AUTH_LOGIN_FAILED, AUTH_LOGOUT, CAMERA_CREATE, CAMERA_UPDATE, CAMERA_DELETE, ZONES_UPDATE,
-    RULES_UPDATE, EVENT_UPDATE, USER_CREATE, USER_UPDATE, FLYWHEEL_REVIEW, FLYWHEEL_JOB,
+    AUTH_LOGIN, AUTH_LOGIN_FAILED, AUTH_LOGOUT, CAMERA_CREATE, CAMERA_UPDATE, CAMERA_DELETE, CAMERA_PROBE,
+    ZONES_UPDATE, RULES_UPDATE, EVENT_UPDATE, EVENT_ASSIGN, EMPLOYEE_CREATE, USER_CREATE, USER_UPDATE,
+    FLYWHEEL_REVIEW, FLYWHEEL_CAPTURE, FLYWHEEL_JOB,
 )
 NOTE_LIMIT = 500
+# Значения этих параметров адреса — секреты; список как guard.sources.stream_url.SECRET_QUERY_KEYS
+# (модуль не импортируется: шлюз не загружает guard.sources и cv2; совпадение проверяет тест)
+SECRET_QUERY_KEYS = frozenset({
+    "token", "key", "apikey", "api_key", "password", "pass", "pwd", "auth", "sig", "signature", "secret",
+})
+_SECRET_QUERY_RE = re.compile(r"(?i)([?&](?:" + "|".join(sorted(SECRET_QUERY_KEYS)) + r")=)[^&\s#]+")
 
 
 def client_ip(conn: HTTPConnection) -> str | None:
@@ -72,18 +84,17 @@ def record(
 
 
 def redact_uri(uri: str) -> str:
-    """rtsp://user:pass@host/x → rtsp://user:***@host/x; адреса без пароля не меняются."""
+    """rtsp://user:pass@host/x → rtsp://user:***@host/x, ?token=abc → ?token=***; прочие адреса не меняются."""
     try:
         parts = urlsplit(uri)
     except ValueError:
         return "***"
-    if parts.password is None:
-        return uri
-    host = parts.hostname or ""
-    if parts.port is not None:
-        host = f"{host}:{parts.port}"
-    netloc = f"{parts.username or ''}:***@{host}"
-    return urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    if "@" in parts.netloc:
+        userinfo, _, host = parts.netloc.rpartition("@")
+        if ":" in userinfo:
+            netloc = f"{userinfo.split(':', 1)[0]}:***@{host}"
+            uri = urlunsplit((parts.scheme, netloc, parts.path, parts.query, parts.fragment))
+    return _SECRET_QUERY_RE.sub(r"\1***", uri)
 
 
 def source_details(source: Any) -> dict[str, Any]:

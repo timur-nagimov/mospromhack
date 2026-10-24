@@ -14,6 +14,8 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field
 
+from guard.auth import audit
+from guard.auth.source_policy import source_problem
 from guard.contracts import SourceConfig
 
 PROBE_TIMEOUT_S = 15.0  # как guard.sources.probe.PROBE_TIMEOUT_S
@@ -60,12 +62,24 @@ async def probe_camera_source(body: ProbeRequest, request: Request) -> dict[str,
     from guard.sources.probe import probe_source
 
     source = body.source
-    uri = source.uri.strip()
-    if source.type in ("file", "images"):
-        uri = resolve_source_uri(uri, settings.data_dir)
-    if not _slots.acquire(blocking=False):
-        raise HTTPException(429, "уже идут другие проверки потока, повторите через несколько секунд")
-    try:
-        return await run_in_threadpool(probe_source, source, uri, body.timeout_s or PROBE_TIMEOUT_S)
-    finally:
-        _slots.release()
+    # сервер откроет адрес сам: file://, устройства и адреса метаданных облака не открываем (как bad_uri в probe_source)
+    problem = source_problem(source, settings.data_dir)
+    if problem:
+        result: dict[str, Any] = {
+            "ok": False, "error_code": "bad_uri", "error": f"адрес не принят: {problem}",
+            "type": source.type, "uri": audit.redact_uri(source.uri),
+        }
+    else:
+        uri = source.uri.strip()
+        if source.type in ("file", "images"):
+            uri = resolve_source_uri(uri, settings.data_dir)
+        if not _slots.acquire(blocking=False):
+            raise HTTPException(429, "уже идут другие проверки потока, повторите через несколько секунд")
+        try:
+            result = await run_in_threadpool(probe_source, source, uri, body.timeout_s or PROBE_TIMEOUT_S)
+        finally:
+            _slots.release()
+    audit.record(request, audit.CAMERA_PROBE, None, {
+        "source": audit.source_details(source), "ok": bool(result.get("ok")), "error_code": result.get("error_code"),
+    })
+    return result
