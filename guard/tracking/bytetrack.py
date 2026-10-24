@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections import deque
+from dataclasses import dataclass, field
 
 import numpy as np
 
@@ -19,18 +20,33 @@ def _measurement(box: BBox) -> np.ndarray:
     )
 
 
-def _record(track: Track, ts: float) -> None:
+def _trim_history(history: deque, ts: float, window_s: float) -> None:
+    cutoff = ts - window_s - 1e-9
+    while history and history[0][0] < cutoff:
+        history.popleft()
+
+
+def _record(
+    track: Track,
+    ts: float,
+    history_s: float,
+    speed_history: deque,
+) -> None:
     x1, y1, x2, y2 = track.bbox
     sample = (ts, (x1 + x2) / 2, y2, y2 - y1)
-    if track.history and track.history[-1][0] == ts:
-        track.history[-1] = sample
-    else:
-        track.history.append(sample)
+    for history, window_s in (
+        (track.history, history_s),
+        (speed_history, 2.0),
+    ):
+        if history and history[-1][0] == ts:
+            history[-1] = sample
+        else:
+            history.append(sample)
+        _trim_history(history, ts, window_s)
 
-    recent = np.asarray(
-        [item for item in track.history if item[0] >= ts - 2.0 - 1e-9],
-        dtype=float,
-    )
+    # Kinematics always use the same two-second window, independently of
+    # public history retention, including when history_s is less than two.
+    recent = np.asarray(speed_history, dtype=float)
     track.velocity = (0.0, 0.0)
     track.speed_bh = 0.0
     if len(recent) < 2:
@@ -55,9 +71,17 @@ class _State:
     mean: np.ndarray
     covariance: np.ndarray
     active: bool = True
+    history_s: float = 8.0
+    speed_history: deque = field(default_factory=deque)
 
     @classmethod
-    def create(cls, track_id: int, det: Detection, ts: float) -> _State:
+    def create(
+        cls,
+        track_id: int,
+        det: Detection,
+        ts: float,
+        history_s: float = 8.0,
+    ) -> _State:
         measurement = _measurement(det.bbox)
         height = max(float(measurement[3]), 1.0)
         mean = np.zeros(8, dtype=float)
@@ -74,9 +98,13 @@ class _State:
             first_seen=ts,
             last_seen=ts,
             keypoints=None if det.keypoints is None else det.keypoints.copy(),
+            # The contract's default maxlen=64 would truncate eight seconds
+            # at higher frame rates. Retention here is bounded by time.
+            history=deque(),
         )
-        _record(track, ts)
-        return cls(track, mean, covariance)
+        state = cls(track, mean, covariance, history_s=history_s)
+        _record(track, ts, history_s, state.speed_history)
+        return state
 
     @property
     def predicted_box(self) -> BBox:
@@ -134,8 +162,9 @@ class _State:
         self.track.keypoints = (
             None if det.keypoints is None else det.keypoints.copy()
         )
+        self.track.attributes.pop("lost_since", None)
         self.active = True
-        _record(self.track, ts)
+        _record(self.track, ts, self.history_s, self.speed_history)
 
 
 class Tracker:
@@ -149,6 +178,11 @@ class Tracker:
     Timestamps must be finite and nondecreasing. Repeated timestamps do not
     increase hits or duplicate history samples. Returned Track objects are
     mutable and retain their attributes across updates.
+
+    Public history retains history_s seconds; velocity uses two seconds.
+    Lost tracks retain their last observed box, keypoints and pose attributes.
+    attributes["lost_since"] is the timestamp of the first unmatched update
+    and is removed on recovery. Only confirmed active tracks are returned.
     """
 
     def __init__(
@@ -160,6 +194,7 @@ class Tracker:
         new_track_thresh: float = 0.6,
         track_buffer_s: float = 3.0,
         min_hits: int = 2,
+        history_s: float = 8.0,
     ) -> None:
         thresholds = (high_thresh, low_thresh, match_iou, new_track_thresh)
         if any(not np.isfinite(value) or not 0 <= value <= 1 for value in thresholds):
@@ -170,6 +205,8 @@ class Tracker:
             raise ValueError("track_buffer_s must be finite and nonnegative")
         if isinstance(min_hits, bool) or not isinstance(min_hits, int) or min_hits < 1:
             raise ValueError("min_hits must be a positive integer")
+        if not np.isfinite(history_s) or history_s <= 0:
+            raise ValueError("history_s must be finite and positive")
 
         self.classes = set(classes)
         self.high_thresh = float(high_thresh)
@@ -178,6 +215,7 @@ class Tracker:
         self.new_track_thresh = float(new_track_thresh)
         self.track_buffer_s = float(track_buffer_s)
         self.min_hits = min_hits
+        self.history_s = float(history_s)
         self._states: list[_State] = []
         self._next_id = 1
         self._last_ts: float | None = None
@@ -265,9 +303,17 @@ class Tracker:
             for state in self._states
             if state.active or state.track.hits >= self.min_hits
         ]
+        for state in self._states:
+            if not state.active:
+                state.track.attributes.setdefault("lost_since", ts)
+                _trim_history(state.track.history, ts, self.history_s)
+                _trim_history(state.speed_history, ts, 2.0)
+
         for index, det in enumerate(high):
             if index not in used_high and det.conf >= self.new_track_thresh:
-                self._states.append(_State.create(self._next_id, det, ts))
+                self._states.append(
+                    _State.create(self._next_id, det, ts, self.history_s)
+                )
                 self._next_id += 1
 
         self._last_ts = ts

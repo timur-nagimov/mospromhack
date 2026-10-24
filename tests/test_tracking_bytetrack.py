@@ -1,5 +1,6 @@
 import math
 
+import numpy as np
 import pytest
 
 from guard.contracts import Detection
@@ -211,8 +212,122 @@ def test_invalid_detection_is_ignored():
         {"match_iou": 1.1},
         {"track_buffer_s": -1},
         {"min_hits": 0},
+        {"history_s": 0},
+        {"history_s": -1},
+        {"history_s": float("nan")},
+        {"history_s": float("inf")},
     ],
 )
 def test_invalid_configuration(kwargs):
     with pytest.raises(ValueError):
         Tracker({"person"}, **kwargs)
+
+
+@pytest.mark.parametrize("epoch", [0.0, 1_700_000_000.0])
+def test_default_history_retains_eight_seconds_at_high_frame_rate(epoch):
+    tracker = Tracker({"person"}, min_hits=1)
+    for frame in range(241):
+        track = tracker.update([detection()], epoch + frame / 20.0)[0]
+
+    assert tracker.history_s == 8.0
+    assert track.history.maxlen is None
+    assert len(track.history) == 161
+    assert track.history[0][0] == pytest.approx(epoch + 4.0, rel=0, abs=1e-6)
+    assert track.history[-1][0] == pytest.approx(epoch + 12.0, rel=0, abs=1e-6)
+    assert track.history[-1][0] - track.history[0][0] == pytest.approx(8.0)
+    assert track.hits == 241
+
+
+@pytest.mark.parametrize("history_s", [0.5, 3.5, 10.0])
+def test_history_retention_is_configurable(history_s):
+    tracker = Tracker({"person"}, min_hits=1, history_s=history_s)
+    for frame in range(241):
+        track = tracker.update([detection()], frame / 20.0)[0]
+
+    assert len(track.history) == round(history_s * 20) + 1
+    assert track.history[0][0] == pytest.approx(12.0 - history_s)
+    assert track.history[-1][0] == 12.0
+
+
+@pytest.mark.parametrize("history_s", [0.5, 2.0, 8.0, 20.0])
+def test_running_start_and_stop_keep_original_two_second_speed(history_s):
+    tracker = Tracker({"person"}, min_hits=1, history_s=history_s)
+    observations = []
+    identities = set()
+    for frame in range(121):
+        ts = frame / 10.0
+        # Stand, run for four seconds at 2 body heights/s, then stop.
+        x = 200.0 * min(max(ts - 4.0, 0.0), 4.0)
+        track = tracker.update(
+            [detection(x=x, width=100, height=100)], ts
+        )[0]
+        identities.add(track.track_id)
+        observations.append((ts, x + 50.0, 100.0, 100.0))
+        recent = np.asarray(
+            [sample for sample in observations if sample[0] >= ts - 2.0 - 1e-9]
+        )
+        if len(recent) < 2:
+            expected = np.zeros(2)
+        else:
+            times = recent[:, 0] - recent[-1, 0]
+            times -= times.mean()
+            positions = recent[:, 1:3] - recent[:, 1:3].mean(axis=0)
+            expected = (times @ positions) / (times @ times)
+
+        assert track.velocity == pytest.approx(tuple(expected), abs=1e-8)
+        assert track.speed_bh == pytest.approx(
+            float(np.linalg.norm(expected) / recent[:, 3].mean()),
+            abs=1e-8,
+        )
+        if frame == 80:
+            assert track.speed_bh == pytest.approx(2.0)
+        if frame == 120:
+            assert track.speed_bh == pytest.approx(0.0, abs=1e-8)
+
+    assert len(identities) == 1
+
+
+def test_lost_track_keeps_pose_and_first_loss_timestamp_until_recovery():
+    tracker = Tracker({"person"}, min_hits=1)
+    det = detection()
+    det.keypoints = np.ones((17, 3), dtype=float)
+    track = tracker.update([det], 0.0)[0]
+    track.attributes.update(
+        pose_state="lying",
+        lying_since=0.0,
+        custom="preserved",
+    )
+    original_box = track.bbox
+    original_points = track.keypoints.copy()
+    original_history = list(track.history)
+
+    assert tracker.update([], 0.2) == []
+    assert track.attributes["lost_since"] == 0.2
+    assert tracker.update([], 0.8) == []
+    assert track.attributes["lost_since"] == 0.2
+    assert track.attributes["pose_state"] == "lying"
+    assert track.attributes["lying_since"] == 0.0
+    assert track.attributes["custom"] == "preserved"
+    assert track.bbox == original_box
+    assert track.last_seen == 0.0
+    assert list(track.history) == original_history
+    np.testing.assert_array_equal(track.keypoints, original_points)
+
+    recovered = tracker.update([det], 1.0)[0]
+    assert recovered is track
+    assert "lost_since" not in recovered.attributes
+    assert recovered.attributes["pose_state"] == "lying"
+
+    assert tracker.update([], 1.2) == []
+    assert recovered.attributes["lost_since"] == 1.2
+
+
+def test_lost_history_is_trimmed_without_adding_predictions():
+    tracker = Tracker({"person"}, min_hits=1, history_s=1.0)
+    for frame in range(6):
+        track = tracker.update([detection()], frame / 5.0)[0]
+
+    assert tracker.update([], 1.8) == []
+    assert [sample[0] for sample in track.history] == pytest.approx([0.8, 1.0])
+    assert track.last_seen == 1.0
+    assert track.bbox == detection().bbox
