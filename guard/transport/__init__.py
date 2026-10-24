@@ -19,6 +19,7 @@ from .codec import decode, encode
 from .memory import MemorySink, MemorySource, MemoryTransport
 from .messages import (
     EventMsg,
+    FlywheelSampleMsg,
     FrameMetaMsg,
     HeartbeatMsg,
     MessageCallback,
@@ -34,6 +35,7 @@ from .rabbit import RabbitSink, RabbitSource
 
 __all__ = [
     "EventMsg",
+    "FlywheelSampleMsg",
     "FrameMetaMsg",
     "HeartbeatMsg",
     "MessageCallback",

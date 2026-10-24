@@ -43,6 +43,8 @@ EXCHANGE = "zazerkalye"
 GATEWAY_QUEUE = "zazerkalye.gateway"
 BINDINGS = ("edge.event", "edge.frame_meta", "edge.metrics")
 FRAME_TTL_SECONDS = 10.0
+# Части сэмпла маховика (docs/FLYWHEEL.md): без шлюза истекают в очереди, а не копятся
+FLYWHEEL_TTL_SECONDS = 120.0
 # Потребитель шлюза держит до 200 неподтверждённых сообщений: при prefetch=1 через VPN (RTT ~225 мс)
 # приходит одно сообщение за RTT — 3.5 сообщения/с при 20.7 отправляемых; задержка оповещения 12.6 с
 # вместо 2.2 с, потеря 93 % frame_meta (A10, .orchestra/metrics/edge-tpu-prefetch1-20261024-1009.json).
@@ -54,6 +56,8 @@ _ROUTING_KEYS = {
     "frame_meta": "edge.frame_meta",
     "metrics": "edge.metrics",
     "heartbeat": "edge.metrics",
+    # та же очередь шлюза; новая привязка не нужна, старый шлюз отбросит незнакомое сообщение
+    "flywheel_sample": "edge.metrics",
 }
 _EVENT_KINDS = frozenset(("event", "event_update"))
 
@@ -135,12 +139,13 @@ class _Outbox:
                         None,
                     )
                 if victim is not None:
-                    self._dropped[self._items[victim].kind] += 1
+                    kind = self._items[victim].kind
+                    self._dropped[kind] = self._dropped.get(kind, 0) + 1
                     del self._items[victim]
                     continue
 
                 if packet.kind not in _EVENT_KINDS:
-                    self._dropped[packet.kind] += 1
+                    self._dropped[packet.kind] = self._dropped.get(packet.kind, 0) + 1
                     return False
 
                 remaining = (
@@ -181,7 +186,7 @@ class _Outbox:
             if dropped:
                 if packet.kind in _EVENT_KINDS:
                     raise RuntimeError("Events cannot be dropped")
-                self._dropped[packet.kind] += 1
+                self._dropped[packet.kind] = self._dropped.get(packet.kind, 0) + 1
             self._inflight = None
             self._condition.notify_all()
 
@@ -375,6 +380,8 @@ class RabbitSink:
                             self._outbox.complete(packet, dropped=True)
                             continue
                         expiration = str(max(1, math.ceil(remaining * 1000)))
+                    elif packet.kind == "flywheel_sample":
+                        expiration = str(int(FLYWHEEL_TTL_SECONDS * 1000))
 
                     properties = pika.BasicProperties(
                         content_type="application/octet-stream",

@@ -229,11 +229,12 @@ def _capture_playback(engine: Any, cam: Any, writer: Any) -> dict[str, Any] | No
         if meta is not None:
             h, w = pkt.frame.shape[:2]
             sx, sy = w / meta.w, h / meta.h
+            # треки edge из frame_meta: уверенности в них нет, как и в оверлее шлюза — conf 1.0
             for tid, x1, y1, x2, y2, _flags in meta.people:
-                det_dicts.append({"model_id": "edge", "cls": "person", "conf": None,
+                det_dicts.append({"model_id": "edge_track", "cls": "person", "conf": 1.0,
                                   "bbox": [x1 * sx, y1 * sy, x2 * sx, y2 * sy], "track_id": tid})
             for tid, cls, x1, y1, x2, y2 in meta.objects:
-                det_dicts.append({"model_id": "edge", "cls": cls, "conf": None,
+                det_dicts.append({"model_id": "edge_track", "cls": cls, "conf": 1.0,
                                   "bbox": [x1 * sx, y1 * sy, x2 * sx, y2 * sy], "track_id": tid})
     from guard.flywheel.holdout import is_holdout_uri
 

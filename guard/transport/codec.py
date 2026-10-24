@@ -6,7 +6,8 @@ AMQP headers:
     snapshot_length: -1 for None; otherwise the exact JPEG byte count
 
 The distinction between None and an empty byte string survives a roundtrip.
-The snapshot_jpeg field is omitted from JSON entirely.
+The snapshot_jpeg field is omitted from JSON entirely. A flywheel_sample part
+carries its JPEG chunk (field jpeg) in the same binary tail.
 """
 
 from __future__ import annotations
@@ -16,7 +17,7 @@ import struct
 from collections.abc import Mapping
 from typing import Any
 
-from .messages import EventMsg, MessageInput, Msg, parse_message
+from .messages import EventMsg, FlywheelSampleMsg, MessageInput, Msg, parse_message
 
 _PREFIX = struct.Struct("!I")
 _VERSION = 1
@@ -24,8 +25,13 @@ _VERSION = 1
 
 def encode(message: MessageInput) -> tuple[bytes, dict[str, Any]]:
     msg = parse_message(message)
-    snapshot = msg.snapshot_jpeg if isinstance(msg, EventMsg) else None
-    document = msg.model_dump(mode="json", exclude={"snapshot_jpeg"})
+    if isinstance(msg, EventMsg):
+        snapshot, binary_field = msg.snapshot_jpeg, "snapshot_jpeg"
+    elif isinstance(msg, FlywheelSampleMsg):
+        snapshot, binary_field = msg.jpeg, "jpeg"
+    else:
+        snapshot, binary_field = None, "snapshot_jpeg"
+    document = msg.model_dump(mode="json", exclude={binary_field})
     raw_json = json.dumps(
         document,
         ensure_ascii=False,
@@ -81,11 +87,15 @@ def decode(body: bytes, headers: Mapping[str, Any]) -> Msg:
         raise ValueError("JSON payload must be an object")
     if "snapshot_jpeg" in document:
         raise ValueError("Snapshots must be carried outside JSON")
+    if document.get("kind") == "flywheel_sample" and "jpeg" in document:
+        raise ValueError("Flywheel JPEG must be carried outside JSON")
 
     if document.get("kind") in ("event", "event_update"):
         document["snapshot_jpeg"] = (
             None if snapshot_length == -1 else body[json_end:]
         )
+    elif document.get("kind") == "flywheel_sample":
+        document["jpeg"] = None if snapshot_length == -1 else body[json_end:]
     elif snapshot_length != -1:
         raise ValueError("Only event messages may carry a snapshot")
 

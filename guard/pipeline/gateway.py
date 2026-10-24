@@ -34,7 +34,7 @@ from guard.pipeline.worker import SHORT_LABELS, _scaled_track
 from guard.rules.base import load_plugins
 from guard.sources import FramePacket, make_source
 from guard.sources.video import FileSource
-from guard.transport import EventMsg, FrameMetaMsg, HeartbeatMsg, MetricsMsg
+from guard.transport import EventMsg, FlywheelSampleMsg, FrameMetaMsg, HeartbeatMsg, MetricsMsg
 
 log = logging.getLogger(__name__)
 
@@ -299,6 +299,10 @@ class GatewayEngine(PipelineEngine):
                 self.edge_metrics = dict(msg.data)
             elif isinstance(msg, HeartbeatMsg):
                 self.edge_node = msg.node_id
+            elif isinstance(msg, FlywheelSampleMsg):  # маховик: части сэмпла edge → своё хранилище
+                assembler = getattr(self, "flywheel_assembler", None)
+                if assembler is not None:
+                    assembler.add(msg)
         except Exception:  # noqa: BLE001
             self.message_errors += 1
             log.exception("gateway: failed to handle %s message", getattr(msg, "kind", "?"))

@@ -56,8 +56,24 @@ class HeartbeatMsg(_Message):
     node_id: str = "edge"
 
 
+class FlywheelSampleMsg(_Message):
+    """Data-flywheel sample from an edge node (docs/FLYWHEEL.md, «Edge-режим»).
+
+    The raw JPEG travels in small parts to bound head-of-line blocking of
+    events on the slow stand → gateway channel. Part 0 carries the metadata;
+    the JPEG part is carried outside JSON like an event snapshot.
+    """
+
+    kind: Literal["flywheel_sample"] = "flywheel_sample"
+    sample_id: str = Field(min_length=1, max_length=64)
+    part: StrictInt = Field(ge=0)
+    parts: StrictInt = Field(ge=1, le=256)
+    sample: dict[str, Any] | None = None
+    jpeg: bytes | None = None
+
+
 Msg: TypeAlias = Annotated[
-    EventMsg | FrameMetaMsg | MetricsMsg | HeartbeatMsg,
+    EventMsg | FrameMetaMsg | MetricsMsg | HeartbeatMsg | FlywheelSampleMsg,
     Field(discriminator="kind"),
 ]
 MessageInput: TypeAlias = Msg | dict[str, Any]

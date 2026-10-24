@@ -301,7 +301,7 @@ class GatewayQueueGuard:
                 self._last_idle_heartbeat = time.monotonic()
                 return True
             return False
-        if kind == "frame_meta":
+        if kind in ("frame_meta", "flywheel_sample"):  # сэмплы маховика ждут вместе с телеметрией
             return not self.backlog_paused
         return True
 

@@ -489,4 +489,8 @@ class PipelineEngine:
             entry = models.setdefault(model_id, {})
             entry.setdefault("timings_ms", {})["queue"] = {"p50": q["p50"], "p95": q["p95"]}
             entry["batching"] = det.scheduler is not None
-        return {"backend": self.backend.name, "cameras": out, "inference": inference, "media": self.media.stats()}
+        result = {"backend": self.backend.name, "cameras": out, "inference": inference, "media": self.media.stats()}
+        flywheel = getattr(self, "flywheel", None)
+        if flywheel is not None:  # на edge уходит в metrics: шлюз видит, идёт ли сбор
+            result["flywheel"] = flywheel.stats()
+        return result
