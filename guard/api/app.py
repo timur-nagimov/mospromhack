@@ -163,8 +163,15 @@ async def camera_stream(
     boundary = "frame"
 
     async def gen() -> AsyncIterator[bytes]:
+        nonlocal worker
+        engine = _engine(request)
         last_key = None
         while not await request.is_disconnected():
+            current = engine.workers.get(camera_id)
+            if current is None:  # камеру удалили или выключили — поток заканчивается, клиент переподключится
+                return
+            if current is not worker:  # горячий перезапуск камеры (PUT): переходим на новый воркер, иначе картинка замирает
+                worker, last_key = current, None
             item = await run_in_threadpool(worker.overlay_jpeg, mode, settings.stream_max_width, settings.jpeg_quality)
             if item is not None and item[0] != last_key:
                 last_key, data = item
