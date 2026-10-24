@@ -7,9 +7,11 @@ import { toast } from '../../components/ui/toast';
 import {
   classColor,
   classLabel,
+  formatConf,
   isHoldout,
   OPERATOR_LABEL_TEXT,
   ORIGIN_LABELS,
+  sampleCameraName,
   sampleStatusLabel,
   sourceLabel,
   type FlywheelSample,
@@ -30,7 +32,8 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable;
 }
 
-function originLabel(origin: string): string {
+function originLabel(origin: string | null | undefined): string {
+  if (!origin) return '';
   return ORIGIN_LABELS[origin as LabelOrigin] ?? origin;
 }
 
@@ -68,6 +71,7 @@ export function SampleCard({
   const [hover, setHover] = useState<string | null>(null);
   const detections = sample.detections ?? [];
   const camera = cameras.get(sample.camera_id);
+  const cameraName = sampleCameraName(sample, camera?.name);
   const holdout = isHoldout(sample);
   const frameSrc = useMemo(() => api().flywheel.frameUrl(sample, 'full'), [sample]);
 
@@ -149,7 +153,7 @@ export function SampleCard({
             </span>
           </div>
           <h2>
-            {sourceLabel(sample.source)} · {camera?.name ?? sample.camera_id}
+            {sourceLabel(sample.source)} · {cameraName}
           </h2>
           <p>
             {formatSmartDateTime(sample.created_at)} · {sample.width}×{sample.height}
@@ -189,7 +193,7 @@ export function SampleCard({
               boxes={boxes}
               highlight={hover}
               onHover={setHover}
-              alt={`Кадр сэмпла: ${sourceLabel(sample.source)}, ${camera?.name ?? sample.camera_id}`}
+              alt={`Кадр сэмпла: ${sourceLabel(sample.source)}, ${cameraName}`}
             />
           </div>
           {holdout && (
@@ -239,7 +243,7 @@ export function SampleCard({
                       </select>
                       <span className="fw-boxes__meta">
                         {originLabel(l.origin)}
-                        {l.conf != null ? ` ${l.conf.toFixed(2)}` : ''}
+                        {l.conf != null ? ` ${formatConf(l.conf)}` : ''}
                       </span>
                       <button type="button" className="btn btn--ghost btn--sm btn--icon" onClick={() => removeBox(i)} aria-label={`Удалить рамку ${i + 1}`} title="Удалить рамку">
                         <Trash2 size={14} />
@@ -270,7 +274,7 @@ export function SampleCard({
                       <i className="fw-boxes__dash" style={{ borderColor: classColor(d.cls) }} aria-hidden="true" />
                       <span className="fw-boxes__cls">{classLabel(d.cls)}</span>
                       <span className="fw-boxes__meta mono">
-                        {d.model_id} {d.conf.toFixed(2)}
+                        {d.model_id} {formatConf(d.conf)}
                         {d.track_id != null ? ` · #${d.track_id}` : ''}
                       </span>
                       <button type="button" className="btn btn--ghost btn--sm btn--icon" onClick={() => promote(i)} aria-label={`Взять детекцию ${i + 1} в метки`} title="Взять в метки">
@@ -287,7 +291,7 @@ export function SampleCard({
             <div>
               <dt>Камера</dt>
               <dd>
-                {camera?.name ?? sample.camera_id} <span className="mono muted">{sample.camera_id}</span>
+                {cameraName} <span className="mono muted">{sample.camera_id}</span>
               </dd>
             </div>
             <div>

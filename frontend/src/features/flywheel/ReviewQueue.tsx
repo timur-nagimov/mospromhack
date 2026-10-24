@@ -11,7 +11,9 @@ import {
   isHoldout,
   jobPhase,
   needsReview,
+  REVIEW_STATUSES,
   SAMPLE_STATUS_LABELS,
+  sampleCameraName,
   SAMPLE_STATUS_ORDER,
   sourceLabel,
   SOURCE_ORDER,
@@ -104,9 +106,11 @@ export function ReviewQueue({
   const startJob = useStartJob();
   const capture = useCaptureFrame();
 
+  // Статус: без параметра — «ждут проверки» (new,auto), status=all — все
+  const statusParam = params.get('status');
   const filters = {
     source: params.get('source') ?? '',
-    status: params.get('status') ?? '',
+    status: statusParam ?? REVIEW_STATUSES,
     camera_id: params.get('camera') ?? '',
     cls: params.get('cls') ?? '',
     holdout: params.get('holdout') ?? '',
@@ -115,7 +119,7 @@ export function ReviewQueue({
   const page = Number.isFinite(pageRaw) && pageRaw > 0 ? Math.floor(pageRaw) : 0;
   const query: SampleQuery = {
     source: filters.source || undefined,
-    status: filters.status || undefined,
+    status: filters.status && filters.status !== 'all' ? filters.status : undefined,
     camera_id: filters.camera_id || undefined,
     cls: filters.cls || undefined,
     holdout: filters.holdout === '1' ? 1 : filters.holdout === '0' ? 0 : undefined,
@@ -177,15 +181,21 @@ export function ReviewQueue({
     for (const c of Object.keys(summary?.by_class ?? {})) set.add(c);
     return [...set];
   }, [models, summary]);
-  const filterClasses = useMemo(() => Object.keys(summary?.by_class ?? {}).sort(), [summary]);
+  // класс ищется и в метках, и в детекциях (как фильтр cls на сервере)
+  const filterClasses = useMemo(
+    () => [...new Set([...Object.keys(summary?.by_class ?? {}), ...Object.keys(summary?.by_detected_class ?? {})])].sort(),
+    [summary],
+  );
 
   const cameraOptions = useMemo(() => {
-    const ids = new Set(cameras.map((c) => c.camera_id));
-    for (const s of items) ids.add(s.camera_id);
-    return [...ids].map((id) => ({ id, name: cameraMap.get(id)?.name ?? id }));
-  }, [cameras, cameraMap, items]);
+    const names = new Map(cameras.map((c) => [c.camera_id, c.name]));
+    for (const s of items) if (!names.has(s.camera_id)) names.set(s.camera_id, sampleCameraName(s));
+    if (filters.camera_id && !names.has(filters.camera_id)) names.set(filters.camera_id, filters.camera_id);
+    return [...names.entries()].map(([id, name]) => ({ id, name }));
+  }, [cameras, items, filters.camera_id]);
 
-  const activeFilters = Object.values(filters).filter(Boolean).length;
+  const activeFilters =
+    [filters.source, filters.camera_id, filters.cls, filters.holdout].filter(Boolean).length + (statusParam != null ? 1 : 0);
   const newCount = summary?.by_status?.new ?? 0;
   const autolabelRunning = jobs.some((j) => j.kind === 'autolabel' && jobPhase(j.status) === 'active');
   const [captureChoice, setCaptureChoice] = useState('');
@@ -229,8 +239,13 @@ export function ReviewQueue({
         </label>
         <label className="field">
           <span className="field__label">Статус</span>
-          <select className="select" value={filters.status} onChange={(e) => update({ status: e.target.value, sample: undefined })}>
-            <option value="">Все статусы</option>
+          <select
+            className="select"
+            value={filters.status}
+            onChange={(e) => update({ status: e.target.value === REVIEW_STATUSES ? undefined : e.target.value, sample: undefined })}
+          >
+            <option value={REVIEW_STATUSES}>Ждут проверки</option>
+            <option value="all">Все статусы</option>
             {SAMPLE_STATUS_ORDER.map((s) => (
               <option key={s} value={s}>
                 {SAMPLE_STATUS_LABELS[s]}
@@ -323,8 +338,16 @@ export function ReviewQueue({
           ) : items.length === 0 ? (
             <div className="empty">
               <Inbox size={30} />
-              <span className="empty__title">{activeFilters ? 'Под фильтр ничего не попало' : 'Выборка пока пуста'}</span>
-              <span>{activeFilters ? 'Сбросьте фильтры или выберите другой статус' : 'Сэмплы появятся с первыми событиями и неуверенными кадрами'}</span>
+              <span className="empty__title">
+                {activeFilters ? 'Под фильтр ничего не попало' : (summary?.total ?? 0) > 0 ? 'Всё проверено' : 'Выборка пока пуста'}
+              </span>
+              <span>
+                {activeFilters
+                  ? 'Сбросьте фильтры или выберите другой статус'
+                  : (summary?.total ?? 0) > 0
+                    ? 'Новые сэмплы придут с событиями и неуверенными кадрами; проверенные — в статусе «Все статусы»'
+                    : 'Сэмплы появятся с первыми событиями и неуверенными кадрами'}
+              </span>
             </div>
           ) : (
             <ul className="fw-queue__list loading-veil" data-loading={isFetching && !isLoading}>
@@ -334,7 +357,7 @@ export function ReviewQueue({
                   sample={s}
                   active={s.id === sample?.id}
                   fresh={fresh.has(s.id)}
-                  cameraName={cameraMap.get(s.camera_id)?.name ?? s.camera_id}
+                  cameraName={sampleCameraName(s, cameraMap.get(s.camera_id)?.name)}
                   onSelect={() => select(s.id)}
                 />
               ))}

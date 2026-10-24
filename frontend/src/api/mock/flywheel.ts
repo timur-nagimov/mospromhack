@@ -18,7 +18,7 @@ import type {
   SampleSource,
   SampleStatus,
 } from '../../domain/flywheel';
-import { isHoldout } from '../../domain/flywheel';
+import { formatConf, isHoldout } from '../../domain/flywheel';
 import { nowSec, startOfDay } from '../../domain/format';
 import type { BBox, CameraConfig, EventStatus, GuardEvent, WsMessage } from '../../domain/types';
 import { getViolationMeta } from '../../domain/violations';
@@ -254,8 +254,9 @@ export function createFlywheelMock(deps: FlywheelMockDeps): FlywheelMock {
         const target = detections.find((x) => x.cls === 'no_helmet' || x.cls === 'helmet') ?? detections.find((x) => x.cls === 'person');
         if (target) {
           const thr = target.cls === 'person' ? 0.4 : 0.35;
-          target.conf = r2(between(rng, thr - 0.1, thr + 0.05));
-          reason = `${target.cls} ${target.conf.toFixed(2)} ∈ [${(thr - 0.1).toFixed(2)}, ${(thr + 0.05).toFixed(2)}]`;
+          const conf = r2(between(rng, thr - 0.1, thr + 0.05));
+          target.conf = conf;
+          reason = `${target.cls} ${conf.toFixed(2)} ∈ [${(thr - 0.1).toFixed(2)}, ${(thr + 0.05).toFixed(2)}]`;
         } else {
           reason = 'person 0.33 ∈ [0.30, 0.45]';
         }
@@ -270,7 +271,8 @@ export function createFlywheelMock(deps: FlywheelMockDeps): FlywheelMock {
       case 'disagreement': {
         detections = modelDetections(objects, k, d.t);
         const target = pick(rng, detections.length ? detections : [{ cls: 'person', conf: 0.52 } as SampleDetection]);
-        reason = rng() < 0.6 ? `TPU: ${target.cls} ${target.conf.toFixed(2)} без пары на CPU (IoU < 0.5)` : `CPU fp32: ${target.cls} ${target.conf.toFixed(2)}, на TPU рамки нет`;
+        const conf = formatConf(target.conf);
+        reason = rng() < 0.6 ? `TPU: ${target.cls} ${conf} без пары на CPU (IoU < 0.5)` : `CPU fp32: ${target.cls} ${conf}, на TPU рамки нет`;
         break;
       }
       case 'operator':
@@ -603,13 +605,15 @@ export function createFlywheelMock(deps: FlywheelMockDeps): FlywheelMock {
     const bySource: Record<string, number> = {};
     const byStatus: Record<string, number> = {};
     const byClass: Record<string, number> = {};
+    const byDetected: Record<string, number> = {};
     let reviewed = 0;
     let holdout = 0;
     let todayCount = 0;
     for (const s of samples) {
       bySource[s.source] = (bySource[s.source] ?? 0) + 1;
       byStatus[s.status] = (byStatus[s.status] ?? 0) + 1;
-      for (const cls of new Set((s.labels.length ? s.labels : s.detections).map((x) => x.cls))) byClass[cls] = (byClass[cls] ?? 0) + 1;
+      for (const cls of new Set(s.labels.map((x) => x.cls))) byClass[cls] = (byClass[cls] ?? 0) + 1;
+      for (const cls of new Set(s.detections.map((x) => x.cls))) byDetected[cls] = (byDetected[cls] ?? 0) + 1;
       if (s.reviewed_at != null) reviewed += 1;
       if (isHoldout(s)) holdout += 1;
       if (s.created_at >= today) todayCount += 1;
@@ -620,9 +624,11 @@ export function createFlywheelMock(deps: FlywheelMockDeps): FlywheelMock {
       by_source: bySource,
       by_status: byStatus,
       by_class: byClass,
+      by_detected_class: byDetected,
       reviewed,
       holdout,
       dropped,
+      dropped_detail: { queue_full: dropped },
       last_dataset: datasets[0] ?? null,
       models: {
         deployed: models.filter((m) => m.status === 'deployed').map((m) => m.version),
@@ -638,7 +644,7 @@ export function createFlywheelMock(deps: FlywheelMockDeps): FlywheelMock {
     if (q.camera_id && s.camera_id !== q.camera_id) return false;
     if (q.event_id && s.event_id !== q.event_id) return false;
     if (q.holdout != null && (isHoldout(s) ? 1 : 0) !== q.holdout) return false;
-    if (q.cls && !(s.labels.length ? s.labels : s.detections).some((x) => x.cls === q.cls)) return false;
+    if (q.cls && ![...s.labels, ...s.detections].some((x) => x.cls === q.cls)) return false;
     return true;
   }
 

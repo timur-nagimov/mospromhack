@@ -1,6 +1,7 @@
 import { Boxes, ExternalLink, GraduationCap, Lock, Rocket, Scale, ShieldCheck, ShieldQuestion, ShieldX } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
-import { isForbidden, useStartJob } from '../../api/flywheelQueries';
+import { isForbidden, useJob, useStartJob } from '../../api/flywheelQueries';
+import { API_BASE } from '../../api/http';
 import { toast } from '../../components/ui/toast';
 import {
   datasetVersionOf,
@@ -241,6 +242,32 @@ function ModelCardView({
   );
 }
 
+/** Ссылка на лог задачи: путь от корня сервера — с учётом VITE_API_BASE */
+function logHref(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  return url.startsWith('/') ? API_BASE + url : undefined;
+}
+
+/** Раскрытая задача: хвост лога — из GET /api/flywheel/jobs/{id} (в списке его нет) */
+function JobDetails({ job }: { job: FlywheelJob }) {
+  const { data, isLoading } = useJob(job.id);
+  const full = data ?? job;
+  const tail = jobLogTail(full).slice(-14);
+  const href = logHref(full.log_url);
+  return (
+    <>
+      {full.error && <p className="fw-job__error">{full.error}</p>}
+      <pre className="fw-job__log is-open">{tail.length ? tail.join('\n') : isLoading ? 'загрузка лога…' : 'лог пуст'}</pre>
+      {href && (
+        <a className="fw-link fw-job__more" href={href} target="_blank" rel="noreferrer noopener">
+          весь лог <ExternalLink size={11} aria-hidden="true" />
+        </a>
+      )}
+    </>
+  );
+}
+
 function JobsList({ jobs }: { jobs: FlywheelJob[] }) {
   const [open, setOpen] = useState<string | null>(null);
   const now = nowSec();
@@ -260,13 +287,10 @@ function JobsList({ jobs }: { jobs: FlywheelJob[] }) {
               <span className="fw-job__status">{job.status}</span>
               <span className="muted num fw-job__at">{at ? formatRelative(at, now) : ''}</span>
             </button>
-            {(expanded || tail.length > 0) && (
-              <pre className={`fw-job__log${expanded ? ' is-open' : ''}`}>{(expanded ? tail : tail.slice(-2)).join('\n') || 'лог пуст'}</pre>
-            )}
-            {expanded && job.log_url && (
-              <a className="fw-link fw-job__more" href={job.log_url} target="_blank" rel="noreferrer noopener">
-                весь лог <ExternalLink size={11} aria-hidden="true" />
-              </a>
+            {expanded ? (
+              <JobDetails job={job} />
+            ) : (
+              tail.length > 0 && <pre className="fw-job__log">{tail.slice(-2).join('\n')}</pre>
             )}
           </li>
         );

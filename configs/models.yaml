@@ -105,6 +105,14 @@ models:
     classes: [smoke, fire]
 
   # --- погрузчик (S4), дообучение на открытых наборах: записи ds-forklift ниже ---
+  - model_id: forklift             # forklift-v1 (ml/model_cards/forklift-v1.json): YOLOv8n COCO, дообучен на forklift-ds-v1
+    task: detect
+    onnx_path: forklift_v1-480.onnx
+    input_size: [480, 480]
+    output_format: yolov8
+    conf_threshold: 0.3            # трек рождается от 0.45 (трекер), слабые рамки только продлевают его
+    iou_threshold: 0.5
+    classes: [person, forklift]    # person не используется: люди берутся из det
 
   # --- лежащий человек (S3), наборы падений: записи ds-falls ниже ---
 
@@ -150,6 +158,12 @@ meta:
     class_map: {smoke: smoke, fire: fire}
 
   # --- meta погрузчика (ds-forklift) ---
+  forklift:
+    source: "ds-forklift: yolov8n.pt (COCO) → forklift-v1, набор data/datasets/forklift (ml/datasets/forklift.py)"
+    license: "AGPL-3.0 (YOLOv8); лицензии наборов не проверяли — демо внутреннее, источники в docs/DATASETS.md"
+    weights: models/weights/forklift-v1.pt
+    card: ml/model_cards/forklift-v1.json
+    used_by: "vehicle_proximity с params.models: [det, forklift] — только на камерах S4"
 
   # --- meta падений (ds-falls) ---
 
