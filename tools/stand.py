@@ -283,7 +283,7 @@ def prefix():
 
 
 def stage(name):
-    if not re.fullmatch(r"\.stand-upload-[0-9a-f]{32}\.(tar\.gz|part)", name):
+    if not re.fullmatch(r"stand-upload-[0-9a-f]{32}\.(tar\.gz|part)", name):
         raise Failure("invalid-stage-name")
     return target(name)
 
@@ -535,6 +535,9 @@ def stop():
 def dispatch(request):
     op = request["op"]
     if op == "state":
+        # contents API не создаёт промежуточные каталоги: первый sync на чистом сервере падал с HTTP 400
+        if not BASE.is_symlink():
+            BASE.mkdir(parents=True, exist_ok=True)
         return {"prefix": prefix(), "manifest": read_manifest()}
     if op == "apply":
         return apply_archive(request)
@@ -608,7 +611,7 @@ print(json.dumps(_reply))
         previous = validate_manifest(state["manifest"])
         if current == previous:
             return {"changed": 0, "removed": 0, "total": len(current)}
-        stage = f".stand-upload-{uuid.uuid4().hex}.tar.gz"
+        stage = f"stand-upload-{uuid.uuid4().hex}.tar.gz"
         with tempfile.TemporaryDirectory(prefix="stand-sync-") as temporary:
             archive = Path(temporary) / "code.tar.gz"
             build_archive(self.root, current, previous, archive)
@@ -638,7 +641,7 @@ print(json.dumps(_reply))
             if existing and all(existing.get(k) == entry[k] for k in ("size", "sha256")):
                 skipped += 1
                 continue
-            stage = f".stand-upload-{uuid.uuid4().hex}.part"
+            stage = f"stand-upload-{uuid.uuid4().hex}.part"
             try:
                 self.upload(path, f"{state['prefix']}/{stage}")
                 self.remote("put-video", stage=stage, name=name, entry=entry)

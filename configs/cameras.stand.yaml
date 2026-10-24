@@ -1,0 +1,100 @@
+# Камеры edge-узла на стенде LinQ (A10, D-005). Запуск на сервере стенда:
+#   ~/guard311/bin/python -m guard.edge --config configs/cameras.stand.yaml
+# (tools/stand.py start делает именно это; OMP_NUM_THREADS=2, GUARD_BACKEND=linq-tpu.)
+#
+# camera_id, зоны и правила те же, что в configs/cameras.yaml (демо A3): gateway на ноутбуке
+# показывает эти камеры по своему конфигу, а frame_meta и события приходят с edge.
+# source.uri — относительно edge.data_dir. На сервере это
+#   /home/hackathon10864/work/mosprom/data/videos/{s1_01,s2_01,s3_02,s4_02}.mp4
+# (заливает tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02); на ноутбуке — data/videos/.
+# Полигоны зон — нормированные 0..1 (data/labels/*.json, A5); active_hours: null — всегда.
+
+edge:
+  backend: linq-tpu
+  models_config: configs/models.stand.yaml   # det/pose 480 и ppe/fire 640 на TPU
+  models_dir: ~/work/models                  # программы TPU: ~/work/models/tpu/<имя>/ (+ /auto/cache)
+  data_dir: ~/work/mosprom/data_360          # субпоток 640×360 (docs/EDGE.md): декод 0.28 ядра вместо 0.92
+  rabbit_url: null                           # на стенде — amqp://…@10.0.114.30:5672/ (RTT 1 мс)
+  node_id: stand-linq
+  linq: {raw: true, window: 4}               # raw-упаковка на numpy; 4 задачи в полёте
+  gateway_guard: {backlog_limit: 300}        # без потребителя очереди шлюза телеметрию не копим
+  settings: {max_batch: 8, batch_timeout_ms: 4.0}
+
+cameras:
+- camera_id: cam_s1
+  name: Цех 1, ограждённый сектор
+  site: Цех 1
+  source: {type: file, uri: videos/s1_01.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones:
+  - zone_id: behind_tape
+    name: За ограничительной лентой
+    kind: danger
+    polygon: [[0.0, 0.3], [0.07, 0.31], [0.4, 0.7], [0.22, 1.0], [0.0, 1.0]]
+    active_hours: null
+  rules:
+  - rule_id: s1_tape
+    type: zone_intrusion
+    enabled: true
+    zones: [behind_tape]
+    params: {min_conf: 0.35, min_box_h_px: 40}
+    min_duration_s: 2.0
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 5.0
+    severity: high
+- camera_id: cam_s2
+  name: Проходная цеха, контроль СИЗ
+  site: Цех 2
+  source: {type: file, uri: videos/s2_01.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s2_ppe
+    type: ppe_missing
+    enabled: true
+    zones: null
+    params: {required: [helmet], min_box_h_px: 60}
+    min_duration_s: 2.0
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: high
+- camera_id: cam_s3
+  name: Комната отдыха персонала
+  site: АБК
+  source: {type: file, uri: videos/s3_02.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s3_fall
+    type: fall_immobile
+    enabled: true
+    zones: null
+    params: {min_lying_s: 1.0, immobile_window_s: 2.0}
+    min_duration_s: 1.0
+    min_ratio: 0.6
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: critical
+- camera_id: cam_s4
+  name: Погрузочная площадка
+  site: Склад
+  source: {type: file, uri: videos/s4_02.mp4, loop: true, realtime: true}
+  sample_fps: 5.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s4_vehicle
+    type: vehicle_proximity
+    enabled: true
+    zones: null
+    params: {}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: critical

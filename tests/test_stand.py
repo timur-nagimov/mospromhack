@@ -145,7 +145,7 @@ def test_sync_roundtrip_noop_delta_and_deletion(
     first = controller.sync()
     assert first == {"changed": 4, "removed": 0, "total": 4}
     assert len(filesystem_client.uploads) == 1
-    assert filesystem_client.uploads[0][0].startswith("mosprom/.stand-upload-")
+    assert filesystem_client.uploads[0][0].startswith("mosprom/stand-upload-")
     assert (remote_root / "guard/app.py").read_text() == "VALUE = 1\n"
     assert controller.sync() == {"changed": 0, "removed": 0, "total": 4}
     assert len(filesystem_client.uploads) == 1
@@ -158,7 +158,7 @@ def test_sync_roundtrip_noop_delta_and_deletion(
     assert json.loads((remote_root / stand_module.MANIFEST).read_text()) == (
         stand_module.build_manifest(project)
     )
-    assert not list(remote_root.glob(".stand-upload-*"))
+    assert not list(remote_root.glob("stand-upload-*"))
 
 
 def test_sync_rejects_corrupted_archive_without_committing(
@@ -174,7 +174,7 @@ def test_sync_rejects_corrupted_archive_without_committing(
         controller.sync()
     assert (remote_root / stand_module.MANIFEST).read_bytes() == old_manifest
     assert (remote_root / "guard/app.py").read_text() == "VALUE = 1\n"
-    assert not list(remote_root.glob(".stand-upload-*"))
+    assert not list(remote_root.glob("stand-upload-*"))
 
 
 def test_sync_detects_concurrent_manifest_change(
@@ -208,7 +208,7 @@ def test_remote_rejects_archive_symlinks(
         member = tarfile.TarInfo(stand_module.MANIFEST)
         member.size = len(data)
         stream.addfile(member, io.BytesIO(data))
-    stage = ".stand-upload-" + "a" * 32 + ".tar.gz"
+    stage = "stand-upload-" + "a" * 32 + ".tar.gz"
     filesystem_client.upload(archive, "mosprom/" + stage)
     controller = stand_module.Stand(filesystem_client, project)
     with pytest.raises(stand_module.StandError, match="regular-files"):
