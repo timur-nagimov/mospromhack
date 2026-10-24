@@ -16,7 +16,7 @@ from guard.pipeline.bus import EventBus
 from guard.pipeline.config import load_cameras, load_models, save_cameras
 from guard.pipeline.detector import BatchScheduler, Detector
 from guard.pipeline.settings import Settings
-from guard.rules.base import available_rules, load_plugins
+from guard.rules.base import available_rules, load_plugins, with_default_severity
 from guard.rules.geometry import validate_active_hours
 from guard.events.media import MediaStore
 
@@ -211,6 +211,7 @@ class PipelineEngine:
             return self.cameras.get(camera_id)
 
     def add_camera(self, cam: CameraConfig) -> CameraConfig:
+        cam = with_default_severity(cam)
         self.validate_camera(cam)
         with self._lock:
             if cam.camera_id in self.cameras:
@@ -224,6 +225,7 @@ class PipelineEngine:
     def update_camera(self, camera_id: str, cam: CameraConfig) -> CameraConfig:
         if cam.camera_id != camera_id:
             raise CameraError("camera_id in body must match the path")
+        cam = with_default_severity(cam)
         self.validate_camera(cam)
         with self._lock:
             if camera_id not in self.cameras:

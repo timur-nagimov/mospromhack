@@ -295,7 +295,8 @@ def test_cameras_yaml_roundtrip(tmp_path):
 
 
 def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
-    """Неявная severity не должна превращаться в явную 'high' после сохранения (иначе теряется default плагина)."""
+    """Неявная severity не должна превращаться в общую 'high' после сохранения: правило получает
+    default_severity своего плагина (fall_immobile — critical), явная severity сохраняется как есть."""
     cam = CameraConfig(
         camera_id="c1", name="c", site="s", source=SourceConfig(type="file", uri="a.mp4"),
         rules=[RuleConfig(rule_id="r1", type="fall_immobile"), RuleConfig(rule_id="r2", type="zone_intrusion", severity="low")],
@@ -303,7 +304,7 @@ def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
     path = tmp_path / "cams.yaml"
     save_cameras(path, [cam])
     r1, r2 = load_cameras(path)[0].rules
-    assert "severity" not in r1.model_fields_set
+    assert r1.severity == "critical"
     assert r2.severity == "low"
 
 
