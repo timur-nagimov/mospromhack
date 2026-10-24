@@ -21,6 +21,9 @@ _PPE = {
 _ATTRIBUTE_NAMES = ("helmet", "vest", "respirator")
 _STATE_KEY = "_tracking_attribute_state"
 _POINT_CONFIDENCE = 0.5
+_PPE_WINDOW_S = 2.0
+_PPE_MIN_NEG_VOTES = 3
+_PPE_NEG_RATIO = 0.6
 
 
 def _keypoints(value: np.ndarray | None) -> np.ndarray | None:
@@ -89,9 +92,17 @@ def assign_attributes(
 ) -> None:
     """Update attributes in place using nondecreasing timestamps.
 
-    PPE uses one vote per attribute/person/timestamp over the last two seconds.
-    The strongest compatible observation supplies that vote; ties across time
-    produce None. Missing observations do not vote and old votes expire.
+    PPE records one observation per attribute/person/timestamp in the inclusive
+    window [ts - _PPE_WINDOW_S, ts]. A present "ppe" key records a model run,
+    including None when no compatible detection was assigned. An absent key
+    adds no observation. The strongest compatible detection supplies the vote.
+    Repeated PPE runs at the same timestamp replace that timestamp's observation;
+    calls without the PPE model preserve it.
+
+    False requires at least _PPE_MIN_NEG_VOTES negative votes and a negative
+    fraction of at least _PPE_NEG_RATIO among all model-run observations.
+    True requires a strict positive majority among those observations.
+    Otherwise the attribute is None.
 
     Private, JSON-compatible smoothing state resides in Track.attributes,
     keeping it local to the Track instance instead of a global track-ID cache.
@@ -107,6 +118,7 @@ def assign_attributes(
         if state is not None and ts < state["last_ts"]:
             raise ValueError("Attribute timestamps must be nondecreasing")
 
+    ppe_ran = "ppe" in dets
     votes: list[dict[str, tuple[float, bool]]] = [{} for _ in people]
     for det in dets.get("ppe", []):
         if det.cls not in _PPE or not valid_detection(det):
@@ -162,16 +174,25 @@ def assign_attributes(
             samples = [
                 sample
                 for sample in histories.get(name, [])
-                if ts - 2.0 <= sample[0] < ts
+                if ts - _PPE_WINDOW_S <= sample[0] <= ts
             ]
-            if name in votes[index]:
-                samples.append((ts, votes[index][name][1]))
+            if ppe_ran:
+                samples = [sample for sample in samples if sample[0] < ts]
+                vote = votes[index].get(name)
+                samples.append((ts, vote[1] if vote is not None else None))
             histories[name] = samples
-            positives = sum(value for _, value in samples)
-            if not samples or positives * 2 == len(samples):
-                attributes[name] = None
+
+            positives = sum(value is True for _, value in samples)
+            negatives = sum(value is False for _, value in samples)
+            if (
+                negatives >= _PPE_MIN_NEG_VOTES
+                and negatives / len(samples) >= _PPE_NEG_RATIO
+            ):
+                attributes[name] = False
+            elif positives * 2 > len(samples):
+                attributes[name] = True
             else:
-                attributes[name] = bool(positives * 2 > len(samples))
+                attributes[name] = None
 
         previous_pose = attributes.get("pose_state")
         previous_since = attributes.get("lying_since")

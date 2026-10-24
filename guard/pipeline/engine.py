@@ -16,7 +16,7 @@ from guard.pipeline.bus import EventBus
 from guard.pipeline.config import load_cameras, load_models, save_cameras
 from guard.pipeline.detector import BatchScheduler, Detector
 from guard.pipeline.settings import Settings
-from guard.rules.base import available_rules
+from guard.rules.base import available_rules, load_plugins, with_default_severity
 from guard.rules.geometry import validate_active_hours
 from guard.events.media import MediaStore
 
@@ -47,6 +47,8 @@ class PipelineEngine:
         event_manager: Any | None = None,
     ) -> None:
         self.settings = settings
+        # base.available_rules()/get_rule() грузят плагины, только пока реестр пуст — грузим явно
+        load_plugins()
         self.backend = backend or get_backend(
             settings.backend,
             models_dir=settings.models_dir,
@@ -160,7 +162,9 @@ class PipelineEngine:
         events = list(open_events(camera_id)) if open_events else []
         now = time.time()
         for ev in events:
-            self._journal_update(ev.id, ended_at=now)
+            updated = self._journal_update(ev.id, ended_at=now)
+            if updated is not None:  # UI узнаёт, что событие закрыто (иначе висит «открытым» до перезагрузки списка)
+                self.bus.publish(event_message("event_update", updated))
         reset = getattr(self.events, "reset", None)
         if reset:
             reset(camera_id)
@@ -207,6 +211,7 @@ class PipelineEngine:
             return self.cameras.get(camera_id)
 
     def add_camera(self, cam: CameraConfig) -> CameraConfig:
+        cam = with_default_severity(cam)
         self.validate_camera(cam)
         with self._lock:
             if cam.camera_id in self.cameras:
@@ -220,6 +225,7 @@ class PipelineEngine:
     def update_camera(self, camera_id: str, cam: CameraConfig) -> CameraConfig:
         if cam.camera_id != camera_id:
             raise CameraError("camera_id in body must match the path")
+        cam = with_default_severity(cam)
         self.validate_camera(cam)
         with self._lock:
             if camera_id not in self.cameras:
@@ -280,7 +286,8 @@ class PipelineEngine:
                 ev.type, ev.id, ev.camera_id, ev.zone_id, ev.track_id,
                 ev.confirmed_at - ev.started_at, ev.latency_ms.get("total", 0.0),
             )
-            self.media.schedule_clip(ev, on_done=self._on_clip)
+            if not self.media.schedule_clip(ev, on_done=self._on_clip):
+                self._on_clip(ev, None)  # очередь клипов полна — помечаем clip_error, иначе в UI клип «грузится» вечно
         for ev in closed:
             updated = self._journal_update(ev.id, ended_at=ev.ended_at)
             if updated is not None:

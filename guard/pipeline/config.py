@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from guard.contracts import CameraConfig, ModelSpec
+from guard.rules.base import with_default_severity
 
 log = logging.getLogger(__name__)
 
@@ -32,7 +33,13 @@ def load_cameras(path: str | Path) -> list[CameraConfig]:
         return []
     raw = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
     items = raw.get("cameras", []) if isinstance(raw, dict) else raw
-    cams = [CameraConfig.model_validate(item) for item in items or []]
+    cams: list[CameraConfig] = []
+    for item in items or []:
+        try:
+            cams.append(with_default_severity(CameraConfig.model_validate(item)))
+        except ValueError as exc:  # одна битая запись не должна выключать остальные камеры
+            name = item.get("camera_id") if isinstance(item, dict) else item
+            log.error("cameras config %s: entry %r skipped: %s", path, name, str(exc).splitlines()[0])
     ids = [c.camera_id for c in cams]
     dup = {i for i in ids if ids.count(i) > 1}
     if dup:
@@ -40,11 +47,21 @@ def load_cameras(path: str | Path) -> list[CameraConfig]:
     return cams
 
 
+def _dump_camera(cam: CameraConfig) -> dict[str, Any]:
+    """model_dump, но severity правила, которую не задавали явно, не пишем: иначе общий default (high)
+    после перезапуска вытесняет default_severity плагина (fall_immobile: critical)."""
+    data = cam.model_dump(mode="json")
+    for rule, rule_data in zip(cam.rules, data["rules"], strict=True):
+        if "severity" not in rule.model_fields_set:
+            rule_data.pop("severity", None)
+    return data
+
+
 def save_cameras(path: str | Path, cameras: Iterable[CameraConfig]) -> None:
     """Атомарная запись: временный файл рядом + os.replace."""
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    data = {"cameras": [c.model_dump(mode="json") for c in cameras]}
+    data = {"cameras": [_dump_camera(c) for c in cameras]}
     text = _CAMERAS_HEADER + yaml.safe_dump(data, allow_unicode=True, sort_keys=False, default_flow_style=None, width=120)
     fd, tmp = tempfile.mkstemp(prefix=".cameras.", suffix=".yaml", dir=path.parent)
     try:

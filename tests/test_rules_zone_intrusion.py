@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from guard.contracts import CameraConfig, FrameContext, RuleConfig, SourceConfig, Track, Zone
-from guard.rules.base import available_rules, get_rule
+from guard.rules.base import available_rules, get_rule, load_plugins
 from guard.rules.geometry import (
     LOCAL_TZ,
     foot_point,
@@ -17,6 +17,8 @@ from guard.rules.geometry import (
     to_pixels,
     validate_active_hours,
 )
+
+load_plugins()  # реестр мог быть частично заполнен прямыми импортами плагинов в других тестах
 
 W, H = 1000, 500
 SQUARE = [(0.2, 0.4), (0.6, 0.4), (0.6, 0.9), (0.2, 0.9)]
