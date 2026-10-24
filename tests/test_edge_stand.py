@@ -14,6 +14,10 @@ from guard.rules.base import available_rules, load_plugins
 
 ROOT = Path(__file__).resolve().parents[1]
 STAND_CAMERAS = ROOT / "configs" / "cameras.stand.yaml"
+# Разрешённые отличия правил стенда от configs/cameras.yaml — только явные поправки под int8.
+# min_conf зоны: уверенность int8 на TPU в среднем на ~0.05 ниже, чем fp32 на CPU (сверка A1, docs/LINQ_NOTES.md §16;
+# на стенде 0.45 вместо 0.5 A9 — A10, docs/EDGE.md §3).
+STAND_INT8_OVERRIDES: dict[tuple[str, str], dict[str, float]] = {("cam_s1", "s1_tape"): {"min_conf": 0.45}}
 STAND_MODELS = ROOT / "configs" / "models.stand.yaml"
 
 
@@ -55,7 +59,18 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
             assert required[rule.type] <= models, (cid, rule.type)
         if cid in demo:  # gateway показывает камеры по своему конфигу: зоны и правила совпадают
             assert [z.model_dump() for z in cam.zones] == [z.model_dump() for z in demo[cid].zones]
-            assert [r.type for r in cam.rules] == [r.type for r in demo[cid].rules]
+            # и параметры правил тоже: иначе на TPU работают одни пороги, а в отчёте о качестве — другие.
+            # Исключение — только явные поправки STAND_INT8_OVERRIDES: на стенде стоят именно они, остальное совпадает.
+            stand_rules = []
+            for r in cam.rules:
+                dump = r.model_dump()
+                override = STAND_INT8_OVERRIDES.get((cid, r.rule_id))
+                if override:
+                    assert {k: dump["params"].get(k) for k in override} == override, (cid, r.rule_id)
+                    demo_rule = next(d for d in demo[cid].rules if d.rule_id == r.rule_id)
+                    dump["params"] = {**dump["params"], **{k: demo_rule.params[k] for k in override}}
+                stand_rules.append(dump)
+            assert stand_rules == [r.model_dump() for r in demo[cid].rules]
             assert Path(cam.source.uri).name == Path(demo[cid].source.uri).name
     assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4"}
 

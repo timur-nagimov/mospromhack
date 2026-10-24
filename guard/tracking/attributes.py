@@ -72,9 +72,11 @@ def _phone_near_person(person: Track, phone: Detection) -> bool:
     targets = [
         points[index, :2] for index in _confident(points, [9, 10])
     ]
-    head = _confident(points, [0, 1, 2, 3, 4])
-    if head:
-        targets.append(points[head, :2].mean(axis=0))
+    # Each confident head point on its own: a phone held to the ear is close to the ear point
+    # but far from the mean of the head points (s6_01: 88 px from the mean, radius 78 px).
+    targets.extend(
+        points[index, :2] for index in _confident(points, [0, 1, 2, 3, 4])
+    )
     if not targets:
         return False
 

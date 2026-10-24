@@ -405,6 +405,23 @@ def test_phone_near_wrist_or_head(bbox):
     assert track.attributes["phone"] is True
 
 
+def test_phone_at_ear_uses_nearest_head_point():
+    # s6_01: phone held to the ear is far from the mean of the head points but close to the ear.
+    track = person()
+    points = standing_points()
+    for index, x, y in ((1, 46, 8), (2, 54, 8), (3, 38, 12), (4, 66, 12)):
+        points[index] = (x, y, 0.9)
+    assign_attributes(
+        [track],
+        {
+            "pose": [pose(track, points)],
+            "det": [detection("cell phone", (68, 10, 76, 18), model="det")],
+        },
+        0.0,
+    )
+    assert track.attributes["phone"] is True
+
+
 def test_phone_intersection_without_keypoints():
     track = person()
     assign_attributes(

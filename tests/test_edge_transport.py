@@ -141,6 +141,8 @@ def test_probe_summary_clock_latency_and_loss():
     d = 3.5
     rec = Recorder()
     rec.consume_started = 1000.0 + d
+    # метрика прошлого запуска edge, пролежавшая в очереди: в FPS и потери не входит
+    rec.add(_metrics(990.0, processed=5000, sent=5000), recv=1000.0 + d + 0.05, size=500)
     for i, ts in enumerate((1000.0, 1002.0, 1004.0)):
         rec.add(_metrics(ts, processed=10 * i, sent=10 * i), recv=ts + d + 0.12, size=500)
     # 18 из 20 frame_meta за окно 1000..1004
@@ -169,6 +171,7 @@ def test_probe_summary_clock_latency_and_loss():
     assert cam["loss_vs_processed_pct"] == pytest.approx(10.0)
     assert out["frame_meta"]["latency_s"]["p50"] == pytest.approx(0.3, abs=1e-3)
     assert out["cpu"]["container_cores"]["mean"] == pytest.approx(1.0)
+    assert out["probe"]["metrics_backlog_excluded"] == 1
 
 
 def test_stats_helper():
@@ -176,3 +179,36 @@ def test_stats_helper():
     assert s["n"] == 4 and s["p50"] == 2.5 and s["min"] == 1.0 and s["max"] == 4.0
     assert stats([]) is None and stats([None]) is None
     assert math.isclose(stats([0.5], scale=1000)["p50"], 500.0)
+
+
+def test_probe_bindings_match_transport():
+    from guard import edge_probe
+    from guard.transport import rabbit
+
+    assert (edge_probe.EXCHANGE, edge_probe.GATEWAY_QUEUE) == (rabbit.EXCHANGE, rabbit.GATEWAY_QUEUE)
+    assert edge_probe.BINDINGS == rabbit.BINDINGS
+
+
+def test_probe_tap_uses_own_queue_and_leaves_gateway_queue(monkeypatch):
+    """--tap: своя exclusive-очередь на ключах edge, очередь шлюза не трогается (ни purge, ни consume)."""
+    import sys
+    from unittest import mock
+
+    from guard import edge_probe
+
+    ch = mock.MagicMock()
+    ch.queue_declare.return_value.method.queue = "amq.gen-tap"
+    ch.consume.return_value = iter([(None, None, None)])
+    pika = mock.MagicMock()
+    pika.BlockingConnection.return_value.channel.return_value = ch
+    monkeypatch.setitem(sys.modules, "pika", pika)
+
+    edge_probe.consume("amqp://x", edge_probe.GATEWAY_QUEUE, 0.0, 200, 50, Recorder(), purge=True, tap=True)
+
+    kwargs = ch.queue_declare.call_args.kwargs
+    assert kwargs["queue"] == "" and kwargs["exclusive"] and kwargs["auto_delete"]
+    bound = {c.kwargs["routing_key"] for c in ch.queue_bind.call_args_list}
+    assert bound == set(edge_probe.BINDINGS)
+    assert all(c.kwargs["queue"] == "amq.gen-tap" for c in ch.queue_bind.call_args_list)
+    ch.queue_purge.assert_not_called()
+    assert ch.consume.call_args.args[0] == "amq.gen-tap"
