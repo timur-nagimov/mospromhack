@@ -375,7 +375,7 @@ def test_source_reconnects_declares_and_acknowledges_after_callback(monkeypatch)
     assert callback_threads[0] != threading.get_ident()
     assert_topology(first_channel)
     assert_topology(second_channel)
-    second_channel.basic_qos.assert_called_once_with(prefetch_count=1)
+    second_channel.basic_qos.assert_called_once_with(prefetch_count=rabbit.CONSUMER_PREFETCH)
     second_channel.consume.assert_called_once_with(
         queue="zazerkalye.gateway",
         auto_ack=False,
