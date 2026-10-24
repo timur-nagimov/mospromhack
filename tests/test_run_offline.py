@@ -609,3 +609,384 @@ def test_custom_settings_reach_both_trackers(bundle, fake_models):
     assert result["tracker"] == expected
     assert fake_models.event_manager_calls == 1
     assert len(fake_models.timestamps) == 15
+
+
+@pytest.fixture
+def cache_models(fake_models, monkeypatch):
+    """Добавить штатный Detector.spec, не меняя исходную fake_models."""
+    original_init = offline.Detector.__init__
+
+    def init_with_spec(self, spec, backend):
+        original_init(self, spec, backend)
+        self.spec = spec
+
+    monkeypatch.setattr(offline.Detector, "__init__", init_with_spec)
+    return fake_models
+
+
+def test_cache_cli_replay_skips_detection_and_preserves_results(
+    bundle, cache_models, monkeypatch, tmp_path, capsys
+):
+    metrics = []
+    original_evaluate = events_eval.evaluate
+
+    def evaluate_spy(*args, **kwargs):
+        result = original_evaluate(*args, **kwargs)
+        metrics.append(copy.deepcopy(result))
+        return result
+
+    monkeypatch.setattr(events_eval, "evaluate", evaluate_spy)
+    cache_dir = tmp_path / "cache"
+    first_output = tmp_path / "first.json"
+    second_output = tmp_path / "second.json"
+    arguments = [
+        "--scenarios", str(bundle.path),
+        "--cache-dir", str(cache_dir),
+        "--tol-s", "0",
+    ]
+    assert offline.main([*arguments, "--out", str(first_output)]) == 0
+    assert cache_models.detectors[0].calls == 15
+
+    def unexpected_detection(self, frame, timings=None):
+        raise AssertionError("A cached frame must not invoke the detector")
+
+    monkeypatch.setattr(offline.Detector, "detect", unexpected_detection)
+    assert offline.main([*arguments, "--out", str(second_output)]) == 0
+    assert cache_models.detectors[1].calls == 0
+
+    first = json.loads(first_output.read_text(encoding="utf-8"))
+    second = json.loads(second_output.read_text(encoding="utf-8"))
+    assert len(metrics) == 2
+    assert metrics[0] == metrics[1]
+    assert first["total"] == second["total"] == 1
+
+    # EventManager создаёт события заново; ID и замеры времени обработки
+    # не являются результатом детекции. Остальные поля сравниваем целиком.
+    def event_payloads(report):
+        return [
+            {
+                key: value
+                for key, value in event.items()
+                if key not in {"id", "latency_ms"}
+            }
+            for event in report["items"]
+        ]
+
+    assert event_payloads(first) == event_payloads(second)
+    assert first["mapping"] == second["mapping"]
+    assert first["durations"] == second["durations"]
+    assert first["cache"] == {
+        "dir": str(cache_dir.resolve()),
+        "mode": "readwrite",
+        "hits": 0,
+        "misses": 15,
+    }
+    assert second["cache"] == {
+        "dir": str(cache_dir.resolve()),
+        "mode": "readwrite",
+        "hits": 15,
+        "misses": 0,
+    }
+    assert first["runs"][0]["cache"] == {
+        "hits": {"det": 0}, "misses": {"det": 15}
+    }
+    assert second["runs"][0]["cache"] == {
+        "hits": {"det": 15}, "misses": {"det": 0}
+    }
+    for report in (first, second):
+        assert report["processing"]["frames_decoded"] == 30
+        assert report["processing"]["frames_analyzed"] == 15
+    assert len(list(cache_dir.glob("sample__det__*.pkl"))) == 1
+    text = capsys.readouterr().out
+    assert "cache: hits 0, misses 15" in text
+    assert "cache: hits 15, misses 0" in text
+
+
+@pytest.mark.parametrize("changed_part", ["conf_threshold", "onnx"])
+def test_cache_key_changes_with_model_configuration_or_weights(
+    bundle, cache_models, tmp_path, changed_part
+):
+    suite = offline.load_scenarios(bundle.path)
+    suite.models_dir.mkdir(parents=True, exist_ok=True)
+    weights = suite.models_dir / "not-needed.onnx"
+    weights.write_bytes(b"first weights")
+    cache_dir = tmp_path / "cache"
+
+    first = offline.run_evaluation(suite, cache_dir=cache_dir)
+    assert first["cache"]["misses"] == 15
+    initial_files = set(cache_dir.glob("*.pkl"))
+    assert len(initial_files) == 1
+
+    if changed_part == "conf_threshold":
+        registry = yaml.safe_load(bundle.models.read_text(encoding="utf-8"))
+        registry["models"][0]["conf_threshold"] = 0.87
+        bundle.models.write_text(yaml.safe_dump(registry), encoding="utf-8")
+    else:
+        stat = weights.stat()
+        # Одинаковый размер проверяет, что в ключ входит также mtime_ns.
+        weights.write_bytes(b"other weights")
+        os.utime(
+            weights,
+            ns=(stat.st_atime_ns, stat.st_mtime_ns + 1_000_000_000),
+        )
+
+    second = offline.run_evaluation(
+        offline.load_scenarios(bundle.path), cache_dir=cache_dir
+    )
+    assert second["cache"]["hits"] == 0
+    assert second["cache"]["misses"] == 15
+    assert [detector.calls for detector in cache_models.detectors] == [15, 15]
+    updated_files = set(cache_dir.glob("*.pkl"))
+    assert initial_files < updated_files
+    assert len(updated_files) == 2
+
+    third = offline.run_evaluation(
+        offline.load_scenarios(bundle.path), cache_dir=cache_dir
+    )
+    assert third["cache"]["hits"] == 15
+    assert third["cache"]["misses"] == 0
+    assert cache_models.detectors[-1].calls == 0
+
+
+def test_cache_read_miss_is_an_error_without_inference_or_report(
+    bundle, cache_models, tmp_path, capsys
+):
+    cache_dir = tmp_path / "empty-cache"
+    output = tmp_path / "missing-cache.json"
+    with pytest.raises(SystemExit) as exc:
+        offline.main(
+            [
+                "--scenarios", str(bundle.path),
+                "--out", str(output),
+                "--cache-dir", str(cache_dir),
+                "--cache-mode", "read",
+            ]
+        )
+    assert exc.value.code == 2
+    error = capsys.readouterr().err
+    assert "Detection cache miss" in error
+    assert "sample.avi" in error
+    assert "model det" in error
+    assert "frame 0" in error
+    assert cache_models.detectors[0].calls == 0
+    assert cache_models.backend.closed
+    assert not output.exists()
+    assert not cache_dir.exists()
+
+
+def test_cache_returns_independent_detections_and_keypoints(
+    bundle, cache_models, monkeypatch, tmp_path
+):
+    from ml.eval.replay_cache import DetectionCache
+
+    original_detect = offline.Detector.detect
+    expected_keypoints = np.arange(51, dtype=np.float32).reshape(17, 3)
+
+    def detect_with_keypoints(self, frame, timings=None):
+        detections = original_detect(self, frame, timings)
+        detections[0].keypoints = expected_keypoints.copy()
+        if timings is not None:
+            timings["infer"] = timings.get("infer", 0.0) + 7.0
+        return detections
+
+    monkeypatch.setattr(offline.Detector, "detect", detect_with_keypoints)
+    suite = offline.load_scenarios(bundle.path)
+    backend, detectors = offline._load_detectors({"det"}, "onnx-cpu", suite)
+    cache_dir = tmp_path / "cache"
+    try:
+        cache = DetectionCache(cache_dir, "readwrite")
+        video = cache.for_video(
+            bundle.video, detectors, "onnx-cpu", suite.models_dir
+        )
+        frame = np.zeros((96, 128, 3), dtype=np.uint8)
+        timings = {"infer": 1.0, "decode": 2.0}
+        first = video.detect("det", 0, frame, timings)
+        assert timings == {"infer": 8.0, "decode": 2.0}
+        first[0].keypoints[:] = -1
+        first[0].conf = 0.0
+
+        before_hit = dict(timings)
+        second = video.detect("det", 0, frame, timings)
+        assert timings == before_hit
+        assert second is not first
+        assert second[0] is not first[0]
+        assert not np.shares_memory(first[0].keypoints, second[0].keypoints)
+        assert second[0].conf == 0.99
+        np.testing.assert_array_equal(second[0].keypoints, expected_keypoints)
+        second[0].keypoints[:] = -2
+        second.clear()
+
+        third = video.detect("det", 0, frame, timings)
+        np.testing.assert_array_equal(third[0].keypoints, expected_keypoints)
+        assert third[0].conf == 0.99
+        assert video.hits == {"det": 2}
+        assert video.misses == {"det": 1}
+        assert cache_models.detectors[0].calls == 1
+        video.commit()
+
+        replay = DetectionCache(cache_dir, "read").for_video(
+            bundle.video, detectors, "onnx-cpu", suite.models_dir
+        )
+        fourth = replay.detect("det", 0, frame, timings)
+        np.testing.assert_array_equal(fourth[0].keypoints, expected_keypoints)
+        fourth[0].keypoints[:] = -3
+        fifth = replay.detect("det", 0, frame, timings)
+        np.testing.assert_array_equal(fifth[0].keypoints, expected_keypoints)
+        assert timings == before_hit
+        assert replay.hits == {"det": 2}
+        assert replay.misses == {"det": 0}
+        assert cache_models.detectors[0].calls == 1
+    finally:
+        backend.close()
+
+
+def test_cache_failed_video_does_not_publish_partial_frames(
+    bundle, cache_models, monkeypatch, tmp_path
+):
+    original_detect = offline.Detector.detect
+
+    def fail_mid_video(self, frame, timings=None):
+        detections = original_detect(self, frame, timings)
+        if self.calls == 3:
+            raise RuntimeError("detector failed midway")
+        return detections
+
+    monkeypatch.setattr(offline.Detector, "detect", fail_mid_video)
+    cache_dir = tmp_path / "cache"
+    output = tmp_path / "failed-cache.json"
+    with pytest.raises(SystemExit) as exc:
+        offline.main(
+            [
+                "--scenarios", str(bundle.path),
+                "--out", str(output),
+                "--cache-dir", str(cache_dir),
+            ]
+        )
+    assert exc.value.code == 2
+    assert cache_models.detectors[0].calls == 3
+    assert cache_models.backend.closed
+    assert not output.exists()
+    assert not cache_dir.exists() or list(cache_dir.iterdir()) == []
+
+
+def test_cache_incomplete_decode_does_not_publish_frames(
+    bundle, cache_models, monkeypatch, tmp_path
+):
+    real_capture = offline.cv2.VideoCapture
+
+    class TruncatedCapture:
+        def __init__(self, path):
+            self.capture = real_capture(path)
+            self.reads = 0
+            self.released = False
+
+        def isOpened(self):
+            return self.capture.isOpened()
+
+        def get(self, prop):
+            return self.capture.get(prop)
+
+        def read(self):
+            if self.reads == 5:
+                return False, None
+            self.reads += 1
+            return self.capture.read()
+
+        def release(self):
+            self.released = True
+            self.capture.release()
+
+    capture = TruncatedCapture(str(bundle.video))
+    monkeypatch.setattr(offline.cv2, "VideoCapture", lambda path: capture)
+    cache_dir = tmp_path / "cache"
+    with pytest.raises(ValueError, match="incomplete decode"):
+        offline.run_evaluation(
+            offline.load_scenarios(bundle.path), cache_dir=cache_dir
+        )
+    assert cache_models.detectors[0].calls == 3
+    assert capture.released
+    assert cache_models.backend.closed
+    assert not cache_dir.exists() or list(cache_dir.iterdir()) == []
+
+
+def test_cache_readwrite_adds_missing_source_frames(
+    bundle, cache_models, tmp_path
+):
+    import pickle
+
+    cache_dir = tmp_path / "cache"
+    bundle.raw["sample_fps"] = 2.0
+    _write_manifest(bundle)
+    first = offline.run_evaluation(
+        offline.load_scenarios(bundle.path), cache_dir=cache_dir
+    )
+    assert first["cache"]["misses"] == 6
+    initial_files = set(cache_dir.glob("*.pkl"))
+
+    bundle.raw["sample_fps"] = 5.0
+    _write_manifest(bundle)
+    second = offline.run_evaluation(
+        offline.load_scenarios(bundle.path), cache_dir=cache_dir
+    )
+    assert second["cache"]["hits"] == 3
+    assert second["cache"]["misses"] == 12
+    assert cache_models.detectors[-1].calls == 12
+    assert set(cache_dir.glob("*.pkl")) == initial_files
+    with next(iter(initial_files)).open("rb") as stream:
+        payload = pickle.load(stream)
+    assert set(payload["frames"]) == set(range(0, 30, 5)) | set(range(0, 30, 2))
+
+    third = offline.run_evaluation(
+        offline.load_scenarios(bundle.path),
+        cache_dir=cache_dir,
+        cache_mode="read",
+    )
+    assert third["cache"]["hits"] == 15
+    assert third["cache"]["misses"] == 0
+    assert cache_models.detectors[-1].calls == 0
+
+
+def test_cache_write_recomputes_and_replaces_file(
+    bundle, cache_models, tmp_path
+):
+    import pickle
+
+    cache_dir = tmp_path / "cache"
+    offline.run_evaluation(
+        offline.load_scenarios(bundle.path), cache_dir=cache_dir
+    )
+    initial_files = set(cache_dir.glob("*.pkl"))
+    assert len(initial_files) == 1
+
+    bundle.raw["sample_fps"] = 2.0
+    _write_manifest(bundle)
+    output = tmp_path / "write-cache.json"
+    assert offline.main(
+        [
+            "--scenarios", str(bundle.path),
+            "--out", str(output),
+            "--cache-dir", str(cache_dir),
+            "--cache-mode", "write",
+        ]
+    ) == 0
+    report = json.loads(output.read_text(encoding="utf-8"))
+    assert report["cache"]["mode"] == "write"
+    assert report["cache"]["hits"] == 0
+    assert report["cache"]["misses"] == 6
+    assert cache_models.detectors[-1].calls == 6
+    assert set(cache_dir.glob("*.pkl")) == initial_files
+    path = next(iter(initial_files))
+    data = path.read_bytes()
+    assert data[:2] == b"\x80\x05"
+    payload = pickle.loads(data)
+    assert payload["version"] == 1
+    assert set(payload) == {"version", "key_parts", "frames"}
+    assert set(payload["frames"]) == set(range(0, 30, 5))
+    assert set(cache_dir.iterdir()) == initial_files
+
+
+def test_without_cache_preserves_report_shape(bundle, fake_models):
+    report = offline.run_evaluation(offline.load_scenarios(bundle.path))
+    assert "cache" not in report
+    assert all("cache" not in run for run in report["runs"])
+    assert fake_models.detectors[0].calls == 15

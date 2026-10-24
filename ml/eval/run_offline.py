@@ -56,6 +56,7 @@ from guard.pipeline.worker import OBJECT_CLASSES, PERSON_CLASSES
 from guard.rules.base import RulePlugin, build_rules, load_plugins
 from guard.rules.geometry import validate_active_hours
 from ml.eval import events_eval
+from ml.eval.replay_cache import DetectionCache
 
 
 DEFAULT_T0 = 1_700_000_000.0
@@ -343,8 +344,14 @@ def run_video(
     *,
     rules: Sequence[RulePlugin] | None = None,
     settings: Settings | None = None,
+    cache: DetectionCache | None = None,
+    backend_name: str = "onnx-cpu",
+    models_dir: Path | None = None,
 ) -> VideoResult:
-    """Прочитать один файл потоково; трекеры и EventManager изолированы."""
+    """Прочитать один файл потоково; трекеры и EventManager изолированы.
+
+    Для относительных onnx_path models_dir по умолчанию равен ./models.
+    """
     camera = scenario.camera
     _validate_camera(camera)
     _finite(scenario.t0, "t0")
@@ -366,6 +373,7 @@ def run_video(
     capture = cv2.VideoCapture(str(path))
     events: dict[str, Event] = {}
     decoded = analyzed = 0
+    video_cache = None
     try:
         if not capture.isOpened():
             raise ValueError(f"{scenario.id}: cannot open video: {path}")
@@ -388,6 +396,13 @@ def run_video(
             classes=set(OBJECT_CLASSES), **tracker_kwargs
         )
         manager = compat.EventManager()
+        if cache is not None:
+            video_cache = cache.for_video(
+                path,
+                {model_id: detectors[model_id] for model_id in needed},
+                backend_name,
+                models_dir if models_dir is not None else Path("models"),
+            )
 
         while True:
             read_started = time.perf_counter()
@@ -406,7 +421,11 @@ def run_video(
             timings = {key: 0.0 for key in TIMING_KEYS}
             timings["decode"] = decode_ms
             detections = {
-                model_id: detectors[model_id].detect(frame, timings)
+                model_id: (
+                    video_cache.detect(model_id, frame_idx, frame, timings)
+                    if video_cache is not None
+                    else detectors[model_id].detect(frame, timings)
+                )
                 for model_id in needed
             }
 
@@ -473,6 +492,9 @@ def run_video(
     finally:
         capture.release()
 
+    if video_cache is not None:
+        video_cache.commit()
+
     elapsed = time.perf_counter() - started
     duration_s = decoded / fps
     return VideoResult(
@@ -487,6 +509,16 @@ def run_video(
             "elapsed_s": elapsed,
             "fps": analyzed / elapsed if elapsed > 0 else None,
             "decoded_fps": decoded / elapsed if elapsed > 0 else None,
+            **(
+                {
+                    "cache": {
+                        "hits": dict(video_cache.hits),
+                        "misses": dict(video_cache.misses),
+                    }
+                }
+                if video_cache is not None
+                else {}
+            ),
         },
     )
 
@@ -498,6 +530,8 @@ def run_evaluation(
     only: Sequence[str] | None = None,
     tol_s: float = 2.0,
     settings: Settings | None = None,
+    cache_dir: Path | None = None,
+    cache_mode: str = "readwrite",
 ) -> dict[str, Any]:
     """Оценить выбранные видео, включая пустую разметку и все её типы."""
     if backend not in {"onnx-cpu", "linq-tpu"}:
@@ -506,6 +540,7 @@ def run_evaluation(
         raise ValueError("tol_s must be non-negative")
 
     wall_started = time.perf_counter()
+    cache = DetectionCache(cache_dir, cache_mode) if cache_dir is not None else None
     scenarios = _select(suite, only)
     if settings is None:
         settings = Settings.from_env()
@@ -544,7 +579,13 @@ def run_evaluation(
     try:
         for scenario, rules in prepared:
             result = run_video(
-                scenario, detectors, rules=rules, settings=settings
+                scenario,
+                detectors,
+                rules=rules,
+                settings=settings,
+                cache=cache,
+                backend_name=backend,
+                models_dir=suite.models_dir,
             )
             events.extend(result.events)
             mapping[scenario.camera.camera_id] = {
@@ -571,7 +612,7 @@ def run_evaluation(
     elapsed = math.fsum(run["elapsed_s"] for run in runs)
     frames_decoded = sum(run["frames_decoded"] for run in runs)
     frames_analyzed = sum(run["frames_analyzed"] for run in runs)
-    return {
+    report = {
         **metrics,
         "backend": backend,
         "items": [event.model_dump(mode="json") for event in events],
@@ -594,6 +635,14 @@ def run_evaluation(
             "wall_elapsed_s": time.perf_counter() - wall_started,
         },
     }
+    if cache is not None:
+        report["cache"] = {
+            "dir": str(cache.cache_dir),
+            "mode": cache.mode,
+            "hits": sum(sum(run["cache"]["hits"].values()) for run in runs),
+            "misses": sum(sum(run["cache"]["misses"].values()) for run in runs),
+        }
+    return report
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -605,6 +654,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--tol-s", type=float, default=2.0)
     parser.add_argument("--models-config", type=Path, help="Override model registry")
     parser.add_argument("--models-dir", type=Path, help="Override model directory")
+    parser.add_argument("--cache-dir", type=Path, help="Detection cache directory")
+    parser.add_argument(
+        "--cache-mode", choices=("readwrite", "read", "write"), default="readwrite"
+    )
     args = parser.parse_args(argv)
 
     try:
@@ -618,6 +671,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             backend=args.backend,
             only=args.only.split(",") if args.only is not None else None,
             tol_s=args.tol_s,
+            cache_dir=args.cache_dir,
+            cache_mode=args.cache_mode,
         )
         serialized = json.dumps(
             result, ensure_ascii=False, indent=2, allow_nan=False
@@ -639,6 +694,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         f"analyzed FPS: {fps_text}; "
         f"wall: {processing['wall_elapsed_s']:.3f}s"
     )
+    if "cache" in result:
+        print(
+            f"cache: hits {result['cache']['hits']}, "
+            f"misses {result['cache']['misses']}"
+        )
     return 0
 
 
