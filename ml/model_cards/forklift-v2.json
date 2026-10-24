@@ -254,7 +254,7 @@
             "duplicates": 0
           }
         },
-        "report": ".orchestra/metrics/eval-onnx-cpu-forklift-v1-20261024-1514.json"
+        "report": "eval-onnx-cpu-forklift-v1-20261024-1514.json"
       }
     }
   },

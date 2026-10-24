@@ -18,8 +18,8 @@
     python ml/flywheel/gate.py --candidate forklift-v1 --onnx models/forklift_v1-480.onnx \\
         --data data/datasets/forklift/data.yaml --subset forklift_rf=data/datasets/forklift/test_forklift_rf.txt \\
         --reference keremberke=models/forklift-640.onnx:forklift,person \\
-        --events-baseline .orchestra/metrics/eval-forklift-base.json \\
-        --events-candidate .orchestra/metrics/eval-forklift-v1.json --baseline-name "det (yolov8n COCO)" --write
+        --events-baseline data/flywheel/runs/eval-forklift-base.json \\
+        --events-candidate data/flywheel/runs/eval-forklift-v1.json --baseline-name "det (yolov8n COCO)" --write
 """
 
 from __future__ import annotations
@@ -66,6 +66,9 @@ def build_parser() -> argparse.ArgumentParser:
                     help="реестр, в копии которого model_id кандидата смотрит на его ONNX (для --scenarios-candidate)")
     ap.add_argument("--events-out", type=Path, default=ROOT / "data/flywheel/runs",
                     help="куда сохранить посчитанные отчёты событий")
+    ap.add_argument("--cache-dir", type=Path,
+                    help="кэш детекций run_offline (ml/eval/replay_cache.py): det, pose, ppe и fire базы и кандидата "
+                         "считаются один раз. Ключ кэша включает файл ONNX и запись модели, версии не смешиваются")
     ap.add_argument("--imgsz", type=int, help="вход ONNX (по умолчанию — из модели)")
     ap.add_argument("--map-tol", type=float, default=MAP_TOL)
     ap.add_argument("--write", action="store_true", help="записать holdout, baseline и gate в карточку")
@@ -218,6 +221,14 @@ def candidate_registry(base: Path, model_id: str, onnx: Path, classes: list[str]
     return out
 
 
+def rel_path(path: Path) -> str:
+    """Путь в карточку: относительно корня репозитория (карточка одна для main и всех worktree)."""
+    try:
+        return str(Path(path).absolute().relative_to(ROOT))
+    except ValueError:
+        return str(path)
+
+
 def code_version() -> str:
     """Коммит кода конвейера: события базы и кандидата сравнимы, только если посчитаны одним кодом."""
     import subprocess
@@ -327,20 +338,22 @@ def main(argv: list[str] | None = None) -> int:
                 references[rname][f"dataset_test_{sname}"] = dataset_map(rpath, rclasses, sub_images, names)
 
     stamp = time.strftime("%Y%m%d-%H%M")
+    cand_path, base_path = args.events_candidate, args.events_baseline
     if args.events_candidate:
         cand_report = json.loads(args.events_candidate.read_text(encoding="utf-8"))
     elif args.scenarios_candidate:
         out_dir = args.events_out / card["version"]
         registry = candidate_registry(args.models_config, card["model_id"], onnx, card["classes"],
                                       out_dir / "models_candidate.yaml")
-        cand_report = run_events(args.scenarios_candidate, args.only,
-                                 out_dir / f"events-{card['version']}-{stamp}.json", registry)
+        cand_path = out_dir / f"events-{card['version']}-{stamp}.json"
+        cand_report = run_events(args.scenarios_candidate, args.only, cand_path, registry, args.cache_dir)
     else:
         cand_report = None
     if args.events_baseline:
         base_report = json.loads(args.events_baseline.read_text(encoding="utf-8"))
     elif args.scenarios_baseline:
-        base_report = run_events(args.scenarios_baseline, args.only, args.events_out / f"events-base-{stamp}.json")
+        base_path = args.events_out / f"events-base-{stamp}.json"
+        base_report = run_events(args.scenarios_baseline, args.only, base_path, None, args.cache_dir)
     else:
         base_report = None
     if cand_report is None or base_report is None:
@@ -348,9 +361,15 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     holdout["events"] = event_summary(cand_report)
     baseline_holdout["events"] = event_summary(base_report)
-    for target, path in ((holdout, args.events_candidate), (baseline_holdout, args.events_baseline)):
+    for target, path, report in ((holdout, cand_path, cand_report), (baseline_holdout, base_path, base_report)):
         if path is not None:
-            target["events"]["report"] = str(path)
+            target["events"]["report"] = rel_path(path)
+        if report.get("code"):
+            target["events"]["code"] = report["code"]
+    codes = {holdout["events"].get("code"), baseline_holdout["events"].get("code")}
+    if None not in codes and len(codes) > 1:
+        # Разный код конвейера — разница в событиях может быть не от модели (phone_usage в гейте forklift-v2).
+        print(f"gate: внимание — события посчитаны разным кодом: {sorted(codes)}", file=sys.stderr)
     if holdout["events"]["videos"] != baseline_holdout["events"]["videos"]:
         print("gate: события кандидата и базы посчитаны на разных роликах", file=sys.stderr)
         return 2
