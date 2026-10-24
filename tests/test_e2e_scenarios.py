@@ -252,17 +252,56 @@ def test_positive_scenario(
     assert len(ids) == (2 if name == "ppe_missing" else 1)
 
     if name == "ppe_missing":
-        offenders = [
-            person for person in people
+        offender_observations = [
+            (step.ts, person)
+            for step in result.steps
+            for person in step.people
             if (person.bbox[0] + person.bbox[2]) / 2.0 < 660.0
         ]
-        protected = [
-            person for person in people
+        protected_observations = [
+            (step.ts, person)
+            for step in result.steps
+            for person in step.people
             if (person.bbox[0] + person.bbox[2]) / 2.0 > 660.0
         ]
+        offenders = [person for _, person in offender_observations]
+        protected = [person for _, person in protected_observations]
         assert offenders and protected
-        assert all(p.attributes["helmet"] is False for p in offenders)
-        assert all(p.attributes["helmet"] is True for p in protected)
+
+        first_appearance = {}
+        for step in result.steps:
+            for person in step.people:
+                first_appearance.setdefault(person.track_id, step.ts)
+
+        assert all(p.attributes["helmet"] is not True for p in offenders)
+        assert all(p.attributes["helmet"] is not False for p in protected)
+
+        # Неизвестность разрешена только в первую секунду появления трека.
+        for ts, person in offender_observations:
+            if ts - first_appearance[person.track_id] >= 1.0 - EPS:
+                assert person.attributes["helmet"] is False
+        for ts, person in protected_observations:
+            if ts - first_appearance[person.track_id] >= 1.0 - EPS:
+                assert person.attributes["helmet"] is True
+
+        confirmed_offenders = [
+            person
+            for ts, person in offender_observations
+            if abs(ts - event.confirmed_at) <= EPS
+            and person.track_id == event.track_id
+        ]
+        assert len(confirmed_offenders) == 1
+        assert confirmed_offenders[0].attributes["helmet"] is False
+
+        last_protected = {
+            person.track_id: person
+            for _, person in protected_observations
+        }
+        assert all(
+            person.attributes["helmet"] is True
+            for person in last_protected.values()
+        )
+
         assert {p.track_id for p in offenders} == {event.track_id}
         protected_ids = {p.track_id for p in protected}
         assert all(
@@ -378,21 +417,7 @@ def test_new_track_id_within_cooldown_does_not_notify_twice(
         assert len(result.closed) == 1
 
 
-class _SingleFramePpeAlarm(AssertionError):
-    """Известное ложное подтверждение после одного отрицательного голоса."""
-
-
 @pytest.mark.parametrize("seed", SEEDS)
-@pytest.mark.xfail(
-    strict=True,
-    raises=_SingleFramePpeAlarm,
-    reason=(
-        "assign_attributes сохраняет единственный голос no_helmet в окне "
-        "[ts-2, ts]; без других PPE-голосов helmet=False держится до t+2 "
-        "включительно. ppe_missing повторяет Violation, и EventManager "
-        "при min_duration_s=2, min_ratio=0.7 создаёт ложное оповещение."
-    ),
-)
 def test_single_false_no_helmet_frame_produces_no_event(seed: int) -> None:
     scenario = make_scenario("noisy_frame", seed=seed)
     false_observations = [
@@ -411,23 +436,6 @@ def test_single_false_no_helmet_frame_produces_no_event(seed: int) -> None:
         step for step in result.steps if step.ts == false_observations[0]
     )
     assert len(false_frame.people) == 1
-
-    if result.created:
-        # Только известная ошибка подтверждения получает xfail.
-        # Ошибки сборки конвейера, геометрии, типа или задержки остаются
-        # обычными падениями теста благодаря raises выше.
-        event = _assert_one_event(
-            scenario, result, "ppe_missing", Severity.high
-        )
-        assert event.details["missing"] == ["helmet"]
-        assert event.started_at == pytest.approx(
-            START_TS + 4.0, rel=0.0, abs=EPS
-        )
-        raise _SingleFramePpeAlarm(
-            "Один исходный no_helmet создал оповещение: "
-            f"started_at={event.started_at}, "
-            f"confirmed_at={event.confirmed_at}"
-        )
 
     assert result.created == []
     assert result.closed == []
