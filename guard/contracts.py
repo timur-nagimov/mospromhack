@@ -124,6 +124,10 @@ class Event(BaseModel):
     operator_note: str | None = None
     details: dict[str, Any] = Field(default_factory=dict)
     latency_ms: dict[str, float] = Field(default_factory=dict)  # замеры обработки, ключи из TIMING_KEYS
+    # кто и когда последним изменил статус или заметку через PATCH /api/events/{id} (логин, epoch ts);
+    # принадлежат шлюзу, как status и operator_note, и в сообщения edge → шлюз не входят
+    handled_by: str | None = None
+    handled_at: float | None = None
 
 
 # ---------- Рантайм конвейера (dataclass) ----------

@@ -9,6 +9,8 @@
 #   GUARD_VPN_MODE=external scripts/run_tpu.sh  использовать готовые локальные пробросы без VPN up
 # Очереди и накопленные события сохраняются: автоматической очистки нет.
 # Остальные переменные (HOST, PORT, GUARD_*) передаются в scripts/run_dev.sh.
+# Вход и роли (docs/ROLES.md): GUARD_AUTH=1 и GUARD_DEMO_LOGIN=1 по умолчанию; демо-учётки печатает
+# scripts/run_dev.sh перед стартом шлюза (python -m guard.auth banner).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 unset PYTHONPATH  # FUSE arcadia в PYTHONPATH роняет интерпретатор, см. run_dev.sh

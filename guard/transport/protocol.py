@@ -337,10 +337,15 @@ def decode(data: bytes | str, *, expected_edge_id: str | None = None) -> Envelop
     return envelope
 
 
+# Решение диспетчера живёт только на шлюзе (как status и operator_note, которые шлюз не берёт с edge).
+# В сообщения edge → шлюз эти поля не входят: шлюз прежней версии не отвергнет сообщение нового edge.
+GATEWAY_ONLY_FIELDS = frozenset({"handled_by", "handled_at"})
+
+
 def event_payload(event: Event, *, snapshot_jpeg: bytes | None = None) -> dict[str, Any]:
     validated = Event.model_validate(event.model_dump())
     _finite_event(validated)
-    payload = {"event": validated.model_dump(mode="json")}
+    payload = {"event": validated.model_dump(mode="json", exclude=set(GATEWAY_ONLY_FIELDS))}
     if snapshot_jpeg is not None:
         payload["snapshot_jpeg"] = base64.b64encode(snapshot_jpeg).decode("ascii")
     _json_tree(payload)
