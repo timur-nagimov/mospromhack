@@ -86,7 +86,7 @@ class GatewayEngine:
             if consumer is None:
                 if not settings.rabbit_url:
                     raise ValueError("GUARD_RABBIT_URL is required")
-                consumer = RabbitConsumer(RabbitConfig(settings.rabbit_url, settings.edge_id))
+                consumer = RabbitConsumer(RabbitConfig(settings.rabbit_url, settings.edge_id, suffix=settings.rabbit_suffix))
         except BaseException:
             self.journal.close()
             raise

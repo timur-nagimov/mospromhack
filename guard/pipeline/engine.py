@@ -97,7 +97,7 @@ class PipelineEngine:
         self.media.start()
         start_flywheel(self)
         try:
-            cams = load_cameras(self.settings.cameras_config)
+            cams = self._load_camera_configs()
         except Exception:  # noqa: BLE001
             log.exception("cannot load %s", self.settings.cameras_config)
             cams = []
@@ -107,6 +107,10 @@ class PipelineEngine:
                 if cam.enabled:
                     self._start_worker(cam)
         log.info("pipeline started: %d cameras, backend %s, fallbacks %s", len(cams), self.backend.name, compat.FALLBACKS)
+
+    def _load_camera_configs(self) -> list[CameraConfig]:
+        """Камеры при старте. Edge с каналом конфигурации добавляет оверлей шлюза (guard/edge/config_sync.py)."""
+        return load_cameras(self.settings.cameras_config)
 
     def stop(self) -> None:
         if self._stopped:
