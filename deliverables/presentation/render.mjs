@@ -5,6 +5,7 @@
 //   node render.mjs --png DIR       плюс PNG каждого слайда в DIR (для проверки вёрстки)
 //   node render.mjs --out FILE      другой путь PDF
 //   node render.mjs --serve         только локальный сервер для просмотра в браузере
+//   node render.mjs --data FILE     подставить другой data.json (проверить, как лягут новые цифры)
 //
 // Playwright берётся из frontend/node_modules (cd frontend && npm ci) или из PLAYWRIGHT_DIR.
 // На ноутбуке команды запускать через tools/heavy.sh: браузер — тяжёлый процесс.
@@ -21,6 +22,7 @@ const args = process.argv.slice(2);
 const opt = name => { const i = args.indexOf(name); return i >= 0 ? (args[i + 1] || true) : null; };
 const OUT = path.resolve(opt("--out") || path.join(HERE, "zazerkalye.pdf"));
 const PNG_DIR = opt("--png");
+const DATA_FILE = opt("--data") ? path.resolve(opt("--data")) : null;
 
 const MIME = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8",
@@ -31,8 +33,8 @@ const MIME = {
 function startServer() {
   const server = http.createServer((req, res) => {
     const url = decodeURIComponent((req.url || "/").split("?")[0]);
-    const file = path.resolve(SERVE_ROOT, "." + url);
-    if (!file.startsWith(SERVE_ROOT + path.sep)) { res.writeHead(403); res.end(); return; }
+    const file = (DATA_FILE && url === "/presentation/data.json") ? DATA_FILE : path.resolve(SERVE_ROOT, "." + url);
+    if (file !== DATA_FILE && !file.startsWith(SERVE_ROOT + path.sep)) { res.writeHead(403); res.end(); return; }
     fs.readFile(file, (err, buf) => {
       if (err) { res.writeHead(404); res.end("not found"); return; }
       res.writeHead(200, { "content-type": MIME[path.extname(file).toLowerCase()] || "application/octet-stream", "cache-control": "no-store" });
