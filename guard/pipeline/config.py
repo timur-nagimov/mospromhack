@@ -13,6 +13,7 @@ from typing import Any
 import yaml
 
 from guard.contracts import CameraConfig, ModelSpec
+from guard.rules.base import with_default_severity
 
 log = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def load_cameras(path: str | Path) -> list[CameraConfig]:
     cams: list[CameraConfig] = []
     for item in items or []:
         try:
-            cams.append(CameraConfig.model_validate(item))
+            cams.append(with_default_severity(CameraConfig.model_validate(item)))
         except ValueError as exc:  # одна битая запись не должна выключать остальные камеры
             name = item.get("camera_id") if isinstance(item, dict) else item
             log.error("cameras config %s: entry %r skipped: %s", path, name, str(exc).splitlines()[0])

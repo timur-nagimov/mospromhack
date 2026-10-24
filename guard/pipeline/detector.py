@@ -74,7 +74,9 @@ class BatchScheduler:
             first = self._q.get()
             if first is None:
                 break
-            batch = self._collect(first)
+            batch = [r for r in self._collect(first) if r.future.set_running_or_notify_cancel()]
+            if not batch:  # все ждавшие уже отказались (таймаут) — не гоняем инференс впустую
+                continue
             started = time.perf_counter()
             try:
                 stacked = np.concatenate([r.tensor for r in batch], axis=0)
@@ -139,7 +141,12 @@ class Detector:
         tensor, meta = self.preprocess(frame)
         t1 = time.perf_counter()
         if self.scheduler is not None:
-            outputs, t = self.scheduler.submit(tensor).result(timeout=30)
+            future = self.scheduler.submit(tensor)
+            try:
+                outputs, t = future.result(timeout=30)
+            except TimeoutError:
+                future.cancel()  # после простоя бэкенда (TPU) не обрабатываем накопившиеся устаревшие кадры
+                raise
         else:
             outputs, t = self.backend.infer_timed(self.model_id, tensor)
         t2 = time.perf_counter()

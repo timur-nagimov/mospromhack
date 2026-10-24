@@ -1,36 +1,130 @@
-# Реестр моделей (A3, минимальный — до полного configs/models.yaml от A2).
-# onnx_path — относительно GUARD_MODELS_DIR. Пустые classes берутся из
-# <GUARD_MODELS_DIR>/<model_id>.json (пишет ml/export_onnx.py) или из метаданных ONNX.
+# Реестр моделей (владелец A2 ml). Подробности, лицензии и качество — docs/MODELS.md.
+#
+# models — список ModelSpec (поля строго из guard.contracts.ModelSpec, проверка: ModelSpec.model_validate).
+# meta   — справка по model_id: исходные классы модели, маппинг в нормализованные, источник, лицензия.
+#
+# onnx_path — относительно GUARD_MODELS_DIR (<корень>/models). Все ONNX: opset 12, batch=1,
+# статический shape, без NMS. Вход: NCHW float32, RGB, 0..1, letterbox с паддингом 114 по центру.
+# Выход detect: (1, 4 + nc, N) — cx, cy, w, h в пикселях входа + sigmoid-скоры классов.
+# Выход pose:   (1, 56, N) — рамка, скор person, 17 точек COCO (x, y, conf).
+# input_dtype: float32 для onnxruntime-CPU; uint8 для TPU уточнит A1 после компиляции.
+# Порядок classes = порядок каналов ONNX; имена уже нормализованы, правила работают с ними.
+
 models:
-  - model_id: det
+  # --- люди и техника, COCO-80 ---
+  - model_id: det                  # основной детектор людей и техники
     task: detect
     onnx_path: yolov8n-640.onnx
     input_size: [640, 640]
     input_dtype: float32
     output_format: yolov8
-    conf_threshold: 0.25
+    conf_threshold: 0.25           # как у A3 в конвейере (трекеру нужны и слабые детекции)
     iou_threshold: 0.5
+    classes: &coco80 [person, bicycle, car, motorcycle, airplane, bus, train, truck, boat, traffic light,
+      fire hydrant, stop sign, parking meter, bench, bird, cat, dog, horse, sheep, cow, elephant, bear,
+      zebra, giraffe, backpack, umbrella, handbag, tie, suitcase, frisbee, skis, snowboard, sports ball,
+      kite, baseball bat, baseball glove, skateboard, surfboard, tennis racket, bottle, wine glass, cup,
+      fork, knife, spoon, bowl, banana, apple, sandwich, orange, broccoli, carrot, hot dog, pizza, donut,
+      cake, chair, couch, potted plant, bed, dining table, toilet, tv, laptop, mouse, remote, keyboard,
+      cell phone, microwave, oven, toaster, sink, refrigerator, book, clock, vase, scissors, teddy bear,
+      hair drier, toothbrush]
+  - model_id: det_s640             # точнее (yolov8s), в ~3 раза дороже
+    task: detect
+    onnx_path: yolov8s-640.onnx
+    input_size: [640, 640]
+    output_format: yolov8
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+    classes: *coco80
+  - model_id: det_n480
+    task: detect
+    onnx_path: yolov8n-480.onnx
+    input_size: [480, 480]
+    output_format: yolov8
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+    classes: *coco80
+  - model_id: det_n416
+    task: detect
+    onnx_path: yolov8n-416.onnx
+    input_size: [416, 416]
+    output_format: yolov8
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+    classes: *coco80
+
+  # --- поза (S3 падение, S5 бег) ---
   - model_id: pose
     task: pose
     onnx_path: yolov8n-pose-640.onnx
     input_size: [640, 640]
-    input_dtype: float32
     output_format: yolov8-pose
-    conf_threshold: 0.3
+    conf_threshold: 0.3            # как у A3
     iou_threshold: 0.5
+    classes: [person]
+  - model_id: pose_n480
+    task: pose
+    onnx_path: yolov8n-pose-480.onnx
+    input_size: [480, 480]
+    output_format: yolov8-pose
+    conf_threshold: 0.35
+    iou_threshold: 0.5
+    classes: [person]
+
+  # --- СИЗ (S2): каска, жилет и их отсутствие; бонусом техника для S4 ---
   - model_id: ppe
     task: detect
     onnx_path: ppe-640.onnx
     input_size: [640, 640]
-    input_dtype: float32
     output_format: yolov8
-    conf_threshold: 0.35
+    conf_threshold: 0.4            # см. docs/MODELS.md: no_helmet/no_vest требуют подтверждения по треку
     iou_threshold: 0.5
+    classes: [person, helmet, no_helmet, vest, no_vest, no_mask, gloves, safety_shoes, excavator,
+      wheel_loader, dump_truck, goggles, no_goggles, no_gloves]
+
+  # --- огонь и дым (S7) ---
   - model_id: fire
     task: detect
     onnx_path: fire-640.onnx
     input_size: [640, 640]
-    input_dtype: float32
     output_format: yolov8
-    conf_threshold: 0.3
+    conf_threshold: 0.4
     iou_threshold: 0.5
+    classes: [smoke, fire]
+
+meta:
+  det:
+    source: "Ultralytics YOLOv8n COCO, https://github.com/ultralytics/assets/releases"
+    license: AGPL-3.0
+  det_s640: {source: "Ultralytics YOLOv8s COCO", license: AGPL-3.0}
+  det_n480: {source: "Ultralytics YOLOv8n COCO, imgsz 480", license: AGPL-3.0}
+  det_n416: {source: "Ultralytics YOLOv8n COCO, imgsz 416", license: AGPL-3.0}
+  pose: {source: "Ultralytics YOLOv8n-pose COCO-keypoints", license: AGPL-3.0}
+  pose_n480: {source: "Ultralytics YOLOv8n-pose, imgsz 480", license: AGPL-3.0}
+  ppe:
+    source: "https://huggingface.co/constructelligence/construction-site-safety-hazards (v0.3, YOLOv8s)"
+    license: "AGPL-3.0 (веса), CC BY 4.0 (обучающие данные)"
+    weights: models/weights/ppe_constructelligence_v0.3.pt
+    # исходный класс модели -> нормализованный
+    class_map:
+      person: person
+      hardhat: helmet
+      no-hardhat: no_helmet
+      safety vest: vest
+      no-safety vest: no_vest
+      no-mask: no_mask             # авторы: не обучился (2 примера в тесте) — не использовать
+      gloves: gloves
+      safety shoes: safety_shoes
+      excavator: excavator
+      wheel loader: wheel_loader
+      dump truck: dump_truck
+      goggles: goggles
+      no-goggles: no_goggles
+      no-gloves: no_gloves         # авторы: AP50 0.07 — не использовать
+    reliable_classes: [person, helmet, vest, no_vest, no_helmet, excavator, wheel_loader, dump_truck]
+    respirator: "нет: класса respirator у модели нет, no-mask не обучен"
+  fire:
+    source: "https://huggingface.co/rabahdev/fire-smoke-yolov8n (YOLOv8n, дообучение на D-Fire)"
+    license: "AGPL-3.0 (веса); D-Fire — открытый датасет для исследований"
+    weights: models/weights/fire_rabahdev_dfire_v8n.pt
+    class_map: {smoke: smoke, fire: fire}

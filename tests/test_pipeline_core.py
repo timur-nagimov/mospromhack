@@ -226,6 +226,21 @@ def test_batch_scheduler_merges_cameras():
     assert all(r[0][0].shape[0] == 1 and r[1]["batch"] == 3 for r in results)
 
 
+def test_batch_scheduler_skips_cancelled_requests():
+    """Запросы, от которых отказались по таймауту, не уходят в бэкенд после его восстановления."""
+    be = FakeBackend(max_batch=4)
+    be.load(ModelSpec(model_id="det", onnx_path="x", classes=["person"] * 80))
+    sched = BatchScheduler(be, "det", max_batch=4, timeout_s=0.3)
+    try:
+        stale = sched.submit(np.zeros((1, 3, 640, 640), np.float32))
+        assert stale.cancel()  # ещё не взят в работу: таймаут детектора отменяет запрос
+        live = sched.submit(np.zeros((1, 3, 640, 640), np.float32))
+        live.result(timeout=2)
+    finally:
+        sched.stop()
+    assert be.calls == 1 and stale.cancelled()
+
+
 # ---------- заглушки (запасной вариант модулей Codex) ----------
 
 
@@ -280,7 +295,8 @@ def test_cameras_yaml_roundtrip(tmp_path):
 
 
 def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
-    """Неявная severity не должна превращаться в явную 'high' после сохранения (иначе теряется default плагина)."""
+    """Неявная severity не должна превращаться в общую 'high' после сохранения: правило получает
+    default_severity своего плагина (fall_immobile — critical), явная severity сохраняется как есть."""
     cam = CameraConfig(
         camera_id="c1", name="c", site="s", source=SourceConfig(type="file", uri="a.mp4"),
         rules=[RuleConfig(rule_id="r1", type="fall_immobile"), RuleConfig(rule_id="r2", type="zone_intrusion", severity="low")],
@@ -288,7 +304,7 @@ def test_cameras_yaml_keeps_unset_rule_severity(tmp_path):
     path = tmp_path / "cams.yaml"
     save_cameras(path, [cam])
     r1, r2 = load_cameras(path)[0].rules
-    assert "severity" not in r1.model_fields_set
+    assert r1.severity == "critical"
     assert r2.severity == "low"
 
 
@@ -353,4 +369,35 @@ def test_worker_end_to_end_single_s1_event(tmp_path):
     assert snap["frames_processed"] == 50
     jpeg = worker.overlay_jpeg()
     assert jpeg is not None and jpeg[1][:2] == b"\xff\xd8"
+    engine.stop()
+
+
+def test_clip_queue_full_marks_clip_error_and_restart_publishes_close(tmp_path):
+    settings = make_settings(tmp_path, autostart=False)
+    engine = PipelineEngine(settings, backend=FakeBackend())
+    cam = CameraConfig(
+        camera_id="cam1", name="Цех", site="Цех 1",
+        source=SourceConfig(type="images", uri=str(write_images(tmp_path / "imgs", n=2))),
+        sample_fps=5,
+        zones=[Zone(zone_id="z1", name="Опасная", polygon=[(0.4, 0.5), (0.9, 0.5), (0.9, 1.0), (0.4, 1.0)])],
+        rules=[RuleConfig(rule_id="s1", type="zone_intrusion", zones=["z1"], min_duration_s=1.0, close_after_s=1.0)],
+    )
+    engine.cameras[cam.camera_id] = cam
+    worker = CameraWorker(cam, engine)
+    worker.detectors = {"det": ScriptedDetector(lambda i, frame: [person((200, 60, 240, 200))])}  # стоит в зоне
+    engine.media.schedule_clip = lambda ev, on_done=None: False  # очередь клипов переполнена
+    published = []
+    engine.bus.publish = published.append
+    frame = np.zeros((240, 320, 3), np.uint8)
+    t0 = time.time() - 20
+    for i in range(20):
+        worker.process(FramePacket(frame=frame, ts=t0 + i * 0.2, seq=i + 1, decode_ms=1.0))
+    events, _ = engine.journal.query(camera_id="cam1")
+    assert len(events) == 1
+    ev = events[0]
+    assert ev.ended_at is None and ev.details.get("clip_error") is True
+    published.clear()
+    engine._close_open_events("cam1")  # горячий перезапуск камеры
+    updates = [m["event"] for m in published if m["kind"] == "event_update"]
+    assert updates and updates[0]["id"] == ev.id and updates[0]["ended_at"] is not None
     engine.stop()
