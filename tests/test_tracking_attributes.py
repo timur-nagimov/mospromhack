@@ -60,8 +60,14 @@ def pose(track, points=None):
 )
 def test_ppe_values(cls, attribute, expected, bbox):
     track = person()
-    assign_attributes([track], {"ppe": [detection(cls, bbox)]}, 0.0)
-    assert track.attributes[attribute] is expected
+    for index in range(3):
+        assign_attributes(
+            [track], {"ppe": [detection(cls, bbox)]}, index * 0.2
+        )
+        if expected is False and index < 2:
+            assert track.attributes[attribute] is None
+        else:
+            assert track.attributes[attribute] is expected
 
 
 def test_absent_attributes_are_unknown():
@@ -93,8 +99,143 @@ def test_ppe_temporal_majority_and_tie():
     assign_attributes([track], {"ppe": [no]}, 0.2)
     assert track.attributes["helmet"] is None
     assign_attributes([track], {"ppe": [no]}, 0.4)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [no]}, 0.6)
     assert track.attributes["helmet"] is False
-    assign_attributes([track], {}, 2.5)
+    assign_attributes([track], {}, 2.7)
+    assert track.attributes["helmet"] is None
+
+
+@pytest.mark.parametrize(
+    "cls, attribute, bbox",
+    [
+        ("no_helmet", "helmet", (40, 2, 60, 18)),
+        ("no_vest", "vest", (35, 35, 65, 65)),
+        ("no_respirator", "respirator", (40, 15, 60, 30)),
+    ],
+)
+def test_single_noisy_ppe_frame_remains_unknown(cls, attribute, bbox):
+    track = person()
+    assign_attributes([track], {"ppe": [detection(cls, bbox)]}, 0.0)
+    assert track.attributes[attribute] is None
+
+    for index in range(1, 13):
+        assign_attributes([track], {"ppe": []}, index * 0.2)
+        assert track.attributes[attribute] is None
+
+
+def test_three_negative_ppe_votes_in_four_model_frames():
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    frames = ([no], [no], [], [no])
+    for index, observations in enumerate(frames):
+        assign_attributes([track], {"ppe": observations}, index * 0.2)
+        if index < 3:
+            assert track.attributes["helmet"] is None
+    assert track.attributes["helmet"] is False
+
+
+@pytest.mark.parametrize(
+    "empty_frames, expected",
+    [(2, False), (3, None)],
+)
+def test_negative_ppe_ratio_includes_empty_model_frames(empty_frames, expected):
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    frames = [[] for _ in range(empty_frames)] + [[no] for _ in range(3)]
+    for index, observations in enumerate(frames):
+        assign_attributes([track], {"ppe": observations}, index * 0.2)
+    # Three out of five reaches 0.6; three out of six does not.
+    assert track.attributes["helmet"] is expected
+
+
+@pytest.mark.parametrize("other_cls", ["helmet", None])
+def test_alternating_ppe_observations_are_unknown(other_cls):
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    other = (
+        [detection(other_cls, (40, 2, 60, 18))]
+        if other_cls is not None
+        else []
+    )
+    for index in range(10):
+        observations = other if index % 2 == 0 else [no]
+        assign_attributes([track], {"ppe": observations}, index * 0.2)
+        if index % 2 == 1:
+            # Every completed pair has exactly 50% negative observations.
+            assert track.attributes["helmet"] is None
+
+
+def test_frames_without_ppe_model_do_not_dilute_negative_votes():
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    assign_attributes([track], {"ppe": [no]}, 0.0)
+    assign_attributes([track], {}, 0.2)
+    assign_attributes([track], {"ppe": [no]}, 0.4)
+    assign_attributes([track], {}, 0.6)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [no]}, 0.8)
+    assert track.attributes["helmet"] is False
+    assign_attributes([track], {}, 1.0)
+    assert track.attributes["helmet"] is False
+
+
+def test_positive_ppe_requires_majority_of_model_frames():
+    track = person()
+    yes = detection("helmet", (40, 2, 60, 18))
+    assign_attributes([track], {"ppe": [yes]}, 0.0)
+    assert track.attributes["helmet"] is True
+    assign_attributes([track], {"ppe": []}, 0.2)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [yes]}, 0.4)
+    assert track.attributes["helmet"] is True
+    assign_attributes([track], {"ppe": []}, 0.6)
+    assert track.attributes["helmet"] is None
+
+
+def test_other_ppe_attribute_counts_as_unknown_helmet_observation():
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    vest = detection("vest", (35, 35, 65, 65))
+    for index in range(3):
+        assign_attributes([track], {"ppe": [no]}, index * 0.2)
+    assert track.attributes["helmet"] is False
+
+    for index in range(3, 6):
+        assign_attributes([track], {"ppe": [vest]}, index * 0.2)
+    assert track.attributes["helmet"] is None
+    assert track.attributes["vest"] is None
+
+
+def test_ppe_assigned_to_another_person_counts_as_unknown_observation():
+    first = person(1)
+    second = person(2, (200, 0, 300, 100))
+    no = detection("no_helmet", (40, 2, 60, 18))
+    other_helmet = detection("helmet", (240, 2, 260, 18))
+
+    for index in range(3):
+        assign_attributes([first, second], {"ppe": [no]}, index * 0.2)
+    assert first.attributes["helmet"] is False
+    assert second.attributes["helmet"] is None
+
+    for index in range(3, 6):
+        assign_attributes(
+            [first, second], {"ppe": [other_helmet]}, index * 0.2
+        )
+    assert first.attributes["helmet"] is None
+    assert second.attributes["helmet"] is None
+
+
+def test_negative_ppe_votes_expire_at_inclusive_window_boundary():
+    track = person()
+    no = detection("no_helmet", (40, 2, 60, 18))
+    for ts in (0.0, 0.25, 0.5):
+        assign_attributes([track], {"ppe": [no]}, ts)
+    assert track.attributes["helmet"] is False
+
+    assign_attributes([track], {}, 2.0)
+    assert track.attributes["helmet"] is False
+    assign_attributes([track], {}, 2.0001)
     assert track.attributes["helmet"] is None
 
 
@@ -105,7 +246,26 @@ def test_ppe_has_only_one_vote_per_frame_and_attribute():
     assign_attributes([track], {"ppe": [no, no, yes]}, 0.0)
     assert track.attributes["helmet"] is True
     assign_attributes([track], {"ppe": [no]}, 0.0)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [no, no, no]}, 0.0)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [no]}, 0.2)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [no]}, 0.4)
     assert track.attributes["helmet"] is False
+
+
+def test_repeated_timestamp_distinguishes_absent_and_empty_ppe_model():
+    track = person()
+    yes = detection("helmet", (40, 2, 60, 18))
+    assign_attributes([track], {"ppe": [yes]}, 0.0)
+    assert track.attributes["helmet"] is True
+    assign_attributes([track], {}, 0.0)
+    assert track.attributes["helmet"] is True
+    assign_attributes([track], {"ppe": []}, 0.0)
+    assert track.attributes["helmet"] is None
+    assign_attributes([track], {"ppe": [yes]}, 0.0)
+    assert track.attributes["helmet"] is True
 
 
 @pytest.mark.parametrize(
