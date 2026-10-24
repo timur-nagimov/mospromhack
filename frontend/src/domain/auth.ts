@@ -16,7 +16,10 @@ export type Permission =
   | 'audit.view'
   | 'cameras.manage'
   | 'flywheel.train'
-  | 'users.manage';
+  | 'users.manage'
+  | 'employees.view'
+  | 'employees.manage'
+  | 'events.assign';
 
 export type RoleId = 'worker' | 'operator' | 'safety' | 'admin';
 
@@ -43,12 +46,16 @@ export const PERMISSION_META: Record<Permission, PermissionMeta> = {
   'system.view': { title: 'Производительность', description: 'FPS, задержки по этапам, загрузка ускорителя LinQ' },
   'audit.view': { title: 'Журнал действий', description: 'Кто, когда и что изменил в системе, с какого адреса' },
   'users.manage': { title: 'Пользователи', description: 'Учётные записи, роли, пароли, отключение' },
+  'employees.view': { title: 'Сотрудники', description: 'Справочник сотрудников и личная статистика нарушений' },
+  'employees.manage': { title: 'Сотрудники: добавление', description: 'Добавить сотрудника предприятия в справочник' },
+  'events.assign': { title: 'Виновники инцидента', description: 'Указать сотрудников, допустивших нарушение' },
 };
 
 /** Группы прав для матрицы: строки идут по участкам ответственности */
 export const PERMISSION_GROUPS: { title: string; permissions: Permission[] }[] = [
   { title: 'Дашборды и журнал', permissions: ['analytics.view', 'events.view'] },
-  { title: 'Видео и реакция на нарушение', permissions: ['video.view', 'events.handle'] },
+  { title: 'Реакция на нарушение', permissions: ['video.view', 'events.handle', 'events.assign'] },
+  { title: 'Сотрудники', permissions: ['employees.view', 'employees.manage'] },
   { title: 'Камеры, зоны и правила', permissions: ['cameras.view', 'zones.edit', 'cameras.manage'] },
   { title: 'Данные и модели', permissions: ['flywheel.review', 'flywheel.train'] },
   { title: 'Система и доступ', permissions: ['system.view', 'audit.view', 'users.manage'] },
@@ -58,6 +65,12 @@ export const ALL_PERMISSIONS: Permission[] = PERMISSION_GROUPS.flatMap((g) => g.
 
 export interface RoleMeta {
   title: string;
+  /** Короткое имя для бейджа в шапке */
+  short: string;
+  /** Цвет роли: бейдж в шапке, карточки входа, колонка матрицы */
+  color: string;
+  /** 2–3 строки «что делает» для карточек входа и карточки роли */
+  abilities: string[];
   /** Кто это на производстве */
   who: string;
   /** Что делает в системе — одной строкой для кнопок входа */
@@ -70,6 +83,9 @@ export interface RoleMeta {
 export const ROLE_META: Record<RoleId, RoleMeta> = {
   worker: {
     title: 'Сотрудник',
+    short: 'Сотрудник',
+    color: '#2fb3a8',
+    abilities: ['Сводка нарушений по участкам, типам и сменам', 'Журнал событий — без снимков и видео', 'Справочник сотрудников'],
     who: 'рабочий, бригадир',
     summary: 'Дашборды и журнал без снимков',
     description: 'Смотрит дашборды: сводку нарушений по участку, типам и сменам. Видит журнал событий без снимков и видео',
@@ -77,23 +93,32 @@ export const ROLE_META: Record<RoleId, RoleMeta> = {
   },
   operator: {
     title: 'Диспетчер смены',
+    short: 'Диспетчер',
+    color: '#4a90e8',
+    abilities: ['Камеры вживую, тревоги со звуком', 'Разбор событий: подтвердить, ложное, передать мастеру', 'Указывает виновников инцидента'],
     who: 'мастер смены, диспетчер',
     summary: 'Камеры вживую и разбор событий',
-    description: 'Следит за камерами вживую, разбирает события: подтверждает, отмечает ложные, закрывает, пишет заметки',
+    description: 'Следит за камерами вживую, разбирает события: подтверждает, отмечает ложные, закрывает, пишет заметки, указывает виновников',
     level: 2,
   },
   safety: {
     title: 'Инженер по ОТ',
+    short: 'Инженер ОТ',
+    color: '#f0b429',
+    abilities: ['Опасные зоны, расписания и правила камер', 'Проверка кадров для дообучения моделей', 'Журнал действий: кто и что менял'],
     who: 'специалист по охране труда',
     summary: 'Плюс зоны и правила, проверка кадров',
-    description: 'Всё, что диспетчер, плюс опасные зоны и правила камер, проверка кадров маховика, журнал действий',
+    description: 'Всё, что диспетчер (кроме указания виновников), плюс опасные зоны и правила камер, проверка кадров маховика, журнал действий',
     level: 3,
   },
   admin: {
     title: 'Администратор',
+    short: 'Админ',
+    color: '#a07cf0',
+    abilities: ['Подключает камеры (RTSP и др.) и проверяет поток', 'Учётные записи, роли и пароли', 'Обучение и выкатка моделей, справочник сотрудников'],
     who: 'ИТ, владелец системы',
     summary: 'Плюс камеры, учётные записи, модели',
-    description: 'Всё, плюс подключение и удаление камер, учётные записи, обучение и выкатка моделей',
+    description: 'Всё, плюс подключение и удаление камер, учётные записи, сотрудники, обучение и выкатка моделей',
     level: 4,
   },
 };
@@ -104,11 +129,13 @@ export const ROLE_META: Record<RoleId, RoleMeta> = {
  * и подсказкам, если каталог ролей недоступен.
  */
 export const ROLE_PERMISSIONS: Record<RoleId, Permission[]> = {
-  worker: ['analytics.view', 'events.view'],
-  operator: ['analytics.view', 'events.view', 'video.view', 'events.handle', 'cameras.view', 'system.view'],
+  worker: ['analytics.view', 'events.view', 'employees.view'],
+  operator: ['analytics.view', 'events.view', 'employees.view', 'video.view', 'events.handle', 'cameras.view', 'system.view', 'events.assign'],
+  // виновников записывают диспетчер и администратор; инженер по ОТ список только читает
   safety: [
     'analytics.view',
     'events.view',
+    'employees.view',
     'video.view',
     'events.handle',
     'cameras.view',
@@ -122,6 +149,18 @@ export const ROLE_PERMISSIONS: Record<RoleId, Permission[]> = {
 
 export function isRoleId(value: string): value is RoleId {
   return (ROLE_ORDER as string[]).includes(value);
+}
+
+export function roleColor(role: string | null | undefined): string {
+  return role && isRoleId(role) ? ROLE_META[role].color : 'var(--text-3)';
+}
+
+/** «Нужна роль: Инженер по ОТ или Администратор» — по каталогу ролей */
+export function needRoleText(permission: string, roles: { id: string; title: string; permissions: string[] }[]): string {
+  const holders = roles.filter((r) => r.permissions.includes(permission)).map((r) => r.title);
+  if (!holders.length) return `Нужно право ${permission}`;
+  const list = holders.length === 1 ? holders[0] : `${holders.slice(0, -1).join(', ')} или ${holders[holders.length - 1]}`;
+  return `Нужна роль: ${list}`;
 }
 
 export function roleTitle(role: string | null | undefined): string {
@@ -162,6 +201,8 @@ export interface AuthConfig {
   auth_enabled: boolean;
   demo_login: boolean;
   demo_users: DemoUser[];
+  /** Сервер без /api/auth/* (старее контракта): нет разделов «Пользователи» и «Журнал действий» */
+  legacy?: boolean;
 }
 
 /** Бэкенд без /api/auth/* (старее контракта) или GUARD_AUTH=0 — вход выключен */
@@ -184,14 +225,18 @@ export const OPEN_ACCESS_USER: Me = {
   permissions: [...ALL_PERMISSIONS],
 };
 
+export const LEGACY_CONFIG: AuthConfig = { ...OPEN_CONFIG, legacy: true };
+
 /**
- * Бэкенд старее контракта (нет /api/auth/*): интерфейс как до ролей — без
- * разделов «Пользователи» и «Журнал действий», их API на таком сервере нет.
+ * Вход выключен: права — по роли из локального переключателя в интерфейсе
+ * (state/role.ts). На бэкенде старее контракта (нет /api/auth/*) разделов
+ * «Пользователи» и «Журнал действий» нет — их API там нет.
  */
-export const LEGACY_ACCESS_USER: Me = {
-  ...OPEN_ACCESS_USER,
-  permissions: ALL_PERMISSIONS.filter((p) => p !== 'users.manage' && p !== 'audit.view'),
-};
+export function localAccessUser(role: string, legacy = false): Me {
+  const id: RoleId = isRoleId(role) ? role : 'admin';
+  const permissions = ROLE_PERMISSIONS[id].filter((p) => !legacy || (p !== 'users.manage' && p !== 'audit.view'));
+  return { username: 'local', display_name: ROLE_META[id].title, role: id, role_title: ROLE_META[id].title, permissions };
+}
 
 export interface RoleInfo {
   id: string;

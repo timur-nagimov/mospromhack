@@ -11,7 +11,7 @@ for (const extension of ['.ts', '.tsx']) {
     const source = readFileSync(filename, 'utf8');
     const result = ts.transpileModule(source, {
       fileName: filename,
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     });
     module._compile(result.outputText, filename);
   };
@@ -20,6 +20,46 @@ const { analyticsRange, criticalCount, fillDays, statusByType, sumStatuses, week
   require('../src/features/analytics/aggregate.ts');
 const { moscowDayKey, moscowHour, moscowWeekdayHour } = require('../src/domain/moscow.ts');
 const epoch = (value) => Date.parse(value) / 1000;
+
+test('Выбранный сотрудник: все агрегаты, список и CSV содержат только его подтверждённые нарушения', async () => {
+  const { createMockApi } = require('../src/api/mock/server.ts');
+  const previous = globalThis.window;
+  globalThis.window = { setTimeout: (callback) => { callback(); return 1; } };
+  try {
+    const api = createMockApi({ auth: false }); // вход выключен, как GUARD_AUTH=0: роли здесь не проверяются
+    const seeded = await api.employees.list();
+    assert.equal(seeded.length, 10);
+    assert.equal(new Set(seeded.map((employee) => employee.personnel_number)).size, 10);
+    assert.ok(seeded.every((employee) => employee.personnel_number.startsWith('DEMO-')));
+    const first = await api.employees.create({ full_name: 'Первый сотрудник' });
+    const second = await api.employees.create({ full_name: 'Другой сотрудник' });
+    const page = await api.listEvents({ limit: 100000 });
+    const [confirmed, falseAlarm, pending, forwarded, other] = page.items;
+    for (const [event, status] of [[confirmed, 'confirmed'], [falseAlarm, 'false'], [pending, 'new'], [forwarded, 'forwarded']]) {
+      await api.patchEvent(event.id, { status });
+      await api.employees.assign(event.id, [first.id]);
+    }
+    await api.employees.assign(confirmed.id, [first.id, second.id]);
+    await api.patchEvent(other.id, { status: 'confirmed' });
+    await api.employees.assign(other.id, [second.id]);
+    const analytics = await api.getAnalytics({ employee_id: first.id });
+    for (const group of ['types', 'sites', 'cameras', 'days', 'weekdayHours'])
+      assert.equal(analytics[group].reduce((sum, row) => sum + row.count, 0), 1);
+    assert.deepEqual(analytics.statusTypes.new, []);
+    assert.deepEqual(analytics.statusTypes.false, []);
+    assert.deepEqual(analytics.statusTypes.forwarded, []);
+    assert.deepEqual(analytics.statusTypes.confirmed, analytics.types);
+    const report = await api.employees.report(first.id, {});
+    assert.deepEqual(report.items.map((event) => event.id), [confirmed.id]);
+    const csv = await api.employees.exportReport(first.id, {});
+    assert.ok(csv.includes(confirmed.id));
+    for (const event of [falseAlarm, pending, forwarded, other]) assert.ok(!csv.includes(event.id));
+    await api.patchEvent(confirmed.id, { status: 'false' });
+    assert.deepEqual((await api.getAnalytics({ employee_id: first.id })).types, []);
+    assert.equal((await api.employees.report(first.id, {})).total, 0);
+    assert.equal((await api.getAnalytics({})).types.reduce((sum, row) => sum + row.count, 0), page.total);
+  } finally { globalThis.window = previous; }
+});
 
 test('МСК и границы периода не зависят от часового пояса браузера', () => {
   const previous = process.env.TZ;

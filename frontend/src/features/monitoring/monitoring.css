@@ -351,6 +351,32 @@
   position: absolute;
   inset: 0;
 }
+/* поток оборвался: поверх последнего кадра, пока источник переподключается */
+.tile__nosignal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: 10px 16px;
+  border-radius: 9px;
+  background: rgba(5, 6, 7, 0.82);
+  border: 1px solid currentColor;
+  font-size: 12px;
+  text-align: center;
+  pointer-events: none;
+}
+.tile__nosignal--warn {
+  color: var(--warn);
+}
+.tile__nosignal--bad {
+  color: var(--bad);
+}
+.tile__nosignal span {
+  color: var(--text-2);
+}
 
 .tile__alert {
   position: absolute;

@@ -345,6 +345,19 @@ class Consumer:
     def status(self):
         return {"connected": False}
 module.RabbitConsumer = lambda config: Consumer()
+import guard.gateway.config_sync as sync_module
+class Link:
+    def __init__(self, *args, **kwargs):
+        pass
+    def send(self, message_id, wire):
+        pass
+    def start(self):
+        pass
+    def stop(self, timeout=6.0):
+        pass
+    def status(self):
+        return {"connected": False}
+sync_module.RabbitControlLink = Link
 root = Path(sys.argv[1])
 settings = Settings(data_dir=root/'data', models_dir=root/'NO_MODELS', cameras_config=root/'NO_CAMERAS', models_config=root/'NO_MODELS_YAML', db_path=root/'data/guard.db', media_dir=root/'data/media', frontend_dist=root/'NO_FRONTEND', mode='gateway', edge_id='edge-1', rabbit_url='amqp://user:secret@localhost/', autostart=True)
 with TestClient(create_app(settings)) as client:
@@ -352,6 +365,7 @@ with TestClient(create_app(settings)) as client:
     assert client.get('/api/events').json()['total'] == 0
     assert client.get('/api/analytics').json()['types'] == []
     assert client.get('/api/rules/types').status_code == 200
+    assert client.get('/health').json()['config_sync']['pending'] == 0
 assert not settings.models_dir.exists() and not settings.models_config.exists()
 print('gateway-lightweight-ok')
 '''

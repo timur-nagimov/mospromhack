@@ -8,6 +8,8 @@ import type {
   Health,
   MetricsSnapshot,
   RuleTypeInfo,
+  SourceConfig,
+  SourceProbeResult,
   StatsGroupBy,
   StatsResponse,
   WsMessage,
@@ -25,6 +27,7 @@ import type {
   SampleQuery,
 } from '../domain/flywheel';
 import type { AuditPage, AuditQuery, AuthConfig, Me, RolesCatalog, UserCreate, UserPatch, UserRecord } from '../domain/auth';
+import type { Employee, EmployeeInput, EmployeeReport } from '../domain/employees';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
 
@@ -42,6 +45,16 @@ export interface StatsQuery {
 export interface AnalyticsQuery {
   from?: number;
   to?: number;
+  employee_id?: string;
+}
+
+export interface EmployeesApi {
+  list(): Promise<Employee[]>;
+  create(body: EmployeeInput): Promise<Employee>;
+  forEvent(eventId: string): Promise<Employee[]>;
+  assign(eventId: string, employeeIds: string[]): Promise<Employee[]>;
+  report(employeeId: string, period: AnalyticsQuery, signal?: AbortSignal): Promise<EmployeeReport>;
+  exportReport(employeeId: string, period: AnalyticsQuery): Promise<string>;
 }
 
 /** Ссылки на медиа. В мок-режиме кадры рисуются на клиенте (data: URL) */
@@ -112,6 +125,8 @@ export interface GuardApi {
   createCamera(camera: CameraConfig): Promise<CameraConfig>;
   updateCamera(id: string, camera: CameraConfig): Promise<CameraConfig>;
   deleteCamera(id: string): Promise<void>;
+  /** POST /api/cameras/probe: открыть поток и дождаться кадра (docs/STREAMS.md) */
+  probeSource(source: SourceConfig, timeoutS?: number): Promise<SourceProbeResult>;
   listRuleTypes(): Promise<RuleTypeInfo[]>;
   listEvents(query: EventQuery, signal?: AbortSignal): Promise<EventPage>;
   getEvent(id: string): Promise<GuardEvent>;
@@ -126,6 +141,7 @@ export interface GuardApi {
   auth: AuthApi;
   users: UsersApi;
   audit: AuditApi;
+  employees: EmployeesApi;
 }
 
 export class ApiError extends Error {

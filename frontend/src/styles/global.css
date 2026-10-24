@@ -719,6 +719,33 @@ input[type='datetime-local'] {
   color: var(--bad);
   animation: none;
 }
+.live-dot--off {
+  color: var(--text-3);
+  animation: none;
+}
+
+/* состояние источника камеры: «Переподключение», «Нет сигнала» (components/ui/sourceState.tsx) */
+.source-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+.source-chip--warn {
+  color: var(--warn);
+}
+.source-chip--bad {
+  color: var(--bad);
+}
+.source-chip--off {
+  color: var(--text-3);
+}
 
 /* ---------- таблицы ---------- */
 

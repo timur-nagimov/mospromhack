@@ -3,7 +3,9 @@
 
 import { useCallback } from 'react';
 import type { AuthConfig, Me, Permission } from '../domain/auth';
+import { isRole } from '../domain/roles';
 import { createStore, useStore } from './createStore';
+import { getRole, selectRole } from './role';
 
 export type AuthStatus = 'loading' | 'error' | 'anonymous' | 'authenticated';
 
@@ -45,6 +47,9 @@ export const authActions = {
   },
 
   signedIn(config: AuthConfig, user: Me) {
+    // Один механизм ролей: при входе локальный выбор роли (state/role.ts, страницы
+    // сотрудников и заголовок X-Guard-Role) следует за ролью сессии
+    if (config.auth_enabled && isRole(user.role) && getRole() !== user.role) selectRole(user.role);
     authStore.set((s) => ({
       status: 'authenticated',
       config,

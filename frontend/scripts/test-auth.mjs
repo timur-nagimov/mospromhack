@@ -12,7 +12,7 @@ for (const extension of ['.ts', '.tsx']) {
     const source = readFileSync(filename, 'utf8');
     const result = ts.transpileModule(source, {
       fileName: filename,
-      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX },
+      compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020, jsx: ts.JsxEmit.ReactJSX, esModuleInterop: true },
     });
     module._compile(result.outputText, filename);
   };
@@ -36,18 +36,22 @@ const rejects = async (promise, status, permission) => {
   });
 };
 
-test('матрица по docs/ROLES.md: у каждой роли права предыдущей плюс свои', () => {
-  const { ROLE_PERMISSIONS, ROLE_ORDER, ALL_PERMISSIONS } = auth;
-  assert.equal(ALL_PERMISSIONS.length, 12);
-  assert.deepEqual(ROLE_PERMISSIONS.worker, ['analytics.view', 'events.view']);
-  for (let i = 1; i < ROLE_ORDER.length; i += 1) {
-    const prev = ROLE_PERMISSIONS[ROLE_ORDER[i - 1]];
-    const cur = ROLE_PERMISSIONS[ROLE_ORDER[i]];
-    assert.ok(prev.every((p) => cur.includes(p)), `${ROLE_ORDER[i]} ⊇ ${ROLE_ORDER[i - 1]}`);
-  }
-  assert.ok(!ROLE_PERMISSIONS.operator.includes('zones.edit'));
-  assert.ok(ROLE_PERMISSIONS.safety.includes('zones.edit') && !ROLE_PERMISSIONS.safety.includes('cameras.manage'));
-  assert.deepEqual([...ROLE_PERMISSIONS.admin].sort(), [...ALL_PERMISSIONS].sort());
+test('матрица по guard/auth/roles.py: вложенность ролей и права сотрудников', () => {
+  const { ROLE_PERMISSIONS: R, ALL_PERMISSIONS } = auth;
+  const sub = (a, b) => a.every((p) => b.includes(p));
+  assert.equal(ALL_PERMISSIONS.length, 15);
+  assert.deepEqual(R.worker, ['analytics.view', 'events.view', 'employees.view']);
+  assert.ok(sub(R.worker, R.operator));
+  // виновников записывают диспетчер и администратор, инженер по ОТ — нет
+  assert.ok(R.operator.includes('events.assign') && !R.safety.includes('events.assign'));
+  assert.ok(sub(R.operator.filter((p) => p !== 'events.assign'), R.safety));
+  assert.ok(R.safety.includes('zones.edit') && !R.safety.includes('cameras.manage'));
+  assert.ok(!R.operator.includes('zones.edit') && !R.safety.includes('employees.manage'));
+  assert.deepEqual([...R.admin].sort(), [...ALL_PERMISSIONS].sort());
+  assert.equal(auth.needRoleText('events.assign', auth.fallbackRolesCatalog().roles), 'Нужна роль: Диспетчер смены или Администратор');
+  assert.equal(auth.needRoleText('zones.edit', auth.fallbackRolesCatalog().roles), 'Нужна роль: Инженер по ОТ или Администратор');
+  assert.equal(auth.localAccessUser('worker').permissions.includes('video.view'), false);
+  assert.equal(auth.localAccessUser('admin', true).permissions.includes('users.manage'), false);
 });
 
 test('каталог ролей: массив, {roles, permissions}, словарь по id', () => {
@@ -135,7 +139,7 @@ test('мок: без входа 401, вход демо-учёткой, прав�
 
   const me = await api.auth.login('worker', 'worker');
   assert.equal(me.role, 'worker');
-  assert.deepEqual(me.permissions, ['analytics.view', 'events.view']);
+  assert.deepEqual(me.permissions, ['analytics.view', 'events.view', 'employees.view']);
   assert.ok((await api.listEvents({ limit: 1 })).total > 0);
   assert.ok((await api.getAnalytics({})).types.length > 0);
   await rejects(api.listCameras(), 403, 'cameras.view');
@@ -163,6 +167,11 @@ test('мок: инженер по ОТ меняет зоны и правила, 
   await rejects(api.deleteCamera(camera.camera_id), 403, 'cameras.manage');
   await rejects(api.flywheel.startJob('train', {}), 403, 'flywheel.train');
   assert.ok((await api.flywheel.summary()) != null);
+  const [event] = (await api.listEvents({ limit: 1 })).items;
+  assert.ok((await api.employees.list()).length > 0);
+  await rejects(api.employees.assign(event.id, []), 403, 'events.assign');
+  await rejects(api.employees.create({ full_name: 'Тест' }), 403, 'employees.manage');
+  await rejects(api.probeSource(camera.source), 403, 'cameras.manage');
 
   const audit = await api.audit.list({ limit: 200 });
   const mine = audit.items.filter((a) => a.username === 'safety');

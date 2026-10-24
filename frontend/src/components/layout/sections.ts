@@ -1,4 +1,4 @@
-import { ChartColumn, Cctv, DatabaseZap, FileClock, Gauge, LayoutGrid, ScrollText, UsersRound, type LucideIcon } from 'lucide-react';
+import { ChartColumn, Cctv, DatabaseZap, FileClock, Gauge, LayoutGrid, ScrollText, UserCog, UsersRound, type LucideIcon } from 'lucide-react';
 import type { Permission } from '../../domain/auth';
 
 /** Раздел интерфейса: пункт меню, заголовок шапки и право, которое его открывает */
@@ -64,11 +64,19 @@ export const SECTIONS: Section[] = [
     permission: 'flywheel.review',
   },
   {
+    path: '/employees',
+    label: 'Сотрудники',
+    title: 'Сотрудники',
+    sub: 'Полный справочник сотрудников предприятия',
+    icon: UsersRound,
+    permission: 'employees.view',
+  },
+  {
     path: '/users',
     label: 'Пользо­ватели',
     title: 'Пользователи',
     sub: 'Учётные записи, роли и права доступа',
-    icon: UsersRound,
+    icon: UserCog,
     permission: 'users.manage',
     admin: true,
   },

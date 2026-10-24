@@ -7,6 +7,7 @@ import { formatClock, formatLongDate, formatTime } from '../../domain/format';
 import { backendLabel } from '../../domain/labels';
 import { getViolationMeta } from '../../domain/violations';
 import { Can } from '../../features/auth/Can';
+import { DemoRoleSwitch, LocalRoleSelector } from '../../features/auth/RailRoleSwitch';
 import { UserMenu } from '../../features/auth/UserMenu';
 import { useEventModal } from '../../features/event/useEventModal';
 import { isAudioBlocked } from '../../hooks/alarmSound';
@@ -56,6 +57,7 @@ function NavRail() {
       <div className="rail__brand" title="Зазеркалье — видеоаналитика ТБ">
         <MirrorMark size={42} />
       </div>
+      <LocalRoleSelector />
       <ul className="rail__nav">
         {main.map((s) => (
           <NavItem key={s.path} section={s} />
@@ -69,6 +71,7 @@ function NavRail() {
         </ul>
       )}
       <div className="rail__foot">
+        <DemoRoleSwitch />
         <span className="rail__ver mono">v0.1</span>
       </div>
     </nav>

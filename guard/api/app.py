@@ -1,4 +1,8 @@
-"""FastAPI-приложение (docs/CONTRACTS.md, «HTTP API»). Запуск: uvicorn guard.api.app:app --port 8000."""
+"""FastAPI-приложение (docs/CONTRACTS.md, «HTTP API»). Запуск: uvicorn guard.api.app:app --port 8000.
+
+Доступ — по ролям (docs/ROLES.md): каждый маршрут объявляет право зависимостью require(...),
+а зависимость gate уровня приложения закрывает всё, что не объявлено (guard/auth/deps.py).
+"""
 
 from __future__ import annotations
 
@@ -6,13 +10,14 @@ import asyncio
 import contextlib
 import logging
 import math
+import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, Response, StreamingResponse
@@ -20,6 +25,13 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from guard.auth import audit, deps
+from guard.auth.camera_edit import audit_entries, camera_edit
+from guard.auth.deps import SessionWatch, ensure_permission, public, require, require_any
+from guard.auth.roles import (
+    ANALYTICS_VIEW, CAMERAS_MANAGE, CAMERAS_VIEW, EVENTS_HANDLE, EVENTS_VIEW, SYSTEM_VIEW, VIDEO_VIEW, ZONES_EDIT,
+)
+from guard.auth.service import AuthService, CurrentUser
 from guard.contracts import CameraConfig, Event, EventStatus
 from guard.pipeline.errors import CameraError, CameraExists, CameraReadOnly
 from guard.pipeline.settings import Settings
@@ -79,7 +91,7 @@ def _split(value: str | None) -> str | list[str] | None:
 router = APIRouter()
 
 
-@router.get("/health")
+@router.get("/health", dependencies=[public()])
 def health(request: Request) -> dict[str, Any]:
     return _engine(request).health()
 
@@ -87,13 +99,13 @@ def health(request: Request) -> dict[str, Any]:
 # ---- камеры ----
 
 
-@router.get("/api/cameras")
+@router.get("/api/cameras", dependencies=[require(CAMERAS_VIEW)])
 def list_cameras(request: Request) -> list[dict[str, Any]]:
     engine = _engine(request)
     return [_camera_out(engine, c) for c in engine.list_cameras()]
 
 
-@router.get("/api/cameras/{camera_id}")
+@router.get("/api/cameras/{camera_id}", dependencies=[require(CAMERAS_VIEW)])
 def get_camera(camera_id: str, request: Request) -> dict[str, Any]:
     engine = _engine(request)
     cam = engine.get_camera(camera_id)
@@ -103,7 +115,7 @@ def get_camera(camera_id: str, request: Request) -> dict[str, Any]:
 
 
 @router.post("/api/cameras", status_code=201)
-def create_camera(cam: CameraConfig, request: Request) -> dict[str, Any]:
+def create_camera(cam: CameraConfig, request: Request, user: CurrentUser = require(CAMERAS_MANAGE)) -> dict[str, Any]:
     engine = _engine(request)
     try:
         engine.add_camera(cam)
@@ -113,12 +125,28 @@ def create_camera(cam: CameraConfig, request: Request) -> dict[str, Any]:
         raise HTTPException(409, f"camera {cam.camera_id} already exists") from exc
     except CameraError as exc:
         raise HTTPException(422, str(exc)) from exc
+    audit.record(request, audit.CAMERA_CREATE, cam.camera_id, {
+        "name": cam.name, "site": cam.site, "source": audit.source_details(cam.source), "enabled": cam.enabled,
+        "zones": [z.zone_id for z in cam.zones], "rules": [r.rule_id for r in cam.rules],
+    }, user=user)
     return _camera_out(engine, cam)
 
 
 @router.put("/api/cameras/{camera_id}")
-def update_camera(camera_id: str, cam: CameraConfig, request: Request) -> dict[str, Any]:
+def update_camera(
+    camera_id: str,
+    cam: CameraConfig,
+    request: Request,
+    user: CurrentUser = require_any(ZONES_EDIT, CAMERAS_MANAGE),
+) -> dict[str, Any]:
+    """Только zones и rules — право zones.edit; любые другие поля — cameras.manage (docs/ROLES.md).
+
+    Несуществующую камеру зонами не изменить: нужно cameras.manage, ответ (404, 422 или 409) даёт движок.
+    """
     engine = _engine(request)
+    current = engine.get_camera(camera_id)
+    edit = camera_edit(current, cam) if current is not None else None
+    ensure_permission(user, edit.permission if edit is not None else CAMERAS_MANAGE)
     try:
         engine.update_camera(camera_id, cam)
     except CameraReadOnly as exc:
@@ -127,17 +155,21 @@ def update_camera(camera_id: str, cam: CameraConfig, request: Request) -> dict[s
         raise HTTPException(422, str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(404, f"camera {camera_id} not found") from exc
+    if edit is not None:
+        for action, details in audit_entries(edit, current, cam):
+            audit.record(request, action, camera_id, details, user=user)
     return _camera_out(engine, cam)
 
 
 @router.delete("/api/cameras/{camera_id}", status_code=204)
-def delete_camera(camera_id: str, request: Request) -> Response:
+def delete_camera(camera_id: str, request: Request, user: CurrentUser = require(CAMERAS_MANAGE)) -> Response:
     try:
         _engine(request).delete_camera(camera_id)
     except CameraReadOnly as exc:
         raise HTTPException(409, str(exc)) from exc
     except KeyError as exc:
         raise HTTPException(404, f"camera {camera_id} not found") from exc
+    audit.record(request, audit.CAMERA_DELETE, camera_id, user=user)
     return Response(status_code=204)
 
 
@@ -151,7 +183,7 @@ def _worker(request: Request, camera_id: str):
     return worker
 
 
-@router.get("/api/cameras/{camera_id}/frame.jpg")
+@router.get("/api/cameras/{camera_id}/frame.jpg", dependencies=[require(VIDEO_VIEW)])
 def camera_frame(camera_id: str, request: Request) -> Response:
     data = _worker(request, camera_id).frame_jpeg()
     if data is None:
@@ -165,17 +197,21 @@ async def camera_stream(
     request: Request,
     fps: float = Query(0, ge=0, le=30, description="макс. кадров/с; 0 — из GUARD_STREAM_FPS"),
     mode: str = Query("analyzed", pattern="^(analyzed|live)$"),
+    user: CurrentUser = require(VIDEO_VIEW),
 ) -> StreamingResponse:
     worker = _worker(request, camera_id)
     settings: Settings = _engine(request).settings
     period = 1.0 / (fps or settings.stream_fps)
     boundary = "frame"
+    session = SessionWatch(request, user)  # выход или отключение учётки обрывают поток
 
     async def gen() -> AsyncIterator[bytes]:
         nonlocal worker
         engine = _engine(request)
         last_key = None
         while not await request.is_disconnected():
+            if not await session.alive():
+                return
             current = engine.workers.get(camera_id)
             if current is None:  # камеру удалили или выключили — поток заканчивается, клиент переподключится
                 return
@@ -201,7 +237,7 @@ async def camera_stream(
 # ---- правила ----
 
 
-@router.get("/api/rules/types")
+@router.get("/api/rules/types", dependencies=[require(CAMERAS_VIEW)])
 def rule_types() -> list[dict[str, Any]]:
     load_plugins()  # идемпотентно: реестр мог быть заполнен частично прямым импортом плагина
     return available_rules()
@@ -210,7 +246,7 @@ def rule_types() -> list[dict[str, Any]]:
 # ---- события ----
 
 
-@router.get("/api/events")
+@router.get("/api/events", dependencies=[require(EVENTS_VIEW)])
 def list_events(
     request: Request,
     type: str | None = None,
@@ -247,21 +283,37 @@ def _event_or_404(request: Request, event_id: str) -> Event:
     return ev
 
 
-@router.get("/api/events/{event_id}")
+@router.get("/api/events/{event_id}", dependencies=[require(EVENTS_VIEW)])
 def get_event(event_id: str, request: Request) -> dict[str, Any]:
     return _event_or_404(request, event_id).model_dump(mode="json")
 
 
 @router.patch("/api/events/{event_id}")
-def patch_event(event_id: str, body: EventPatch, request: Request) -> dict[str, Any]:
-    _event_or_404(request, event_id)
+def patch_event(
+    event_id: str, body: EventPatch, request: Request, user: CurrentUser = require(EVENTS_HANDLE)
+) -> dict[str, Any]:
+    """Статус и заметка; событие запоминает, кто и когда его обработал (handled_by, handled_at)."""
+    before = _event_or_404(request, event_id)
     fields = {k: getattr(body, k) for k in body.model_fields_set}
     if "status" in fields and fields["status"] is None:
         raise HTTPException(422, "status must not be null")
+    if fields:
+        fields.update(handled_by=user.username, handled_at=time.time())
     updated = _engine(request).patch_event(event_id, **fields)
     if updated is None:
         raise HTTPException(404, f"event {event_id} not found")
+    if fields:
+        audit.record(request, audit.EVENT_UPDATE, event_id, _event_changes(before, updated, body), user=user)
     return updated.model_dump(mode="json")
+
+
+def _event_changes(before: Event, after: Event, body: EventPatch) -> dict[str, Any]:
+    details: dict[str, Any] = {"camera_id": after.camera_id, "type": after.type}
+    if "status" in body.model_fields_set:
+        details["status"] = {"from": before.status.value, "to": after.status.value}
+    if "operator_note" in body.model_fields_set:
+        details["operator_note"] = audit.note(after.operator_note)
+    return details
 
 
 def _media_file(request: Request, rel: str | None, what: str) -> Path:
@@ -271,19 +323,19 @@ def _media_file(request: Request, rel: str | None, what: str) -> Path:
     return path
 
 
-@router.get("/api/events/{event_id}/snapshot.jpg")
+@router.get("/api/events/{event_id}/snapshot.jpg", dependencies=[require(VIDEO_VIEW)])
 def event_snapshot(event_id: str, request: Request) -> FileResponse:
     ev = _event_or_404(request, event_id)
     return FileResponse(_media_file(request, ev.snapshot_path, "snapshot"), media_type="image/jpeg")
 
 
-@router.get("/api/events/{event_id}/clip.mp4")
+@router.get("/api/events/{event_id}/clip.mp4", dependencies=[require(VIDEO_VIEW)])
 def event_clip(event_id: str, request: Request) -> FileResponse:
     ev = _event_or_404(request, event_id)
     return FileResponse(_media_file(request, ev.clip_path, "clip"), media_type="video/mp4")
 
 
-@router.get("/api/stats")
+@router.get("/api/stats", dependencies=[require(ANALYTICS_VIEW)])
 def stats(
     request: Request,
     group_by: str = Query("type"),
@@ -310,28 +362,37 @@ def stats(
     return {"group_by": group_by, "items": items}
 
 
-@router.get("/api/metrics")
+@router.get("/api/metrics", dependencies=[require(SYSTEM_VIEW)])
 def metrics(request: Request) -> dict[str, Any]:
     return _engine(request).metrics_snapshot()
 
 
-@router.get("/api/analytics")
+@router.get("/api/analytics", dependencies=[require(ANALYTICS_VIEW)])
 def analytics(
     request: Request,
     from_: str | None = Query(None, alias="from"),
     to: str | None = None,
+    employee_id: str | None = Query(None, min_length=1),
 ) -> dict[str, Any]:
     """Агрегаты выбранного периода из одного согласованного снимка журнала."""
-    return _engine(request).journal.analytics(
-        ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"),
-    )
+    from guard.employees import UnknownEmployee
+    try:
+        return _engine(request).journal.analytics(
+            ts_from=_parse_ts(from_, "from"), ts_to=_parse_ts(to, "to"), employee_id=employee_id,
+        )
+    except UnknownEmployee as exc:
+        raise HTTPException(404, str(exc)) from exc
 
 
 @router.websocket("/ws/events")
-async def ws_events(ws: WebSocket) -> None:
+async def ws_events(ws: WebSocket, user: CurrentUser = require(EVENTS_VIEW)) -> None:
+    """События и метрики. Без входа соединение закрывается кодом 4401, без права — 4403;
+    метрики получает только роль с правом system.view."""
     engine = ws.app.state.engine
     await ws.accept()
     sub = engine.bus.subscribe()
+    show_metrics = user.can(SYSTEM_VIEW)
+    session = SessionWatch(ws, user)
 
     async def drain_client() -> None:  # входящие не нужны, но так узнаём об отключении
         while True:
@@ -343,7 +404,13 @@ async def ws_events(ws: WebSocket) -> None:
             getter = asyncio.create_task(sub.get())
             done, _ = await asyncio.wait({getter, reader}, return_when=asyncio.FIRST_COMPLETED)
             if getter in done:
-                await ws.send_json(getter.result())
+                if not await session.alive():  # выход или отключение учётки закрывают поток
+                    await ws.close(code=deps.WS_AUTH_REQUIRED, reason="session closed")
+                    break
+                message = getter.result()
+                if message.get("kind") == "metrics" and not show_metrics:
+                    continue
+                await ws.send_json(message)
             else:
                 getter.cancel()
     except (WebSocketDisconnect, RuntimeError):
@@ -383,9 +450,15 @@ async def _metrics_loop(engine: Any) -> None:
 
 def _create_engine(settings: Settings) -> Any:
     if settings.mode == "gateway":
+        if settings.config_sync:  # камеры меняются в UI шлюза и применяются на edge (docs/EDGE.md §8)
+            from guard.gateway.config_sync import ConfigSyncGatewayEngine
+            return ConfigSyncGatewayEngine(settings)
         from guard.gateway.engine import GatewayEngine
         return GatewayEngine(settings)
     if settings.mode == "edge":
+        if settings.config_sync:
+            from guard.edge.config_sync import ConfigSyncEdgeEngine
+            return ConfigSyncEdgeEngine(settings)
         from guard.edge.runner import EdgeEngine
         return EdgeEngine(settings)
     from guard.pipeline.engine import PipelineEngine
@@ -394,6 +467,7 @@ def _create_engine(settings: Settings) -> Any:
 
 def create_app(settings: Settings | None = None, engine: Any | None = None) -> FastAPI:
     settings = settings or (engine.settings if engine else Settings.from_env())
+    auth = AuthService.from_settings(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
@@ -402,6 +476,8 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
         task = None
         failed = False
         try:
+            if auth.enabled:
+                await run_in_threadpool(auth.open)  # база входа и демо-учётки в пустой базе
             if settings.autostart:
                 await run_in_threadpool(eng.start)
             task = asyncio.create_task(_metrics_loop(eng))
@@ -420,11 +496,21 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
                 if not failed:
                     raise
                 log.error("Startup cleanup failed: %s", type(exc).__name__)
+            finally:
+                auth.close()
 
-    app = FastAPI(title="Зазеркалье — видеоаналитика ТБ", version="0.1.0", lifespan=lifespan)
+    # gate закрывает каждый маршрут, включая роутеры, подключённые позже (guard/auth/deps.py)
+    app = FastAPI(
+        title="Зазеркалье — видеоаналитика ТБ", version="0.1.0", lifespan=lifespan,
+        dependencies=[Depends(deps.gate)],
+    )
+    app.state.auth = auth
+    deps.install(app)
+    # cookie сессии ходят только с явным списком источников: с '*' credentials выключены
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,
+        allow_credentials="*" not in settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -433,6 +519,16 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
     app.include_router(reports_router)
     from guard.api.flywheel import router as flywheel_router  # маховик данных, docs/FLYWHEEL.md
     app.include_router(flywheel_router)
+    from guard.api.audit import router as audit_router
+    from guard.api.auth import router as auth_router
+    from guard.api.users import router as users_router  # вход, пользователи, журнал действий (docs/ROLES.md)
+    app.include_router(auth_router)
+    app.include_router(users_router)
+    app.include_router(audit_router)
+    from guard.api.streams import router as streams_router  # проверка потока, docs/STREAMS.md
+    app.include_router(streams_router)
+    from guard.api.employees import router as employees_router
+    app.include_router(employees_router)
     if settings.frontend_dist.is_dir():
         app.mount("/", SPAStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     return app

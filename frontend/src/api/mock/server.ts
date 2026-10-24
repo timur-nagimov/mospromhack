@@ -9,6 +9,8 @@ import type {
   GuardEvent,
   MetricsSnapshot,
   Percentiles,
+  SourceConfig,
+  SourceProbeResult,
   StatsItem,
   StageKey,
   WsMessage,
@@ -18,10 +20,11 @@ import { getViolationMeta } from '../../domain/violations';
 import { nowSec } from '../../domain/format';
 import { moscowDayKey, moscowHour, moscowWeekdayHour } from '../../domain/moscow';
 import type { Permission } from '../../domain/auth';
-import { ApiError, type AnalyticsQuery, type FlywheelApi, type GuardApi, type StatsQuery, type Subscription } from '../types';
+import { ApiError, type AnalyticsQuery, type EmployeesApi, type FlywheelApi, type GuardApi, type StatsQuery, type Subscription } from '../types';
 import { createAuthMock, type MockAuth, type MockAuthOptions } from './auth';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
 import { createFlywheelMock } from './flywheel';
+import { createEmployeesMock } from './employees';
 import { between, mulberry32 } from './random';
 import { renderToDataUrl } from './scene';
 
@@ -100,6 +103,24 @@ function guardFlywheel(api: FlywheelApi, auth: MockAuth): FlywheelApi {
   };
 }
 
+/** Сотрудники: справочник — employees.view, добавление — employees.manage, виновники — events.assign */
+function guardEmployees(api: EmployeesApi, auth: MockAuth): EmployeesApi {
+  return {
+    list: auth.guard('employees.view', '/api/employees', () => api.list()),
+    create: auth.guard('employees.manage', '/api/employees', (body: Parameters<EmployeesApi['create']>[0]) => api.create(body)),
+    forEvent: auth.guard('employees.view', '/api/events/employees', (id: string) => api.forEvent(id)),
+    assign: auth.guard('events.assign', '/api/events/employees', async (id: string, ids: string[]) => {
+      const saved = await api.assign(id, ids);
+      auth.log('event.update', id, { employees: saved.map((e) => e.full_name) });
+      return saved;
+    }),
+    report: auth.guard('employees.view', '/api/employees/report', (id: string, period: AnalyticsQuery, signal?: AbortSignal) =>
+      api.report(id, period, signal),
+    ),
+    exportReport: auth.guard('employees.view', '/api/employees/report', (id: string, period: AnalyticsQuery) => api.exportReport(id, period)),
+  };
+}
+
 /**
  * options.auth=false — вход выключен (как GUARD_AUTH=0): тесты, которым роли не нужны.
  * В браузере по умолчанию вход включён; ?auth=0 в адресе выключает его.
@@ -146,6 +167,7 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
 
   // Маховик данных: сэмплы событий и живой сбор по фейковому WS
   const flywheel = createFlywheelMock({ cameras: () => cameras, events: () => events, emit, respond, fail });
+  const employees = createEmployeesMock(() => events);
 
   function findCamera(id: string): CameraConfig | undefined {
     return cameras.find((c) => c.camera_id === id);
@@ -265,10 +287,10 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
     timers.length = 0;
   }
 
-  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }): GuardEvent[] {
+  function filterEvents(q: Omit<EventQuery, 'status' | 'severity'> & { status?: string; severity?: string }, source = events): GuardEvent[] {
     const matches = (filter: string | undefined, value: string | null) =>
       !filter || filter.split(',').map((v) => v.trim()).includes(value ?? '');
-    return events.filter(
+    return source.filter(
       (e) =>
         matches(q.type, e.type) &&
         matches(q.camera_id, e.camera_id) &&
@@ -289,9 +311,9 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
     return null;
   }
 
-  function statsItems(q: StatsQuery): StatsItem[] {
+  function statsItems(q: StatsQuery, source = events): StatsItem[] {
     const counts = new Map<string, number>();
-    for (const e of filterEvents(q)) {
+    for (const e of filterEvents(q, source)) {
       let key: string | null;
       switch (q.group_by) {
         case 'type':
@@ -366,6 +388,24 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
       auth.log('camera.delete', id);
       return respond(undefined as void, 150, 300);
     }),
+    // проверка потока до добавления камеры — право cameras.manage (docs/ROLES.md)
+    probeSource: guard('cameras.manage', '/api/cameras/probe', (source: SourceConfig): Promise<SourceProbeResult> => {
+      // мок проверки потока: адрес со словами fail/404 — ошибка, иначе 1280×720, 25 к/с, H.264
+      const uri = source.uri.trim();
+      const base = { width: null, height: null, fps: null, codec: null, first_frame_ms: null, preview_jpeg_b64: null };
+      if (!uri) return respond({ ...base, ok: false, error: 'адрес источника пуст', error_code: 'bad_uri' }, 100, 200);
+      if (/fail|404/i.test(uri)) {
+        const error = 'поток не открылся: поток не найден (RTSP 404): проверьте путь после адреса камеры';
+        return respond({ ...base, ok: false, error, error_code: 'open_failed' }, 600, 900);
+      }
+      const hls = /\.m3u8/i.test(uri);
+      return respond(
+        { ...base, ok: true, error: null, width: 1280, height: 720, fps: 25, codec: 'h264', first_frame_ms: hls ? 2400 : 640,
+          stream: hls ? 'hls' : source.type, hints: hls ? ['HLS идёт с задержкой в 1–3 сегмента (обычно 5–30 с)'] : [] },
+        500,
+        900,
+      );
+    }),
     listRuleTypes: guard('cameras.view', '/api/rules/types', () => respond(RULE_TYPES)),
     listEvents: guard('events.view', '/api/events', (q: EventQuery) => {
       const filtered = filterEvents(q);
@@ -393,8 +433,9 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
     getStats: guard('analytics.view', '/api/stats', (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) })),
     getAnalytics: guard('analytics.view', '/api/analytics', (q: AnalyticsQuery) => {
       // Все поля вычисляются синхронно до respond: обновления не вклиниваются между ними.
+      const source = q.employee_id ? employees.forAnalytics(q.employee_id) : events;
       const aggregate = (group_by: StatsQuery['group_by'], filters: { status?: string; severity?: string } = {}) =>
-        statsItems({ ...q, group_by, ...filters });
+        statsItems({ ...q, group_by, ...filters }, source);
       return respond({
         types: aggregate('type'), cameras: aggregate('camera'), sites: aggregate('site'),
         days: aggregate('day'), weekdayHours: aggregate('weekday_hour'),
@@ -453,5 +494,6 @@ export function createMockApi(options: MockAuthOptions = {}): GuardApi {
     auth: auth.auth,
     users: auth.users,
     audit: auth.audit,
+    employees: guardEmployees(employees, auth),
   };
 }

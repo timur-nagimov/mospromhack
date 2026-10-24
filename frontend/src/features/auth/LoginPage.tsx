@@ -3,7 +3,7 @@ import { useState, type FormEvent } from 'react';
 import { api } from '../../api';
 import { ApiError } from '../../api/types';
 import { MirrorMark } from '../../components/ui/customIcons';
-import { isRoleId, ROLE_META, roleTitle } from '../../domain/auth';
+import { isRoleId, ROLE_META, roleColor, roleTitle } from '../../domain/auth';
 import { useAuth } from '../../state/auth';
 import { useAuthControls } from './AuthProvider';
 import { AccessLevel } from './parts';
@@ -160,6 +160,7 @@ export function LoginPage() {
                     key={u.username}
                     type="button"
                     className="role-pass"
+                    style={{ ['--role' as string]: roleColor(u.role) }}
                     disabled={pending != null}
                     onClick={() => void enter(u.username, u.username)}
                   >
@@ -168,7 +169,15 @@ export function LoginPage() {
                       <span className="mono">{u.username}</span>
                     </span>
                     <strong>{pending === u.username ? 'Вход…' : `Войти как ${roleTitle(u.role)}`}</strong>
-                    <small>{isRoleId(u.role) ? ROLE_META[u.role].summary : u.display_name}</small>
+                    {isRoleId(u.role) ? (
+                      <ul className="role-pass__abilities">
+                        {ROLE_META[u.role].abilities.map((a) => (
+                          <li key={a}>{a}</li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <small>{u.display_name}</small>
+                    )}
                   </button>
                 ))}
               </div>

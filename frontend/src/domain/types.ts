@@ -53,6 +53,40 @@ export interface SourceConfig {
   realtime: boolean;
 }
 
+/** Состояние источника: status.source.state в /api/cameras и metrics.cameras[id].source (docs/STREAMS.md) */
+export type SourceState = 'connecting' | 'online' | 'reconnecting' | 'offline' | 'error';
+
+/** Компактный статус источника из метрик (WS metrics каждые 2 с) */
+export interface SourceBrief {
+  state: SourceState;
+  fps_in: number;
+  last_frame_age_s: number | null;
+  width: number | null;
+  height: number | null;
+  reconnects: number;
+  drops: number;
+  last_error: string | null;
+}
+
+/** POST /api/cameras/probe — проверка потока до добавления камеры */
+export interface SourceProbeResult {
+  ok: boolean;
+  width: number | null;
+  height: number | null;
+  fps: number | null;
+  codec: string | null;
+  first_frame_ms: number | null;
+  error: string | null;
+  preview_jpeg_b64: string | null;
+  error_code?: string | null;
+  stream?: string | null;
+  open_ms?: number | null;
+  fps_nominal?: number | null;
+  fps_measured?: number | null;
+  resolved_via?: string | null;
+  hints?: string[];
+}
+
 export interface CameraConfig {
   camera_id: string;
   name: string;
@@ -164,6 +198,8 @@ export interface CameraMetrics {
   timings_ms: Partial<Record<string, Percentiles>>;
   frames_processed?: number;
   errors?: number;
+  /** состояние источника; нет у старых бэкендов */
+  source?: SourceBrief;
 }
 
 /** Статистика модели из BackendStats.snapshot() (guard/inference/base.py) */

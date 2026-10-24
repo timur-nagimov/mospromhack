@@ -8,6 +8,7 @@ import type {
   Health,
   MetricsSnapshot,
   RuleTypeInfo,
+  SourceProbeResult,
   StatsResponse,
 } from '../domain/types';
 import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
@@ -33,6 +34,7 @@ import {
   type UsersApi,
 } from './types';
 import { EventSocket } from './ws';
+import { getRole } from '../state/role';
 
 /**
  * Базовый адрес API. По умолчанию — тот же origin (прод раздаёт FastAPI с /,
@@ -82,8 +84,11 @@ async function readError(res: Response): Promise<{ message: string; permission?:
   return { message: `${res.status} ${res.statusText || 'Ошибка запроса'}` };
 }
 
-async function request<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
-  const { json, headers, ...rest } = init;
+async function request<T>(path: string, init: RequestInit & { json?: unknown; responseType?: 'json' | 'text' } = {}): Promise<T> {
+  const { json, headers, responseType = 'json', ...rest } = init;
+  const requestHeaders = new Headers(headers);
+  requestHeaders.set('X-Guard-Role', getRole());
+  if (json !== undefined) requestHeaders.set('Content-Type', 'application/json');
   let res: Response;
   try {
     res = await fetch(API_BASE + path, {
@@ -91,7 +96,7 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
       // cookie сессии guard_session; API на другом хосте (VITE_API_BASE) требует
       // include и CORS с allow_credentials для явного списка источников
       credentials: API_BASE ? 'include' : 'same-origin',
-      headers: json !== undefined ? { 'Content-Type': 'application/json', ...headers } : headers,
+      headers: requestHeaders,
       body: json !== undefined ? JSON.stringify(json) : rest.body,
     });
   } catch (err) {
@@ -107,6 +112,7 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown } =
   }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
+  if (responseType === 'text') return text as T;
   return (text ? JSON.parse(text) : undefined) as T;
 }
 
@@ -261,6 +267,14 @@ export function createHttpApi(): GuardApi {
     createCamera: (camera) => request<CameraConfig>('/api/cameras', { method: 'POST', json: cameraPayload(camera) }),
     updateCamera: (id, camera) => request<CameraConfig>(`/api/cameras/${enc(id)}`, { method: 'PUT', json: cameraPayload(camera) }),
     deleteCamera: (id) => request<void>(`/api/cameras/${enc(id)}`, { method: 'DELETE' }),
+    probeSource: (source, timeoutS) =>
+      request<SourceProbeResult>('/api/cameras/probe', {
+        method: 'POST',
+        json: {
+          source: { type: source.type, uri: source.uri.trim(), loop: source.loop, realtime: source.realtime },
+          ...(timeoutS ? { timeout_s: timeoutS } : {}),
+        },
+      }),
     listRuleTypes: () => request<RuleTypeInfo[]>('/api/rules/types'),
     listEvents: (q: EventQuery, signal?: AbortSignal) =>
       request<EventPage>(
@@ -295,5 +309,13 @@ export function createHttpApi(): GuardApi {
     auth: createAuthHttpApi(),
     users: createUsersHttpApi(),
     audit: createAuditHttpApi(),
+    employees: {
+      list: () => request('/api/employees'),
+      create: (body) => request('/api/employees', { method: 'POST', json: body }),
+      forEvent: (id) => request(`/api/events/${enc(id)}/employees`),
+      assign: (id, employeeIds) => request(`/api/events/${enc(id)}/employees`, { method: 'PUT', json: { employee_ids: employeeIds } }),
+      report: (id, period, signal) => request(`/api/employees/${enc(id)}/report${toQuery({ ...period })}`, { signal }),
+      exportReport: (id, period) => request(`/api/employees/${enc(id)}/report${toQuery({ ...period, format: 'csv' })}`, { responseType: 'text' }),
+    },
   };
 }

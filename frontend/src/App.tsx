@@ -14,6 +14,7 @@ import { LoginPage } from './features/auth/LoginPage';
 import { NoAccess } from './features/auth/NoAccess';
 import { CamerasPage } from './features/cameras/CamerasPage';
 import { EventModalHost } from './features/event/EventModal';
+import { EmployeesPage } from './features/employees/EmployeesPage';
 import { DataPage } from './features/flywheel/DataPage';
 import { JournalPage } from './features/journal/JournalPage';
 import { MonitoringPage } from './features/monitoring/MonitoringPage';
@@ -117,6 +118,14 @@ function Workspace() {
             element={
               <RequirePermission perm="flywheel.review">
                 <DataPage />
+              </RequirePermission>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <RequirePermission perm="employees.view">
+                <EmployeesPage />
               </RequirePermission>
             }
           />

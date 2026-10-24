@@ -5,10 +5,11 @@ import { api } from '../../api';
 import { authSignals } from '../../api/authSignals';
 import { ApiError } from '../../api/types';
 import { toast } from '../../components/ui/toast';
-import { forbiddenText, LEGACY_ACCESS_USER, OPEN_ACCESS_USER, OPEN_CONFIG, roleTitle, type AuthConfig, type Me } from '../../domain/auth';
+import { forbiddenText, LEGACY_CONFIG, localAccessUser, OPEN_CONFIG, roleTitle, type AuthConfig, type Me } from '../../domain/auth';
 import { sectionFor, startPath } from '../../components/layout/sections';
 import { authActions, authStore, useAuth } from '../../state/auth';
 import { liveActions } from '../../state/live';
+import { getRole, useRole } from '../../state/role';
 
 const RETRY_MS = 5000;
 /** Одно и то же «Недостаточно прав» не чаще раза в 4 с */
@@ -54,19 +55,22 @@ function resetClientState(qc: QueryClient): void {
   liveActions.reset();
 }
 
-/** /api/auth/config, затем /api/auth/me. Бэкенд без /api/auth (404) — вход выключен, роль admin */
+/**
+ * /api/auth/config, затем /api/auth/me. Вход выключен (auth_enabled=false) или бэкенд
+ * без /api/auth (404) — права по роли локального переключателя (по умолчанию admin).
+ */
 async function loadSession(): Promise<void> {
   authActions.loading();
   let config: AuthConfig;
   try {
     config = await api().auth.config();
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404) authActions.signedIn(OPEN_CONFIG, LEGACY_ACCESS_USER);
+    if (err instanceof ApiError && err.status === 404) authActions.signedIn(LEGACY_CONFIG, localAccessUser(getRole(), true));
     else authActions.failed(message(err));
     return;
   }
   if (!config.auth_enabled) {
-    authActions.signedIn(config, OPEN_ACCESS_USER);
+    authActions.signedIn(config, localAccessUser(getRole()));
     return;
   }
   try {
@@ -85,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const navigate = useNavigate();
   const status = useAuth((s) => s.status);
+  const localRole = useRole();
   // Пока идёт смена роли, 401 от фоновых запросов прежней сессии — ожидаемы
   const switching = useRef(false);
   const lastForbidden = useRef(new Map<string, number>());
@@ -93,6 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void loadSession();
   }, []);
+
+  // Вход выключен: локальный переключатель роли меняет права интерфейса сразу
+  useEffect(() => {
+    const { status: current, config } = authStore.get();
+    if (current !== 'authenticated' || !config || config.auth_enabled) return;
+    authActions.signedIn(config, localAccessUser(localRole, config.legacy));
+  }, [localRole]);
 
   // Сервер недоступен при старте — пробуем снова, пока не ответит
   useEffect(() => {
