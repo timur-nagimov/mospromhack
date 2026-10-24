@@ -203,6 +203,14 @@ class PipelineEngine:
                 raise CameraError(f"rule {r.rule_id}: unknown zones {sorted(missing)}")
             if r.min_duration_s < 0 or not 0 <= r.min_ratio <= 1:
                 raise CameraError(f"rule {r.rule_id}: min_duration_s >= 0 and 0 <= min_ratio <= 1 required")
+            if r.enabled and self.models:
+                # A6 №1: правило без модели иначе молча отключится в воркере — сразу 422
+                required = {m for t in available_rules() if t["type"] == r.type for m in t["required_models"]}
+                absent = sorted(required - set(self.models))
+                if absent:
+                    raise CameraError(
+                        f"rule {r.rule_id}: required models {absent} are not in registry {self.settings.models_config.name}"
+                    )
 
     def _persist(self) -> None:
         save_cameras(self.settings.cameras_config, self.cameras.values())

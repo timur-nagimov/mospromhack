@@ -38,7 +38,7 @@ cameras:
     type: ppe_missing
     enabled: true
     zones: null
-    params: {required: [helmet, vest], min_box_h_px: 60}
+    params: {required: [helmet], min_box_h_px: 60}
     min_duration_s: 2.0
     min_ratio: 0.7
     close_after_s: 3.0
@@ -56,7 +56,7 @@ cameras:
     type: fall_immobile
     enabled: true
     zones: null
-    params: {min_lying_s: 2.0, immobile_window_s: 3.0}
+    params: {min_lying_s: 1.0, immobile_window_s: 2.0}
     min_duration_s: 1.0
     min_ratio: 0.6
     close_after_s: 3.0
@@ -65,7 +65,7 @@ cameras:
 - camera_id: cam_s4
   name: Погрузочная площадка
   site: Склад
-  source: {type: file, uri: videos/s4_01.mp4, loop: true, realtime: true}
+  source: {type: file, uri: videos/s4_02.mp4, loop: true, realtime: true}
   sample_fps: 5.0
   enabled: true
   zones: []
@@ -74,7 +74,7 @@ cameras:
     type: vehicle_proximity
     enabled: true
     zones: null
-    params: {min_vehicle_speed_bh: 0.0}
+    params: {}
     min_duration_s: 1.5
     min_ratio: 0.7
     close_after_s: 3.0
