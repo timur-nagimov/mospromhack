@@ -398,6 +398,8 @@ def create_app(settings: Settings | None = None, engine: PipelineEngine | None =
         allow_headers=["*"],
     )
     app.include_router(router)
+    from guard.api.reports import router as reports_router  # CX-020
+    app.include_router(reports_router)
     if settings.frontend_dist.is_dir():
         app.mount("/", SPAStaticFiles(directory=settings.frontend_dist, html=True), name="frontend")
     return app
