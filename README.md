@@ -20,8 +20,50 @@
 
 Презентация к защите: [PPTX](deliverables/presentation-v2/zazerkalye-v2.pptx), [PDF](deliverables/presentation-v2/zazerkalye-v2.pdf).
 
+## Как развернуть
+
+Три варианта: только интерфейс, весь конвейер локально на CPU, прод на LinQ TPU. Нужны Python 3.11, [uv](https://docs.astral.sh/uv/) и Node 20+ (на Node 16 тесты фронтенда падают с `structuredClone is not defined`). Доступы к VPN, JupyterHub и LinQ (`VPN_*`, `JUPYTER_*`, `LINQ_*`, `RABBIT_*`) лежат в `.env` в корне проекта, вне git.
+
+**1. Быстрый просмотр без стенда** — мок-данные в браузере, бэкенд не нужен:
+
+```bash
+cd frontend
+npm ci
+npm run dev:mock        # http://127.0.0.1:5173, вход admin/admin (или safety, operator, worker; пароль = логин)
+```
+
+Собранный UI переходит в мок-режим параметром `?mock=1` в адресе. ML, видео и TPU мок не проверяет.
+
+**2. Локально на CPU** — камеры, инференс, журнал и UI в одном процессе (подробнее — [CPU-диагностика](#cpu-диагностика), [DATA](docs/DATA.md), [MODELS](docs/MODELS.md)):
+
+```bash
+uv venv --python 3.11 .venv
+uv pip install --python .venv/bin/python --requirements pyproject.toml --extra dev --extra ml
+.venv/bin/python tools/fetch_data.py --only s1_01 s2_01 s3_02 s4_02   # ролики и разметка → data/
+.venv/bin/python ml/export_onnx.py --preset coco                       # det и pose → models/; модель СИЗ — docs/MODELS.md
+(cd frontend && npm ci && npm run build)
+.venv/bin/python -m guard.doctor                                       # каких роликов и моделей не хватает
+GUARD_MODE=local GUARD_BACKEND=onnx-cpu scripts/run_dev.sh
+```
+
+Адрес — http://127.0.0.1:8000, вход `admin/admin` (вход включён по умолчанию, `GUARD_AUTH=1`). Камеры берутся из `configs/cameras.yaml`; другой файл — `GUARD_CAMERAS_CONFIG`.
+
+**3. Прод на LinQ TPU: edge на стенде + шлюз на ноутбуке** (подробнее — [Production-запуск](#production-запуск-на-linq), [Демо на защите](#демо-на-защите-tpu-7-камер), [EDGE](docs/EDGE.md)):
+
+```bash
+infra/vpn/vpnctl.sh up                        # VPN-контейнер: RabbitMQ → 127.0.0.1:5672, Jupyter → 127.0.0.1:8888
+.venv/bin/python tools/stand.py sync          # код на стенд, в ~/work/mosprom
+.venv/bin/python tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02,s6_01,s7_01
+.venv/bin/python tools/stand.py start --config configs/cameras.stand.yaml
+.venv/bin/python tools/stand.py status        # процесс edge, CPU и хвост лога
+GUARD_PREVIEW_STALE_AFTER_S=30 GUARD_VPN_MODE=external scripts/run_tpu.sh
+```
+
+Шлюз и UI — http://127.0.0.1:8000, демо-учётки `admin`, `safety`, `operator`, `worker` (пароль равен логину). На стенде заранее подготовлены окружение `~/guard311`, программы TPU в `~/work/models` и ролики 640×360 в `~/work/mosprom/data_360` (рецепт — [EDGE](docs/EDGE.md), шаг 4). Без `GUARD_VPN_MODE=external` скрипт сам поднимает VPN-контейнер, если пробросов нет.
+
 ## Содержание
 
+- [Как развернуть](#как-развернуть)
 - [Архитектура](#архитектура)
 - [Ключевые цифры на LinQ](#ключевые-цифры-на-linq)
 - [Сценарии и статус](#сценарии-и-статус)
