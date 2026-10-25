@@ -644,11 +644,13 @@
   border-left: 3px solid var(--role, var(--line-2));
 }
 
+/* колонна навигации 92 px: полоски уровня не помещаются рядом с подписью — роль видна по цветной кромке */
 .demo-switch {
   display: grid;
   gap: 3px;
-  margin: 0 0 10px;
-  padding: 7px 5px;
+  min-width: 0;
+  margin: 0 -8px 10px;
+  padding: 6px 2px;
   border-radius: var(--r-m);
   border: 1px dashed var(--line-2);
   text-align: left;
@@ -663,11 +665,11 @@
 .demo-switch__btn {
   display: flex;
   align-items: center;
-  gap: 6px;
+  min-width: 0;
   height: 24px;
-  padding: 0 5px;
+  padding: 0 3px;
   border: 0;
-  border-left: 3px solid transparent;
+  border-left: 3px solid color-mix(in srgb, var(--role) 45%, transparent);
   border-radius: 5px;
   background: transparent;
   color: var(--text-2);
@@ -675,8 +677,13 @@
   font-weight: 550;
   white-space: nowrap;
 }
-.demo-switch__btn .access-level__bars {
-  height: 9px;
+.demo-switch__btn > span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.demo-switch__btn .access-level {
+  display: none;
 }
 .demo-switch__btn:hover:not(:disabled) {
   background: var(--bg-3);

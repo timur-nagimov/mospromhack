@@ -5,6 +5,10 @@
   object-fit: contain;
   background: #050607;
 }
+/* живой MJPEG поверх последнего кадра: пока не пришёл первый кадр потока, виден снимок, а не тёмный фон */
+.stream__media--over {
+  background: transparent;
+}
 
 .stream__nosignal {
   position: absolute;
