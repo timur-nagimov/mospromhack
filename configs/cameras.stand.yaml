@@ -30,7 +30,7 @@ cameras:
   name: Цех 1, ограждённый сектор
   site: Цех 1
   source: {type: file, uri: videos/s1_01.mp4, loop: true, realtime: true}
-  sample_fps: 5.0
+  sample_fps: 4.0
   enabled: true
   zones:
   - zone_id: behind_tape
@@ -53,7 +53,7 @@ cameras:
   name: Проходная цеха, контроль СИЗ
   site: Цех 2
   source: {type: file, uri: videos/s2_01.mp4, loop: true, realtime: true}
-  sample_fps: 5.0
+  sample_fps: 4.0
   enabled: true
   zones: []
   rules:
@@ -71,7 +71,7 @@ cameras:
   name: Комната отдыха персонала
   site: АБК
   source: {type: file, uri: videos/s3_02.mp4, loop: true, realtime: true}
-  sample_fps: 5.0
+  sample_fps: 4.0
   enabled: true
   zones: []
   rules:
@@ -89,7 +89,7 @@ cameras:
   name: Погрузочная площадка
   site: Склад
   source: {type: file, uri: videos/s4_02.mp4, loop: true, realtime: true}
-  sample_fps: 5.0
+  sample_fps: 4.0
   enabled: true
   zones: []
   rules:
@@ -103,3 +103,91 @@ cameras:
     close_after_s: 3.0
     cooldown_s: 10.0
     severity: critical
+# Дополнительные сцены для «Мониторинга» (25.10): другие типы нарушений, sample_fps 2–3, у четырёх
+# основных камер 4 к/с — CPU контейнера 1.5 ядра, а FileSource декодирует ролик целиком (docs/EDGE.md §7.2).
+# Правила — из ml/eval/scenarios.yaml (s6_01, s7_01, s2_02).
+- camera_id: cam_s6
+  name: Участок сборки, телефон у уха
+  site: Цех 3
+  source: {type: file, uri: videos/s6_01.mp4, loop: true, realtime: true}
+  sample_fps: 3.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s6_phone
+    type: phone_usage
+    enabled: true
+    zones: null
+    params: {}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: medium
+- camera_id: cam_s7
+  name: Неотапливаемый склад, курение и открытый огонь
+  site: Склад
+  source: {type: file, uri: videos/s7_01.mp4, loop: true, realtime: true}
+  sample_fps: 2.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s7_smoking
+    type: smoking_fire
+    enabled: true
+    zones: null
+    params: {}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: critical
+- camera_id: cam_s2b
+  name: Стройплощадка, контроль касок
+  site: Стройка
+  source: {type: file, uri: videos/s2_02.mp4, loop: true, realtime: true}
+  sample_fps: 3.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: s2b_ppe
+    type: ppe_missing
+    enabled: true
+    zones: null
+    params: {required: [helmet], min_box_h_px: 60}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 10.0
+    severity: high
+# Живая трансляция YouTube Live (перекрёсток Сибуя, Токио): люди и машины. Ссылку на страницу
+# yt-dlp на edge превращает в HLS 360p при каждом подключении (guard/sources/stream_url.py).
+# Без касок и СИЗ: на улице это поток ложных тревог.
+- camera_id: cam_live1
+  name: Трансляция — перекрёсток Сибуя (Токио)
+  site: Город, онлайн
+  source: {type: rtsp, uri: "https://www.youtube.com/watch?v=dfVK7ld38Ys", loop: true, realtime: true}
+  sample_fps: 2.0
+  enabled: true
+  zones: []
+  rules:
+  - rule_id: live1_vehicle
+    type: vehicle_proximity
+    enabled: true
+    zones: null
+    params: {min_vehicle_speed_bh: 0.05}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 20.0
+    severity: high
+  - rule_id: live1_running
+    type: running
+    enabled: true
+    zones: null
+    params: {min_box_h_px: 30}
+    min_duration_s: 1.5
+    min_ratio: 0.7
+    close_after_s: 3.0
+    cooldown_s: 30.0
+    severity: medium

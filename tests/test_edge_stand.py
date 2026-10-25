@@ -58,13 +58,23 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
     load_plugins()
     stand = {c.camera_id: c for c in load_cameras(STAND_CAMERAS)}
     demo = {c.camera_id: c for c in load_cameras(ROOT / "configs" / "cameras.yaml")}
-    assert set(stand) == {"cam_s1", "cam_s2", "cam_s3", "cam_s4"}
+    core = {"cam_s1", "cam_s2", "cam_s3", "cam_s4"}
+    # Дополнительные сцены «Мониторинга» и живая трансляция (25.10): реже, CPU контейнера 1.5 ядра.
+    extra = {"cam_s6", "cam_s7", "cam_s2b", "cam_live1"}
+    assert set(stand) == core | extra
     required = {r["type"]: set(r["required_models"]) for r in available_rules()}
     models = set(load_models(STAND_MODELS))
     videos = set()
     for cid, cam in stand.items():
-        assert 4.0 <= cam.sample_fps <= 5.0
+        assert (4.0 <= cam.sample_fps <= 5.0) if cid in core else (2.0 <= cam.sample_fps <= 3.0), cid
         assert all(z.active_hours is None for z in cam.zones)
+        if cam.source.type == "rtsp":
+            # трансляция: ссылка на страницу YouTube, адрес потока edge получает через yt-dlp
+            assert cam.source.uri.startswith("https://www.youtube.com/watch?v="), cid
+            assert not any(r.type == "ppe_missing" for r in cam.rules), cid  # каски на улице — ложные тревоги
+            for rule in cam.rules:
+                assert required[rule.type] <= models, (cid, rule.type)
+            continue
         videos.add(Path(cam.source.uri).name)
         for rule in cam.rules:
             assert required[rule.type] <= models, (cid, rule.type)
@@ -83,7 +93,7 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
                 stand_rules.append(dump)
             assert stand_rules == [r.model_dump() for r in demo[cid].rules]
             assert Path(cam.source.uri).name == Path(demo[cid].source.uri).name
-    assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4"}
+    assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4", "s6_01.mp4", "s7_01.mp4", "s2_02.mp4"}
 
 
 def test_section_rejects_unknown_keys(tmp_path):
