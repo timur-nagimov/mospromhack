@@ -16,12 +16,15 @@ WebSocket закрывается кодом 4403.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from typing import Any
 from urllib.parse import urlsplit
 
 from starlette.datastructures import Headers
 from starlette.responses import JSONResponse
+
+log = logging.getLogger(__name__)
 
 SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS"})
 LOOPBACK = frozenset({"localhost", "127.0.0.1", "::1"})
@@ -64,6 +67,8 @@ class OriginGuard:
         origins = list(allowed_origins)
         self.allow_all = "*" in origins
         self.allowed = {_normalize(o) for o in origins if o != "*"}
+        self.allowed_parsed = {p for p in (_origin(o) for o in origins if o != "*") if p is not None}
+        self._warned: set[str] = set()
 
     def allowed_origin(self, origin: str, headers: Headers) -> bool:
         if self.allow_all or _normalize(origin) in self.allowed:
@@ -71,6 +76,8 @@ class OriginGuard:
         parsed = _origin(origin)  # «null» (песочница, file://) и мусор — чужие
         if parsed is None:
             return False
+        if parsed in self.allowed_parsed:  # http://h:80 в списке = http://h в заголовке
+            return True
         scheme, host, port = parsed
         request_hosts = [headers.get("host", "")]
         forwarded = headers.get("x-forwarded-host")
@@ -92,6 +99,12 @@ class OriginGuard:
             headers = Headers(scope=scope)
             origin = headers.get("origin")
             if origin is not None and not self.allowed_origin(origin, headers):
+                if origin not in self._warned and len(self._warned) < 100:  # подсказка для своего интерфейса на другом адресе
+                    self._warned.add(origin)
+                    log.warning(
+                        "origin: %s %s с Origin %s отклонён (Host %s). Если это ваш интерфейс, добавьте источник "
+                        "в GUARD_CORS_ORIGINS", scope.get("method", "WS"), scope.get("path"), origin, headers.get("host"),
+                    )
                 if kind == "websocket":
                     message = await receive()  # websocket.connect
                     if message["type"] == "websocket.connect":

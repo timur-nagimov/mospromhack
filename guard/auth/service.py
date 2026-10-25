@@ -30,6 +30,7 @@ log = logging.getLogger(__name__)
 LOGIN_MAX_FAILURES = 10
 LOGIN_IP_MAX_FAILURES = 30  # неудачи с одного адреса по всем логинам (перебор логинов)
 LOGIN_BLOCK_S = 60.0
+LOGIN_WINDOW_S = 900.0  # неудачи старше 15 минут без новых не считаются
 VERIFY_CONCURRENCY = 4  # одновременных проверок пароля: scrypt берёт 16 МБ, поток входов не съест память
 INITIAL_ADMIN_FILE = "auth-initial-admin.txt"
 
@@ -95,6 +96,7 @@ class AuthService:
         self.clock = clock  # тесты подменяют часы; хранилище и ограничитель читают их через self
         self.limiter = LoginLimiter(
             LOGIN_MAX_FAILURES, LOGIN_BLOCK_S, clock=lambda: self.clock(), ip_max_failures=LOGIN_IP_MAX_FAILURES,
+            window_s=LOGIN_WINDOW_S,
         )
         self._store: AuthStore | None = None
         self._lock = threading.Lock()

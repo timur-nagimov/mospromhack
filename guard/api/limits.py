@@ -27,7 +27,7 @@ class BodyLimit:
             await self.app(scope, receive, send)
             return
         length = Headers(scope=scope).get("content-length")
-        if length is not None and (not length.isdigit() or int(length) > self.max_bytes):
+        if length is not None and (not (length.isascii() and length.isdigit()) or int(length) > self.max_bytes):
             await JSONResponse({"detail": DETAIL}, status_code=413)(scope, receive, send)
             return
         received = 0

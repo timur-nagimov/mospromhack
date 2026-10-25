@@ -43,12 +43,13 @@ ACTIONS = (
     FLYWHEEL_REVIEW, FLYWHEEL_CAPTURE, FLYWHEEL_JOB,
 )
 NOTE_LIMIT = 500
-# Значения этих параметров адреса — секреты; список как guard.sources.stream_url.SECRET_QUERY_KEYS
-# (модуль не импортируется: шлюз не загружает guard.sources и cv2; совпадение проверяет тест)
+# Значения этих параметров адреса — секреты: guard.sources.stream_url.SECRET_QUERY_KEYS и ещё несколько
+# (модуль не импортируется: шлюз не загружает guard.sources и cv2; что список не меньше, проверяет тест)
 SECRET_QUERY_KEYS = frozenset({
     "token", "key", "apikey", "api_key", "password", "pass", "pwd", "auth", "sig", "signature", "secret",
+    "access_token", "auth_token", "jwt", "session", "sessionid", "passwd", "credential", "credentials",
 })
-_SECRET_QUERY_RE = re.compile(r"(?i)([?&](?:" + "|".join(sorted(SECRET_QUERY_KEYS)) + r")=)[^&\s#]+")
+_SECRET_QUERY_RE = re.compile(r"(?i)([?&;](?:" + "|".join(sorted(SECRET_QUERY_KEYS)) + r")=)[^&;\s#]+")
 
 
 def client_ip(conn: HTTPConnection) -> str | None:

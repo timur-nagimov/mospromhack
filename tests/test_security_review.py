@@ -446,6 +446,11 @@ def probe_calls(monkeypatch):
     {"type": "rtsp", "uri": "concat:/etc/passwd|/etc/hosts"},
     {"type": "rtsp", "uri": "http://169.254.169.254/latest/meta-data/"},
     {"type": "rtsp", "uri": "http://metadata.google.internal/computeMetadata/v1/"},
+    {"type": "rtsp", "uri": "http://2852039166/latest/"},  # 169.254.169.254 десятичным числом
+    {"type": "rtsp", "uri": "http://0xa9fea9fe/latest/"},
+    {"type": "rtsp", "uri": "http://[::ffff:169.254.169.254]/latest/"},
+    {"type": "rtsp", "uri": "http://169.254.1.1/"},
+    {"type": "rtsp", "uri": "http://metadata.goog/"},
     {"type": "webcam", "uri": "/etc/passwd"},
     {"type": "webcam", "uri": "http://10.0.0.1/stream"},
     {"type": "file", "uri": "http://10.0.0.1/video.mp4"},
@@ -612,6 +617,17 @@ def test_origin_rules():
     assert not _origin_ok("https://demo.example", host="demo.example:80")  # другая схема — другой порт
     assert not _origin_ok("null") and not _origin_ok("") and not _origin_ok("file://")
     assert not _origin_ok("http://[bad", host="x")
+    # в списке с явным портом по умолчанию — тот же источник
+    assert _origin_ok("https://ui.example", host="10.0.0.2:8000", allowed=("https://ui.example:443",))
+
+
+def test_foreign_origin_is_logged_once(env, caplog):
+    admin = env.login("admin")
+    caplog.set_level(logging.WARNING, logger="guard.auth.origin")
+    for _ in range(3):
+        env.client.post("/api/auth/logout", headers={**admin, "Origin": "http://10.9.9.9:5173"})
+    lines = [r for r in caplog.records if "GUARD_CORS_ORIGINS" in r.getMessage()]
+    assert len(lines) == 1 and "10.9.9.9:5173" in lines[0].getMessage()
 
 
 def test_origin_star_disables_the_check():
@@ -626,7 +642,7 @@ def test_policy_lists_match_guard_sources():
     from guard.auth import audit, source_policy
     from guard.sources import stream_url
 
-    assert audit.SECRET_QUERY_KEYS == stream_url.SECRET_QUERY_KEYS
+    assert audit.SECRET_QUERY_KEYS >= stream_url.SECRET_QUERY_KEYS
     for scheme in source_policy.NETWORK_SCHEMES:
         assert stream_url.is_network(f"{scheme}://h/x"), scheme
     for scheme in ("file", "concat", "subfile", "pipe", "data", "gopher", "ftp"):
@@ -641,6 +657,8 @@ def test_policy_lists_match_guard_sources():
     ("rtsp://u:p:q@h/s", "rtsp://u:***@h/s"),
     ("rtsp://u@h/s", "rtsp://u@h/s"),
     ("http://h/live.m3u8?token=abc&x=1", "http://h/live.m3u8?token=***&x=1"),
+    ("http://h/s?x=1;token=abc", "http://h/s?x=1;token=***"),
+    ("http://h/s?access_token=abc&auth_token=def", "http://h/s?access_token=***&auth_token=***"),
     ("videos/a.mp4", "videos/a.mp4"),
 ])
 def test_redact_uri(uri, expected):
@@ -660,6 +678,34 @@ def test_source_policy_resolves_relative_paths_against_data_dir(tmp_path):
     assert source_problem(SourceConfig(type="file", uri="videos/a.mp4"), deep) is None
     (deep / "link.mp4").symlink_to("/dev/null")
     assert source_problem(SourceConfig(type="file", uri="link.mp4"), deep)
+    # resolve_source_uri пробует и родителя data_dir, и текущий каталог — проверка тоже
+    one_up = "../" * (len(deep.parts) - 1) + "dev/null"
+    assert source_problem(SourceConfig(type="file", uri=one_up), deep)
+
+
+@pytest.mark.parametrize("uri", ["~nosuchuser_s1/x.mp4", "a\x00b.mp4", "\ud800.mp4"])
+def test_source_policy_odd_paths_are_rejected_not_500(env, uri):
+    from guard.auth.source_policy import source_problem
+    from guard.contracts import SourceConfig
+
+    assert source_problem(SourceConfig(type="file", uri=uri), env.settings.data_dir)
+    admin = env.login("admin")
+    body = camera_dict(env.folder, camera_id="odd", source={"type": "file", "uri": uri})
+    if "\ud800" not in uri:  # непарный суррогат не уходит в JSON клиента
+        assert env.client.post("/api/cameras", json=body, headers=admin).status_code == 422
+
+
+def test_limiter_forgets_old_typos():
+    from guard.auth.ratelimit import LoginLimiter
+    from guard.auth.testing import FakeClock
+
+    clock = FakeClock(0.0)
+    lim = LoginLimiter(max_failures=10, block_s=60.0, clock=clock, ip_max_failures=30, window_s=900.0)
+    for i in range(29):
+        lim.failure(f"u{i}", "127.0.0.1")
+        clock.advance(3600)  # по опечатке в час
+    assert lim.failure("admin", "127.0.0.1") == 0
+    assert lim.retry_after("admin", "127.0.0.1") == 0
 
 
 def test_limiter_counts_failures_per_address():

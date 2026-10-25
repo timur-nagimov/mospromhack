@@ -1,5 +1,6 @@
 """Мягкое ограничение подбора пароля: N неудачных входов подряд на пару «логин, адрес» — пауза.
 
+Окно (window_s): счётчик без новых неудач дольше окна забывается — давние опечатки не копятся до паузы.
 Дополнительно (ip_max_failures) — общий счётчик неудач на адрес: перебор многих логинов с одного адреса
 тоже получает паузу, и журнал действий не раздувается записями auth.login_failed. Удачный вход
 сбрасывает только счётчик пары: своя учётка не обнуляет перебор чужих.
@@ -22,6 +23,7 @@ Key = tuple[str, str]
 class _State:
     failures: int = 0
     blocked_until: float = 0.0
+    last: float = 0.0  # время последней неудачи
 
 
 class LoginLimiter:
@@ -32,12 +34,14 @@ class LoginLimiter:
         clock: Callable[[], float] = time.time,
         max_keys: int = 10_000,
         ip_max_failures: int | None = None,
+        window_s: float | None = None,
     ) -> None:
         self.max_failures = max_failures
         self.block_s = block_s
         self.clock = clock
         self.max_keys = max_keys
         self.ip_max_failures = ip_max_failures  # None — без общего счётчика на адрес
+        self.window_s = window_s  # счётчик без неудач дольше окна забывается; None — помнится до паузы
         self._lock = threading.Lock()
         self._state: OrderedDict[Key, _State] = OrderedDict()
         self._ip_state: OrderedDict[Key, _State] = OrderedDict()  # отдельно: не пересечётся с парами
@@ -53,17 +57,20 @@ class LoginLimiter:
     def _ip_key(ip: str | None) -> Key:
         return "", ip or ""
 
-    @staticmethod
-    def _current(table: OrderedDict[Key, _State], key: Key, now: float) -> _State | None:
+    def _current(self, table: OrderedDict[Key, _State], key: Key, now: float) -> _State | None:
         state = table.get(key)
-        if state is not None and state.blocked_until and state.blocked_until <= now:
+        if state is None:
+            return None
+        if state.blocked_until and state.blocked_until <= now:
             del table[key]  # пауза кончилась — счёт с нуля
+            return None
+        if not state.blocked_until and self.window_s is not None and now - state.last > self.window_s:
+            del table[key]  # давние опечатки не копятся до паузы
             return None
         return state
 
-    @classmethod
-    def _wait(cls, table: OrderedDict[Key, _State], key: Key, now: float) -> float:
-        state = cls._current(table, key, now)
+    def _wait(self, table: OrderedDict[Key, _State], key: Key, now: float) -> float:
+        state = self._current(table, key, now)
         if state is None or not state.blocked_until:
             return 0
         return state.blocked_until - now
@@ -85,6 +92,7 @@ class LoginLimiter:
             return 0
         table.move_to_end(key)
         state.failures += 1
+        state.last = now
         if state.failures >= limit:
             state.blocked_until = now + self.block_s
             return self.block_s
