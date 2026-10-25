@@ -51,7 +51,7 @@ FONT_XBOLD = "Onest ExtraBold"
 SLIDE_W = 13.333
 SLIDE_H = 7.5
 MARGIN = 0.6
-CONTENT_TOP = 1.95
+CONTENT_TOP = 1.55
 
 
 def rgb(value: str) -> RGBColor:
@@ -304,7 +304,7 @@ def add_header(slide, spec, number: int, total: int) -> None:
         add_text(
             slide,
             MARGIN,
-            0.48,
+            0.4,
             8.0,
             0.3,
             [{"text": kicker.upper(), "size": 13, "color": BRAND, "font": FONT_SEMI, "spacing": 2}],
@@ -313,7 +313,7 @@ def add_header(slide, spec, number: int, total: int) -> None:
     add_text(
         slide,
         SLIDE_W - MARGIN - 2.0,
-        0.48,
+        0.4,
         2.0,
         0.3,
         [{"text": f"{number:02d} / {total:02d}", "size": 12, "color": TEXT4, "font": FONT_MEDIUM, "align": PP_ALIGN.RIGHT}],
@@ -322,10 +322,10 @@ def add_header(slide, spec, number: int, total: int) -> None:
     add_text(
         slide,
         MARGIN,
-        0.82,
+        0.66,
         SLIDE_W - 2 * MARGIN,
         0.8,
-        [{"text": spec["title"], "size": 36, "color": TEXT1, "font": FONT_XBOLD, "line": 1.0}],
+        [{"text": spec["title"], "size": 34, "color": TEXT1, "font": FONT_XBOLD, "line": 1.0}],
         name="Заголовок",
     )
 
@@ -422,8 +422,8 @@ def _points(slide, points, x, y, w, gap=0.38):
 
 
 def _flow(slide, items, x, y, w):
-    pill_h = 0.44
-    arrow_h = 0.27
+    pill_h = 0.42
+    arrow_h = 0.24
     for i, item in enumerate(items):
         py = y + i * (pill_h + arrow_h)
         last = i == len(items) - 1
@@ -453,11 +453,11 @@ def _flow(slide, items, x, y, w):
     return y + len(items) * (pill_h + arrow_h) - arrow_h
 
 
-def _stats(slide, stats, x, y, w, gap=0.42):
+def _stats(slide, stats, x, y, w, gap=0.3):
     py = y
     for stat in stats:
         paragraphs = [
-            {"text": stat["value"], "size": 44, "color": BRAND, "font": FONT_XBOLD, "line": 1.0},
+            {"text": stat["value"], "size": 40, "color": BRAND, "font": FONT_XBOLD, "line": 1.0},
             {"text": stat["label"], "size": 17, "color": TEXT2, "before": 2, "line": 1.1},
         ]
         h = text_height(paragraphs, w)
@@ -475,22 +475,32 @@ def layout_screen(prs, spec, number, total):
     slide = prs.slides.add_slide(prs.slide_layouts[6])
     set_background(slide)
     add_header(slide, spec, number, total)
-    col_x, col_w = MARGIN, 3.5
-    img_x = MARGIN + col_w + 0.35
-    img_w = SLIDE_W - 0.45 - img_x
-    img_y, img_h = CONTENT_TOP, SLIDE_H - CONTENT_TOP - 0.42
+    # Скриншот — не меньше 65 % ширины слайда, текст — узкая колонка слева.
+    col_x, col_w = 0.55, 3.0
+    img_x = col_x + col_w + 0.3
+    img_w = SLIDE_W - 0.3 - img_x
+    img_y, img_h = CONTENT_TOP, SLIDE_H - CONTENT_TOP - 0.28
     y = CONTENT_TOP + 0.05
     if spec.get("stats"):
         y = _stats(slide, spec["stats"], col_x, y - 0.12, col_w)
     if spec.get("points"):
-        y = _points(slide, spec["points"], col_x, y, col_w)
+        y = _points(slide, spec["points"], col_x, y, col_w, gap=0.32)
     if spec.get("flow"):
-        y = _flow(slide, spec["flow"], col_x, y + 0.36, col_w - 0.2)
+        y = _flow(slide, spec["flow"], col_x, y + 0.32, col_w - 0.1)
+    if spec.get("footnote"):
+        paragraphs = [{"text": spec["footnote"], "size": 12.5, "color": TEXT3, "line": 1.1}]
+        fh = text_height(paragraphs, col_w)
+        fy = SLIDE_H - 0.28 - fh
+        if fy < y + 0.05:
+            WARNINGS.append(f"слайд {CURRENT['slide']}: сноска наезжает на колонку")
+        add_text(slide, col_x, fy, col_w, fh + 0.04, paragraphs, name="Сноска")
     _check_bottom(y, "левая колонка")
     image = HERE / spec["image"]
     crop = spec.get("crop", [0, 0, 0, 0])
     if image.exists():
-        x, yy, w, h = fit(image_aspect(image, crop), img_x, img_y, img_w, img_h, halign="center", valign="top")
+        x, yy, w, h = fit(image_aspect(image, crop), img_x, img_y, img_w, img_h, halign="right", valign="top")
+        if w < 0.65 * SLIDE_W:
+            WARNINGS.append(f"слайд {CURRENT['slide']}: скриншот {w / SLIDE_W:.0%} ширины, нужно ≥ 65 %")
         add_picture(slide, image, x, yy, w, h, crop=crop)
     else:
         add_box(slide, img_x, img_y, img_w, img_w * 9 / 16, fill=BG3, line=LINE)
@@ -542,6 +552,14 @@ def build(spec_path: Path, out: Path) -> Path:
     return out
 
 
+# Картинки в PDF — JPEG 85 и не больше 220 точек на дюйм: для проектора хватает, файл вдвое легче.
+PDF_FILTER = (
+    'pdf:impress_pdf_Export:{"Quality":{"type":"long","value":"85"},'
+    '"ReduceImageResolution":{"type":"boolean","value":"true"},'
+    '"MaxImageResolution":{"type":"long","value":"220"}}'
+)
+
+
 def to_pdf(pptx: Path) -> Path:
     soffice = shutil.which("soffice") or "/opt/homebrew/bin/soffice"
     profile = Path("/tmp/zz-deck-v2-lo-profile")
@@ -550,7 +568,7 @@ def to_pdf(pptx: Path) -> Path:
         f"-env:UserInstallation=file://{profile}",
         "--headless",
         "--convert-to",
-        "pdf",
+        PDF_FILTER,
         "--outdir",
         str(pptx.parent),
         str(pptx),

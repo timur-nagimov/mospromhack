@@ -88,7 +88,7 @@ async function dumpPage(page, name) {
 
 async function shot(page, name) {
   const file = path.join(OUT, `${name}.jpg`);
-  await page.screenshot({ path: file, type: 'jpeg', quality: 90 });
+  await page.screenshot({ path: file, type: 'jpeg', quality: Number(process.env.QUALITY ?? 85) });
   console.log('saved', file);
   if (dump.has(name)) await dumpPage(page, name);
 }
@@ -185,7 +185,7 @@ const SHOTS = {
 const browser = await chromium.launch({ args: ['--disable-gpu', '--disable-dev-shm-usage'] });
 const errors = [];
 try {
-  const context = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2, locale: 'ru-RU', timezoneId: 'Europe/Moscow' });
+  const context = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: Number(process.env.SCALE ?? 1.5), locale: 'ru-RU', timezoneId: 'Europe/Moscow' });
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(`pageerror: ${e.message}`));
   await page.goto(`${BASE}#/`, { waitUntil: 'domcontentloaded' });
