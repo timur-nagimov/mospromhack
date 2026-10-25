@@ -19,11 +19,20 @@
 prefetch: RabbitSource шлюза берёт по одному сообщению (prefetch_count=1, ack на каждое). Через VPN
 (RTT ~235 мс) это ~4 сообщения/с. --prefetch 1 --ack-every 1 повторяет поведение шлюза.
 Очередь общая: при работающем шлюзе подписчик делит с ним сообщения — смотрите consumers в отчёте.
+
+Topology v2 (по умолчанию, --topology v2; нынешний edge, docs/EDGE_PROTOCOL.md): работает только с --tap.
+Своя временная очередь привязана к exchange guard.edge.v1 по ключу <edge_id>.events, а с --telemetry —
+ещё и по <edge_id>.telemetry. Копия телеметрии (~50–75 КиБ/с превью) удваивает нагрузку на туннель
+стенд → ноутбук, поэтому по умолчанию её нет. NTP-сдвига стенда в v2 нет: разность часов передайте
+через --clock-offset-ms (часы ноутбука − часы стенда, например NTP на обеих сторонах). Иначе берётся
+оценка по RTT (по телеметрии, если есть, или по событиям; по событиям задержка занижается на время
+передачи снимка).
 """
 
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import statistics
 import sys
@@ -38,6 +47,8 @@ from guard.transport.messages import EventMsg, FrameMetaMsg, HeartbeatMsg, Metri
 
 DEFAULT_URL = "amqp://guest:guest@127.0.0.1:5672/"
 GATEWAY_QUEUE = "zazerkalye.gateway"
+V2_EXCHANGE = "guard.edge.v1"
+DEFAULT_EDGE_ID = "stand-linq"
 EXCHANGE = "zazerkalye"
 BINDINGS = ("edge.event", "edge.frame_meta", "edge.metrics")
 
@@ -72,7 +83,8 @@ class Recorder:
         self.updates = 0
         self.frame_meta: dict[str, list[tuple[float, float]]] = defaultdict(list)  # (ts edge, recv)
         self.metrics: list[tuple[float, dict[str, Any]]] = []
-        self.clock_samples: list[float] = []  # recv − ts edge для heartbeat и metrics
+        self.clock_samples: list[float] = []  # recv − ts edge для heartbeat и metrics (v2: вся телеметрия)
+        self.event_clock_samples: list[float] = []  # v2: recv − sent_at событий
         self.decode_errors = 0
         self.first_recv: float | None = None
         self.last_recv: float | None = None
@@ -116,6 +128,45 @@ class Recorder:
         elif isinstance(msg, HeartbeatMsg):
             self.clock_samples.append(recv - msg.ts)
 
+    def add_envelope(self, env: Any, recv: float, size: int) -> None:
+        """Конверт topology v2 (guard.transport.protocol.Envelope); sent_at — часы стенда."""
+        kind = env.kind
+        self.counts[kind] += 1
+        self.bytes[kind] += size
+        self.first_recv = self.first_recv or recv
+        self.last_recv = recv
+        payload = env.payload
+        if kind == "event_update":
+            self.updates += 1
+        elif kind == "event":
+            ev = payload["event"]
+            if ev["id"] in self.events:
+                self.event_duplicates += 1
+                return
+            snapshot = base64.b64decode(payload["snapshot_jpeg"]) if payload.get("snapshot_jpeg") else None
+            self.events[ev["id"]] = {
+                "id": ev["id"],
+                "camera_id": ev["camera_id"],
+                "type": ev["type"],
+                "track_id": ev.get("track_id"),
+                "started_at": ev["started_at"],
+                "confirmed_at": ev["confirmed_at"],
+                "sent_at": env.sent_at,
+                "recv": recv,
+                "latency_ms": dict(ev.get("latency_ms") or {}),
+                "snapshot_kb": round(len(snapshot) / 1024, 1) if snapshot else None,
+                "body_kb": round(size / 1024, 1),
+            }
+        elif kind == "frame_meta":
+            self.frame_meta[payload["camera_id"]].append((payload["capture_ts"], recv))
+        elif kind == "metrics":
+            self.metrics.append((recv, payload["data"]))
+        if kind in {"event", "event_update"}:
+            # событие со снимком (~60 КБ) идёт по туннелю ~0.5 с: для оценки часов — только запасной вариант
+            self.event_clock_samples.append(recv - env.sent_at)
+        else:
+            self.clock_samples.append(recv - env.sent_at)
+
 
 def broker_rtt(url: str, queue: str, n: int = 15) -> dict[str, Any]:
     """Круг ноутбук ↔ брокер (passive declare) и состояние очереди перед замером."""
@@ -156,36 +207,72 @@ def consume(url: str, queue: str, duration: float, prefetch: int, ack_every: int
             ch.queue_bind(queue=queue, exchange=EXCHANGE, routing_key=routing_key)
     elif purge:
         ch.queue_purge(queue)
+
+    def handle(body: bytes, props: Any, now: float) -> None:
+        try:
+            msg = decode(body, props.headers or {})
+        except (ValueError, TypeError):
+            rec.decode_errors += 1
+            return
+        rec.add(msg, now, len(body))
+
+    try:
+        _consume_loop(ch, queue, duration, prefetch, ack_every, rec, handle)
+    finally:
+        conn.close()
+
+
+def consume_v2(url: str, edge_id: str, duration: float, prefetch: int, ack_every: int, rec: Recorder,
+               telemetry: bool = False, exchange: str = V2_EXCHANGE) -> None:
+    """Topology v2, только копия потока: своя exclusive-очередь на ключах edge, очередь шлюза не трогаем."""
+    import pika
+
+    from guard.transport.protocol import decode as decode_v2
+
+    conn = pika.BlockingConnection(pika.URLParameters(url))
+    try:
+        ch = conn.channel()
+        queue = ch.queue_declare(queue="", exclusive=True, auto_delete=True,
+                                 arguments={"x-max-length": 5000}).method.queue
+        for suffix in ("events", "telemetry") if telemetry else ("events",):
+            ch.queue_bind(queue=queue, exchange=exchange, routing_key=f"{edge_id}.{suffix}")
+
+        def handle(body: bytes, props: Any, now: float) -> None:
+            try:
+                env = decode_v2(body, expected_edge_id=edge_id)
+            except ValueError:
+                rec.decode_errors += 1
+                return
+            rec.add_envelope(env, now, len(body))
+
+        _consume_loop(ch, queue, duration, prefetch, ack_every, rec, handle)
+    finally:
+        conn.close()
+
+
+def _consume_loop(ch: Any, queue: str, duration: float, prefetch: int, ack_every: int, rec: Recorder,
+                  handle: Any) -> None:
     ch.basic_qos(prefetch_count=prefetch)
     deadline = time.monotonic() + duration
     rec.consume_started = time.time()
     unacked = 0
     last_tag = None
     last_ack = time.monotonic()
-    try:
-        for method, props, body in ch.consume(queue, auto_ack=False, inactivity_timeout=0.25):
-            now = time.time()
-            if method is not None:
-                try:
-                    msg = decode(body, props.headers or {})
-                except (ValueError, TypeError):
-                    rec.decode_errors += 1
-                    msg = None
-                if msg is not None:
-                    rec.add(msg, now, len(body))
-                last_tag = method.delivery_tag
-                unacked += 1
-            if last_tag is not None and unacked and (unacked >= ack_every or time.monotonic() - last_ack > 0.2):
-                ch.basic_ack(delivery_tag=last_tag, multiple=True)
-                unacked = 0
-                last_ack = time.monotonic()
-            if time.monotonic() >= deadline:
-                break
-        if last_tag is not None and unacked:
+    for method, props, body in ch.consume(queue, auto_ack=False, inactivity_timeout=0.25):
+        now = time.time()
+        if method is not None:
+            handle(body, props, now)
+            last_tag = method.delivery_tag
+            unacked += 1
+        if last_tag is not None and unacked and (unacked >= ack_every or time.monotonic() - last_ack > 0.2):
             ch.basic_ack(delivery_tag=last_tag, multiple=True)
-        ch.cancel()
-    finally:
-        conn.close()
+            unacked = 0
+            last_ack = time.monotonic()
+        if time.monotonic() >= deadline:
+            break
+    if last_tag is not None and unacked:
+        ch.basic_ack(delivery_tag=last_tag, multiple=True)
+    ch.cancel()
 
 
 def _edge(data: dict[str, Any]) -> dict[str, Any]:
@@ -219,10 +306,23 @@ def summarize(rec: Recorder, laptop_ntp: dict[str, Any] | None, rtt: dict[str, A
             "min_one_way_plus_offset_ms": round(min(rec.clock_samples) * 1000, 1),
             "samples": len(rec.clock_samples),
         }
-    if d_ntp is not None:
+    d_events = None
+    if not rec.clock_samples and rec.event_clock_samples and rtt.get("rtt_min_ms") is not None:
+        d_events = min(rec.event_clock_samples) - rtt["rtt_min_ms"] / 2000.0
+        clock["rtt_events"] = {
+            "laptop_minus_stand_ms": round(d_events * 1000, 1),
+            "note": "верхняя оценка: включает передачу снимка, задержка оповещения занижена на неё",
+            "samples": len(rec.event_clock_samples),
+        }
+    cli_offset = getattr(args, "clock_offset_ms", None)
+    if cli_offset is not None:
+        d, clock["used"] = cli_offset / 1000.0, "cli"
+    elif d_ntp is not None:
         d, clock["used"] = d_ntp, "ntp"
     elif d_rtt is not None:
         d, clock["used"] = d_rtt, "rtt"
+    elif d_events is not None:
+        d, clock["used"] = d_events, "rtt_events"
     else:
         d, clock["used"] = 0.0, "none (часы считаются синхронными)"
     if d_ntp is not None and d_rtt is not None:
@@ -389,7 +489,15 @@ def summarize(rec: Recorder, laptop_ntp: dict[str, Any] | None, rtt: dict[str, A
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="python -m guard.edge_probe", description="Замеры канала edge → шлюз")
     p.add_argument("--url", default=DEFAULT_URL, help="AMQP URL брокера (с ноутбука — 127.0.0.1:5672 через VPN-контейнер)")
-    p.add_argument("--queue", default=GATEWAY_QUEUE)
+    p.add_argument("--topology", choices=["v2", "legacy"], default="v2",
+                   help="v2 — нынешний edge (guard.edge.v1, только с --tap); legacy — очередь zazerkalye.gateway")
+    p.add_argument("--edge-id", default=DEFAULT_EDGE_ID, help="v2: идентификатор edge в ключах маршрутизации")
+    p.add_argument("--telemetry", action="store_true",
+                   help="v2: копировать и телеметрию (превью ~50–75 КиБ/с — удваивает нагрузку на туннель)")
+    p.add_argument("--clock-offset-ms", type=float, default=None,
+                   help="часы ноутбука − часы стенда, мс (например, по NTP на обеих сторонах); важнее оценок")
+    p.add_argument("--queue", default=None,
+                   help=f"legacy: очередь шлюза ({GATEWAY_QUEUE}); v2: очередь событий шлюза для passive declare")
     p.add_argument("--duration", type=float, default=120.0, help="секунд приёма")
     p.add_argument("--prefetch", type=int, default=200, help="1 — как RabbitSource шлюза")
     p.add_argument("--ack-every", type=int, default=50, help="групповой ack; 1 — как RabbitSource")
@@ -400,11 +508,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p.add_argument("--no-ntp", action="store_true")
     p.add_argument("--label", default="edge-tpu")
     p.add_argument("--out", help="JSON с результатами")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.queue is None:
+        args.queue = f"guard.gateway.{args.edge_id}.events" if args.topology == "v2" else GATEWAY_QUEUE
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    if args.topology == "v2" and not args.tap:
+        print("edge_probe: для topology v2 нужен --tap — очередь событий шлюза не делим, "
+              "иначе шлюз недополучит события", file=sys.stderr)
+        return 2
     ntp_servers = ("time.google.com", "pool.ntp.org", "time.cloudflare.com")
     laptop_ntp = None if args.no_ntp else ntp_best(ntp_servers, samples=6)
     rtt = broker_rtt(args.url, args.queue)
@@ -413,7 +528,10 @@ def main(argv: list[str] | None = None) -> int:
     if rtt["consumers_before"] and not args.tap:
         print("ВНИМАНИЕ: у очереди уже есть потребитель (шлюз?) — сообщения делятся между ним и замером", flush=True)
     rec = Recorder()
-    consume(args.url, args.queue, args.duration, args.prefetch, args.ack_every, rec, purge=args.purge, tap=args.tap)
+    if args.topology == "v2":
+        consume_v2(args.url, args.edge_id, args.duration, args.prefetch, args.ack_every, rec, telemetry=args.telemetry)
+    else:
+        consume(args.url, args.queue, args.duration, args.prefetch, args.ack_every, rec, purge=args.purge, tap=args.tap)
     if not args.no_ntp:
         again = ntp_best(ntp_servers, samples=6)
         if again and "offset_ms" in again and (not laptop_ntp or "offset_ms" not in laptop_ntp

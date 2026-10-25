@@ -76,13 +76,16 @@ python tools/stand.py restart        # stop + start
 **Проверка с ноутбука** — замеряющий подписчик:
 
 ```bash
-# шлюз работает (демо): копия потока через свою очередь, у шлюза ничего не отнимает
-python -m guard.edge_probe --tap --duration 300 --out edge-tpu-$(date +%Y%m%d-%H%M).json
-# шлюза нет: замер сам становится потребителем очереди шлюза (иначе edge не шлёт frame_meta и metrics, §4)
-python -m guard.edge_probe --duration 300 --out edge-tpu-$(date +%Y%m%d-%H%M).json
+# нынешний edge (topology v2): только копия событий через свою очередь, у шлюза ничего не отнимает.
+# Разность часов — по NTP на обеих сторонах: в v2 edge свой NTP-сдвиг не публикует.
+D=$(python tools/stand_clock.py | python -c 'import json,sys; print(json.load(sys.stdin)["laptop_minus_stand_ms"])')
+python -m guard.edge_probe --tap --clock-offset-ms "$D" --duration 600 --out edge-tpu-$(date +%Y%m%d-%H%M).json
+# старый edge (legacy): --topology legacy; шлюза нет — замер сам становится потребителем очереди шлюза
+python -m guard.edge_probe --topology legacy --duration 300 --out edge-tpu-$(date +%Y%m%d-%H%M).json
 ```
 
-- Подписчик читает `zazerkalye.gateway` через `127.0.0.1:5672` и печатает сводку (события, задержки, потери, часы).
+- v2: своя временная очередь на exchange `guard.edge.v1` по ключу `<edge_id>.events`. С `--telemetry` — ещё и телеметрия, но её копия (~50–75 КиБ/с превью) удваивает нагрузку на туннель стенд → ноутбук и мешает демо. Без `--tap` v2 не запускается.
+- Legacy: подписчик читает `zazerkalye.gateway` через `127.0.0.1:5672` и печатает сводку (события, задержки, потери, часы).
 - **Если шлюз работает, замер запускать только с `--tap`.** У общей очереди брокер раздаёт сообщения потребителям по очереди: шлюз недосчитывается половины `event`, создаёт событие из `event_update` уже без снапшота и с опозданием на 6–14 с (так было 24.10 12:34–12:44, когда замер стабильности шёл параллельно с демо). `--tap` читает копию потока через свою временную очередь на тех же ключах и шлюзу не мешает. Без `--tap` подписчик предупреждает о чужом потребителе (`consumers_before`).
 - `--prefetch 1 --ack-every 1` воспроизводит поведение `RabbitSource` шлюза (§7.1).
 
