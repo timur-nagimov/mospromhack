@@ -21,9 +21,10 @@ edge:
                                              # общий воркер стоит по 2+ с (13 откатов на CPU за час при 2 с),
                                              # а CPU контейнера 4 камеры не тянет (docs/EDGE.md §7.2)
   gateway_guard: {backlog_limit: 300}        # без потребителя очереди шлюза телеметрию не копим
-  # preview_max_width 384 вместо 480: превью ~11 КБ вместо ~18.5 КБ, 4 камеры × 1 к/с — ~47 КиБ/с из
-  # ~110–120 КиБ/с туннеля стенд → ноутбук; остаток — событиям со снимком (docs/EDGE.md §7.1а)
-  settings: {max_batch: 8, batch_timeout_ms: 4.0, preview_max_width: 384}
+  # preview_max_width 320: превью ~7 КБ, 7 камер × 1 к/с — ~50 КиБ/с из ~110–120 КиБ/с туннеля
+  # стенд → ноутбук; остаток — событиям со снимком (docs/EDGE.md §7.1а). При 8 камерах и 384 px
+  # возраст превью доходил до 30 с, оповещение — p50 2.9 с от подтверждения (tpu-demo-8cams-*-0629).
+  settings: {max_batch: 8, batch_timeout_ms: 4.0, preview_max_width: 320}
 
 cameras:
 - camera_id: cam_s1
@@ -105,7 +106,7 @@ cameras:
     severity: critical
 # Дополнительные сцены для «Мониторинга» (25.10): другие типы нарушений, sample_fps 2–3, у четырёх
 # основных камер 4 к/с — CPU контейнера 1.5 ядра, а FileSource декодирует ролик целиком (docs/EDGE.md §7.2).
-# Правила — из ml/eval/scenarios.yaml (s6_01, s7_01, s2_02).
+# Правила — из ml/eval/scenarios.yaml (s6_01, s7_01). Ролик s2_02 (каски) убран: CPU 1.40 ядра при 8 камерах.
 - camera_id: cam_s6
   name: Участок сборки, телефон у уха
   site: Цех 3
@@ -142,24 +143,6 @@ cameras:
     close_after_s: 3.0
     cooldown_s: 10.0
     severity: critical
-- camera_id: cam_s2b
-  name: Стройплощадка, контроль касок
-  site: Стройка
-  source: {type: file, uri: videos/s2_02.mp4, loop: true, realtime: true}
-  sample_fps: 3.0
-  enabled: true
-  zones: []
-  rules:
-  - rule_id: s2b_ppe
-    type: ppe_missing
-    enabled: true
-    zones: null
-    params: {required: [helmet], min_box_h_px: 60}
-    min_duration_s: 1.5
-    min_ratio: 0.7
-    close_after_s: 3.0
-    cooldown_s: 10.0
-    severity: high
 # Живая трансляция YouTube Live (перекрёсток Сибуя, Токио): люди и машины. Ссылку на страницу
 # yt-dlp на edge превращает в HLS 360p при каждом подключении (guard/sources/stream_url.py).
 # Без касок и СИЗ: на улице это поток ложных тревог.
