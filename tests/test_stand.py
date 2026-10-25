@@ -530,7 +530,7 @@ def test_main_return_codes(
 
     monkeypatch.setattr(stand_module.jhub.JHub, "from_env", from_env)
     assert stand_module.main(argv) == expected
-    assert constructed == [{"url": stand_module.DEFAULT_URL, "verbose": False}]
+    assert constructed == [{"url": stand_module.DEFAULT_URL, "timeout": 300.0, "verbose": False}]
     output = capsys.readouterr()
     assert "private-password" not in output.out + output.err
 
@@ -569,3 +569,96 @@ def test_help_does_not_construct_client(stand_module, capsys):
     output = capsys.readouterr().out
     assert "sync-data" in output
     assert "health" in output
+
+
+@pytest.mark.parametrize(
+    "argv,expected_timeout",
+    [
+        (["status"], 300.0),
+        (["--timeout", "45", "status"], 45.0),
+        (["status", "--timeout", "45"], 45.0),
+        (["status", "--timeout", "0.5"], 0.5),
+    ],
+)
+def test_main_http_timeout(
+    stand_module, monkeypatch, argv, expected_timeout
+):
+    arguments = stand_module.make_parser().parse_args(argv)
+    assert arguments.timeout == expected_timeout
+    assert isinstance(arguments.timeout, float)
+    client = ScriptedJHub(alive=True)
+    constructed = []
+
+    def from_env(path, **kwargs):
+        constructed.append((path, kwargs))
+        return client
+
+    monkeypatch.setattr(stand_module.jhub.JHub, "from_env", from_env)
+    assert stand_module.main(argv) == 0
+    assert constructed == [
+        (
+            str(stand_module.DEFAULT_ENV),
+            {
+                "url": stand_module.DEFAULT_URL,
+                "timeout": expected_timeout,
+                "verbose": False,
+            },
+        )
+    ]
+
+
+@pytest.mark.parametrize("value", ["0", "-1", "nan", "abc", "inf", "1e309"])
+@pytest.mark.parametrize("before_command", [True, False])
+def test_main_rejects_invalid_http_timeout(
+    stand_module, monkeypatch, capsys, value, before_command
+):
+    constructed = []
+
+    def from_env(*args, **kwargs):
+        constructed.append((args, kwargs))
+        return ScriptedJHub(alive=True)
+
+    monkeypatch.setattr(stand_module.jhub.JHub, "from_env", from_env)
+    argv = (
+        ["--timeout", value, "status"]
+        if before_command
+        else ["status", "--timeout", value]
+    )
+    with pytest.raises(SystemExit) as error:
+        stand_module.main(argv)
+    assert error.value.code == 2
+    assert constructed == []
+    assert "нужно положительное число секунд" in capsys.readouterr().err
+
+
+def test_main_sync_reports_exception_class_without_details(
+    stand_module, project, filesystem_client, monkeypatch, capsys
+):
+    class ReadTimeout(Exception):
+        pass
+
+    uploads = []
+
+    def fail_upload(local, remote):
+        uploads.append((local, remote))
+        raise ReadTimeout(
+            "HTTP upload timed out: "
+            "http://secret-host:8888/api/contents?token=leak-token"
+        )
+
+    monkeypatch.setattr(filesystem_client, "upload", fail_upload)
+    monkeypatch.setattr(
+        stand_module.jhub.JHub, "from_env",
+        lambda *args, **kwargs: filesystem_client,
+    )
+    assert stand_module.main([
+        "sync", "--root", str(project), "--parallel", "1",
+    ]) == 2
+    assert len(uploads) == 1
+    output = capsys.readouterr()
+    assert output.err == (
+        "Ошибка операции (ReadTimeout): "
+        "проверьте доступ к стенду, настройки и локальные файлы.\n"
+    )
+    for secret in ("secret-host", "leak-token", "http://"):
+        assert secret not in output.out + output.err
