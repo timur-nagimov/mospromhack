@@ -15,8 +15,9 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 SECRET_QUERY_KEYS = frozenset({"token", "key", "apikey", "api_key", "password", "pass", "pwd", "auth", "sig", "signature", "secret"})
 YOUTUBE_HOSTS = frozenset({"youtube.com", "www.youtube.com", "m.youtube.com", "youtu.be", "www.youtu.be"})
 VIDEO_FILE_EXTS = (".mp4", ".mkv", ".mov", ".avi", ".webm", ".ts", ".flv")
-# Формат для yt-dlp: прямой HLS не выше 720p (живые трансляции отдают только HLS)
-YTDLP_FORMAT = "best[height<=720][protocol^=m3u8]/best[height<=720]/best"
+# Формат для yt-dlp: только видео, HLS 360p (до 480p). YouTube Live отдаёт видео и звук отдельными
+# HLS-вариантами, общего «best» там нет; звук анализу не нужен, а 360p дешевле декодировать на edge.
+YTDLP_FORMAT = "bv*[height<=360][protocol^=m3u8]/bv*[height<=480][protocol^=m3u8]/b[height<=480]/b"
 YTDLP_TIMEOUT_S = 40.0
 
 _USERINFO_RE = re.compile(r"(?P<scheme>[a-zA-Z][a-zA-Z0-9+.-]*://)(?P<user>[^/@:\s]*):(?P<pw>[^/@\s]*)@")

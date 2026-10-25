@@ -338,6 +338,20 @@ def test_resolve_youtube_via_ytdlp(monkeypatch):
         resolve_youtube("https://youtu.be/abc", run=FakeRun(stderr="ERROR: Sign in to confirm", code=1))
 
 
+def test_youtube_format_selects_video_only_low_resolution_hls_first(monkeypatch):
+    # YouTube Live отдаёт видео и звук отдельными HLS-вариантами: «best» (общий поток со звуком)
+    # там нет, yt-dlp падает с «Requested format is not available» (проверено со стенда 25.10).
+    # Анализу звук не нужен, а 360p дешевле декодировать на стенде.
+    monkeypatch.setenv("GUARD_YTDLP", "/bin/yt-dlp-test")
+    run = FakeRun(stdout="https://manifest.googlevideo.com/x/index.m3u8\n")
+    resolve_youtube("https://www.youtube.com/watch?v=abc", run=run)
+    selector = run.cmd[run.cmd.index("-f") + 1]
+    alternatives = selector.split("/")
+    assert alternatives[0].startswith("bv*[height<=360]") and "[protocol^=m3u8]" in alternatives[0]
+    assert all("height<=" in alt for alt in alternatives[:-1])
+    assert max(int(alt.split("height<=")[1].split("]")[0]) for alt in alternatives if "height<=" in alt) <= 480
+
+
 def test_codec_and_fps_helpers():
     assert fourcc_name(FakeCapture()) == "h264"
     assert fourcc_name(FakeCapture(fourcc=int.from_bytes(b"hvc1", "little"))) == "h265"
