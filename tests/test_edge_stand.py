@@ -60,7 +60,7 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
     demo = {c.camera_id: c for c in load_cameras(ROOT / "configs" / "cameras.yaml")}
     core = {"cam_s1", "cam_s2", "cam_s3", "cam_s4"}
     # Дополнительные сцены «Мониторинга» и живая трансляция (25.10): реже, CPU контейнера 1.5 ядра.
-    extra = {"cam_s6", "cam_s7", "cam_s2b", "cam_live1"}
+    extra = {"cam_s6", "cam_s7", "cam_live1"}
     assert set(stand) == core | extra
     required = {r["type"]: set(r["required_models"]) for r in available_rules()}
     models = set(load_models(STAND_MODELS))
@@ -93,7 +93,7 @@ def test_stand_cameras_match_demo_cameras_and_have_models():
                 stand_rules.append(dump)
             assert stand_rules == [r.model_dump() for r in demo[cid].rules]
             assert Path(cam.source.uri).name == Path(demo[cid].source.uri).name
-    assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4", "s6_01.mp4", "s7_01.mp4", "s2_02.mp4"}
+    assert videos == {"s1_01.mp4", "s2_01.mp4", "s3_02.mp4", "s4_02.mp4", "s6_01.mp4", "s7_01.mp4"}
 
 
 def test_section_rejects_unknown_keys(tmp_path):
