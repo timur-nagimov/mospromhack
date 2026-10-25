@@ -36,7 +36,9 @@ const HEADER = [
   'Клип',
 ];
 
-export function eventsToCsv(events: GuardEvent[], cameras: Map<string, CameraConfig>, origin: string): string {
+/** media=false — без ссылок на снимок и клип: у роли нет права video.view */
+export function eventsToCsv(events: GuardEvent[], cameras: Map<string, CameraConfig>, origin: string, media = true): string {
+  const header = media ? HEADER : HEADER.slice(0, -2);
   const rows = events.map((e) => {
     const camera = cameras.get(e.camera_id);
     const zone = camera?.zones.find((z) => z.zone_id === e.zone_id);
@@ -57,13 +59,14 @@ export function eventsToCsv(events: GuardEvent[], cameras: Map<string, CameraCon
       e.operator_note ?? '',
       (e.confirmed_at - e.started_at).toFixed(1).replace('.', ','),
       e.latency_ms?.total != null ? String(Math.round(e.latency_ms.total)) : '',
-      `${origin}/api/events/${encodeURIComponent(e.id)}/snapshot.jpg`,
-      `${origin}/api/events/${encodeURIComponent(e.id)}/clip.mp4`,
+      ...(media
+        ? [`${origin}/api/events/${encodeURIComponent(e.id)}/snapshot.jpg`, `${origin}/api/events/${encodeURIComponent(e.id)}/clip.mp4`]
+        : []),
     ]
       .map(cell)
       .join(';');
   });
-  return BOM + [HEADER.map(cell).join(';'), ...rows].join('\r\n');
+  return BOM + [header.map(cell).join(';'), ...rows].join('\r\n');
 }
 
 export function downloadText(filename: string, text: string, mime = 'text/csv;charset=utf-8'): void {

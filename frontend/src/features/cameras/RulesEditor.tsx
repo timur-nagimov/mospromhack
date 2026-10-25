@@ -238,7 +238,7 @@ function RuleCard({
   );
 }
 
-export function RulesEditor({ camera, onChange }: Props) {
+export function RulesEditor({ camera, onChange, readOnly = false }: Props & { readOnly?: boolean }) {
   const { data: types = [], isLoading } = useRuleTypes();
   const [adding, setAdding] = useState('');
 
@@ -263,28 +263,33 @@ export function RulesEditor({ camera, onChange }: Props) {
 
   return (
     <div className="rules-editor">
-      <div className="rules-editor__add">
-        <select className="select" value={adding} onChange={(e) => setAdding(e.target.value)} disabled={isLoading} aria-label="Тип правила">
-          <option value="">Выберите тип нарушения…</option>
-          {types.map((t) => (
-            <option key={t.type} value={t.type}>
-              {getViolationMeta(t.type).scenario ? `${getViolationMeta(t.type).scenario} · ` : ''}
-              {t.title}
-            </option>
-          ))}
-        </select>
-        <button type="button" className="btn btn--primary" disabled={!adding} onClick={() => addRule(adding)}>
-          <Plus size={16} /> Добавить правило
-        </button>
-        <span className="muted">Типы и формы параметров приходят из плагинов бэкенда — новый тип не требует правки интерфейса</span>
-      </div>
+      {!readOnly && (
+        <div className="rules-editor__add">
+          <select className="select" value={adding} onChange={(e) => setAdding(e.target.value)} disabled={isLoading} aria-label="Тип правила">
+            <option value="">Выберите тип нарушения…</option>
+            {types.map((t) => (
+              <option key={t.type} value={t.type}>
+                {getViolationMeta(t.type).scenario ? `${getViolationMeta(t.type).scenario} · ` : ''}
+                {t.title}
+              </option>
+            ))}
+          </select>
+          <button type="button" className="btn btn--primary" disabled={!adding} onClick={() => addRule(adding)}>
+            <Plus size={16} /> Добавить правило
+          </button>
+          <span className="muted">Типы и формы параметров приходят из плагинов бэкенда — новый тип не требует правки интерфейса</span>
+        </div>
+      )}
+      {readOnly && (
+        <p className="rules-editor__readonly muted">Только просмотр: правила камер настраивает инженер по ОТ (право zones.edit)</p>
+      )}
       {camera.rules.length === 0 ? (
         <div className="empty">
           <span className="empty__title">Правил нет</span>
           <span>Камера транслирует видео, но нарушения не ищет</span>
         </div>
       ) : (
-        <div className="rules-list">
+        <fieldset className="rules-list lock-fieldset" disabled={readOnly}>
           {camera.rules.map((r, i) => (
             <RuleCard
               key={r.rule_id}
@@ -295,7 +300,7 @@ export function RulesEditor({ camera, onChange }: Props) {
               onRemove={() => onChange(camera.rules.filter((_, j) => j !== i))}
             />
           ))}
-        </div>
+        </fieldset>
       )}
     </div>
   );

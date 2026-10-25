@@ -1,0 +1,301 @@
+/* «Пользователи»: учётные записи и матрица ролей и прав */
+
+.users {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.users__accounts .panel__head {
+  padding-bottom: 12px;
+}
+
+.users__table td {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.users__table tbody tr.is-off td {
+  color: var(--text-3);
+}
+.users__table tbody tr.is-off .avatar {
+  opacity: 0.5;
+}
+
+.user-cell {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+.user-cell__text {
+  display: grid;
+  line-height: 1.25;
+}
+.user-cell__text strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+.user-cell__text .mono {
+  font-size: 11.5px;
+}
+.user-cell__you {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10.5px;
+}
+
+.role-select {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.role-select .select {
+  width: 186px;
+}
+
+.row-actions {
+  display: inline-flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+/* ---------- матрица ролей и прав ---------- */
+
+.role-matrix__head {
+  align-items: flex-start;
+}
+.role-matrix__source {
+  flex: none;
+  font-size: 11.5px;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+.role-matrix__scroll {
+  overflow-x: auto;
+  padding: 6px 16px 16px;
+}
+
+.role-matrix__table {
+  width: 100%;
+  min-width: 920px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
+.role-matrix__col-perm {
+  width: 46%;
+}
+
+.role-matrix__table thead th {
+  padding: 12px 10px 14px;
+  border-bottom: 1px solid var(--line-2);
+  vertical-align: bottom;
+  text-align: center;
+}
+.role-matrix__table thead th.role-matrix__corner {
+  text-align: left;
+  padding-left: 4px;
+}
+.role-head {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+}
+.role-head strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+.role-head small {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-3);
+}
+.role-head__you {
+  position: absolute;
+  top: -22px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--text-1);
+  color: #0b0c0e;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.role-matrix__table .is-current {
+  background: rgba(255, 255, 255, 0.035);
+}
+.role-matrix__table thead th.is-current {
+  border-radius: 10px 10px 0 0;
+}
+.role-matrix__table tfoot td.is-current {
+  border-radius: 0 0 10px 10px;
+}
+
+.role-matrix__group th {
+  padding: 16px 4px 6px;
+  text-align: left;
+  font-family: var(--font-display);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--line-1);
+}
+
+.role-matrix__table tbody th[scope='row'] {
+  padding: 8px 12px 8px 4px;
+  text-align: left;
+  font-weight: 400;
+  border-bottom: 1px solid var(--line-1);
+}
+.role-matrix__table tbody td {
+  padding: 8px 10px;
+  text-align: center;
+  border-bottom: 1px solid var(--line-1);
+}
+.role-matrix__table tbody tr:hover th,
+.role-matrix__table tbody tr:hover td {
+  background-color: rgba(255, 255, 255, 0.025);
+}
+
+.perm-cell {
+  display: grid;
+  gap: 2px;
+}
+.perm-cell__title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 13.5px;
+}
+.perm-cell__title code {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+.perm-cell__desc {
+  color: var(--text-3);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.pd-tag {
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(245, 196, 0, 0.45);
+  color: var(--brand);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.grant {
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--role, var(--text-1));
+  color: #0b0c0e;
+}
+/* цвет колонки — цвет роли, как бейдж в шапке и карточки входа */
+.role-matrix__table thead th[style] .role-head::before {
+  content: '';
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--role);
+}
+.role-matrix__table thead th[style] .access-level__bars i.is-on {
+  background: var(--role);
+}
+.deny {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--bg-5);
+  vertical-align: middle;
+}
+
+.role-matrix__table tfoot th,
+.role-matrix__table tfoot td {
+  padding: 12px 10px;
+  font-size: 12.5px;
+}
+.role-matrix__table tfoot th {
+  padding-left: 4px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.role-matrix__table tfoot td {
+  text-align: center;
+}
+.role-matrix__table tfoot b {
+  font-size: 15px;
+}
+
+/* ---------- диалоги ---------- */
+
+.user-dialog {
+  width: min(560px, 100%);
+}
+.user-dialog__head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 16px 12px 20px;
+  border-bottom: 1px solid var(--line-1);
+}
+.user-dialog__head h2 {
+  flex: 1;
+  font-size: 17px;
+  font-weight: 600;
+}
+.user-dialog__icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  background: var(--bg-3);
+  border: 1px solid var(--line-2);
+  color: var(--text-2);
+}
+.user-dialog__body {
+  display: grid;
+  gap: 14px;
+  padding: 16px 20px 18px;
+  overflow: auto;
+}
+.user-dialog__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 12px;
+}
+.user-dialog__lead {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.user-dialog__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+.pwd-row {
+  display: flex;
+  gap: 8px;
+}
+.pwd-row .pwd-field {
+  flex: 1;
+}

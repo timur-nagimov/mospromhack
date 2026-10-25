@@ -4,10 +4,13 @@
 import type {
   CameraConfig,
   CameraMetrics,
+  EventPatch,
   EventQuery,
   GuardEvent,
   MetricsSnapshot,
   Percentiles,
+  SourceConfig,
+  SourceProbeResult,
   StatsItem,
   StageKey,
   WsMessage,
@@ -16,7 +19,9 @@ import { STAGE_KEYS } from '../../domain/labels';
 import { getViolationMeta } from '../../domain/violations';
 import { nowSec } from '../../domain/format';
 import { moscowDayKey, moscowHour, moscowWeekdayHour } from '../../domain/moscow';
-import { ApiError, type GuardApi, type StatsQuery, type Subscription } from '../types';
+import type { Permission } from '../../domain/auth';
+import { ApiError, type AnalyticsQuery, type EmployeesApi, type FlywheelApi, type GuardApi, type StatsQuery, type Subscription } from '../types';
+import { createAuthMock, type MockAuth, type MockAuthOptions } from './auth';
 import { buildEvent, pickDraft, RULE_TYPES, seedCameras, seedHistory } from './data';
 import { createFlywheelMock } from './flywheel';
 import { createEmployeesMock } from './employees';
@@ -50,7 +55,77 @@ const STAGE_TAIL: Record<StageKey, number> = {
   alert: 2.4,
 };
 
-export function createMockApi(): GuardApi {
+/** Право, без которого сообщение фейкового WS не доставляется */
+const WS_PERMISSION: Record<WsMessage['kind'], Permission> = {
+  event: 'events.view',
+  event_update: 'events.view',
+  metrics: 'system.view',
+  flywheel_sample: 'flywheel.review',
+};
+
+/** Поля камеры, кроме зон и правил: их правка требует cameras.manage */
+function sourceFields(c: CameraConfig): string {
+  return JSON.stringify([c.camera_id, c.name, c.site, c.source.type, c.source.uri, c.source.loop, c.source.realtime, c.sample_fps, c.enabled]);
+}
+
+/** Маховик: чтение и проверка — flywheel.review, датасеты и задачи — flywheel.train */
+function guardFlywheel(api: FlywheelApi, auth: MockAuth): FlywheelApi {
+  const review = <A extends unknown[], R>(fn: (...args: A) => Promise<R>) => auth.guard('flywheel.review', '/api/flywheel', fn);
+  return {
+    summary: review(api.summary),
+    listSamples: review(api.listSamples),
+    getSample: review(api.getSample),
+    patchSample: review(async (id: string, patch: Parameters<FlywheelApi['patchSample']>[1]) => {
+      const sample = await api.patchSample(id, patch);
+      if (patch.status) auth.log('flywheel.review', id, { status: patch.status });
+      return sample;
+    }),
+    capture: review(api.capture),
+    listDatasets: review(api.listDatasets),
+    listModels: review(api.listModels),
+    listJobs: review(api.listJobs),
+    getJob: review(api.getJob),
+    buildDataset: auth.guard('flywheel.train', '/api/flywheel/datasets', async (request: Parameters<FlywheelApi['buildDataset']>[0]) => {
+      const dataset = await api.buildDataset(request);
+      auth.log('flywheel.job', 'dataset', { kind: 'dataset', version: dataset.version });
+      return dataset;
+    }),
+    startJob: auth.guard(
+      'flywheel.train',
+      '/api/flywheel/jobs',
+      async (kind: Parameters<FlywheelApi['startJob']>[0], args?: Record<string, unknown>) => {
+        const job = await api.startJob(kind, args);
+        auth.log('flywheel.job', kind, { kind, ...(args ?? {}) });
+        return job;
+      },
+    ),
+    frameUrl: api.frameUrl,
+  };
+}
+
+/** Сотрудники: справочник — employees.view, добавление — employees.manage, виновники — events.assign */
+function guardEmployees(api: EmployeesApi, auth: MockAuth): EmployeesApi {
+  return {
+    list: auth.guard('employees.view', '/api/employees', () => api.list()),
+    create: auth.guard('employees.manage', '/api/employees', (body: Parameters<EmployeesApi['create']>[0]) => api.create(body)),
+    forEvent: auth.guard('employees.view', '/api/events/employees', (id: string) => api.forEvent(id)),
+    assign: auth.guard('events.assign', '/api/events/employees', async (id: string, ids: string[]) => {
+      const saved = await api.assign(id, ids);
+      auth.log('event.update', id, { employees: saved.map((e) => e.full_name) });
+      return saved;
+    }),
+    report: auth.guard('employees.view', '/api/employees/report', (id: string, period: AnalyticsQuery, signal?: AbortSignal) =>
+      api.report(id, period, signal),
+    ),
+    exportReport: auth.guard('employees.view', '/api/employees/report', (id: string, period: AnalyticsQuery) => api.exportReport(id, period)),
+  };
+}
+
+/**
+ * options.auth=false — вход выключен (как GUARD_AUTH=0): тесты, которым роли не нужны.
+ * В браузере по умолчанию вход включён; ?auth=0 в адресе выключает его.
+ */
+export function createMockApi(options: MockAuthOptions = {}): GuardApi {
   const rng = mulberry32((Date.now() % 100000) + 7);
   const startedAt = nowSec();
   let cameras: CameraConfig[] = seedCameras();
@@ -81,7 +156,12 @@ export function createMockApi(): GuardApi {
     return new Promise((_, reject) => window.setTimeout(() => reject(new ApiError(status, message)), 120));
   }
 
+  // Вход, права и журнал действий (docs/ROLES.md)
+  const auth = createAuthMock({ respond, fail, cameras: () => cameras, events: () => events }, options);
+
   function emit(message: WsMessage): void {
+    // как на сервере: без права сообщение не уходит (метрики — system.view и т. д.)
+    if (!auth.allows(WS_PERMISSION[message.kind])) return;
     for (const s of subscribers) s.onMessage(clone(message));
   }
 
@@ -271,30 +351,45 @@ export function createMockApi(): GuardApi {
     return items;
   }
 
+  const guard = auth.guard;
+
   return {
     mode: 'mock',
     health: () => respond({ status: 'ok', backend: 'linq-tpu', cameras_running: cameras.filter((c) => c.enabled).length }),
-    listCameras: () => respond(cameras),
-    createCamera: (camera) => {
+    listCameras: guard('cameras.view', '/api/cameras', () => respond(cameras)),
+    createCamera: guard('cameras.manage', '/api/cameras', (camera: CameraConfig) => {
       const err = validateCamera(camera);
       if (err) return fail(422, err);
       if (findCamera(camera.camera_id)) return fail(409, `Камера ${camera.camera_id} уже существует`);
       cameras = [...cameras, clone(camera)];
+      auth.log('camera.create', camera.camera_id, { name: camera.name, source: camera.source.type });
       return respond(camera, 200, 400);
-    },
+    }),
     updateCamera: (id, camera) => {
+      const prev = findCamera(id);
+      // только зоны и правила — право инженера по ОТ; источник и остальное — администратора
+      const permission: Permission = prev && sourceFields(prev) === sourceFields(camera) ? 'zones.edit' : 'cameras.manage';
+      const denied = auth.check(permission);
+      if (denied) return auth.deny(denied, `/api/cameras/${id}`);
       const err = validateCamera(camera);
       if (err) return fail(422, err);
-      if (!findCamera(id)) return fail(404, `Камера ${id} не найдена`);
+      if (!prev) return fail(404, `Камера ${id} не найдена`);
       cameras = cameras.map((c) => (c.camera_id === id ? clone(camera) : c));
+      if (permission === 'cameras.manage') auth.log('camera.update', id, { name: camera.name, source: camera.source.type });
+      if (JSON.stringify(prev.zones) !== JSON.stringify(camera.zones)) auth.log('zones.update', id, { zones: camera.zones.map((z) => z.name) });
+      if (JSON.stringify(prev.rules) !== JSON.stringify(camera.rules)) {
+        auth.log('rules.update', id, { rules: camera.rules.map((r) => `${r.rule_id}${r.enabled ? '' : ' (выкл.)'}`) });
+      }
       return respond(camera, 200, 450);
     },
-    deleteCamera: (id) => {
+    deleteCamera: guard('cameras.manage', '/api/cameras', (id: string) => {
       if (!findCamera(id)) return fail(404, `Камера ${id} не найдена`);
       cameras = cameras.filter((c) => c.camera_id !== id);
+      auth.log('camera.delete', id);
       return respond(undefined as void, 150, 300);
-    },
-    probeSource: (source) => {
+    }),
+    // проверка потока до добавления камеры — право cameras.manage (docs/ROLES.md)
+    probeSource: guard('cameras.manage', '/api/cameras/probe', (source: SourceConfig): Promise<SourceProbeResult> => {
       // мок проверки потока: адрес со словами fail/404 — ошибка, иначе 1280×720, 25 к/с, H.264
       const uri = source.uri.trim();
       const base = { width: null, height: null, fps: null, codec: null, first_frame_ms: null, preview_jpeg_b64: null };
@@ -310,29 +405,33 @@ export function createMockApi(): GuardApi {
         500,
         900,
       );
-    },
-    listRuleTypes: () => respond(RULE_TYPES),
-    listEvents: (q) => {
+    }),
+    listRuleTypes: guard('cameras.view', '/api/rules/types', () => respond(RULE_TYPES)),
+    listEvents: guard('events.view', '/api/events', (q: EventQuery) => {
       const filtered = filterEvents(q);
       const offset = q.offset ?? 0;
       const limit = q.limit ?? 50;
       return respond({ items: filtered.slice(offset, offset + limit), total: filtered.length });
-    },
-    getEvent: (id) => {
+    }),
+    getEvent: guard('events.view', '/api/events', (id: string) => {
       const ev = events.find((e) => e.id === id);
       return ev ? respond(ev, 60, 150) : fail(404, 'Событие не найдено');
-    },
-    patchEvent: (id, patch) => {
+    }),
+    patchEvent: guard('events.handle', '/api/events', (id: string, patch: EventPatch) => {
       const ev = events.find((e) => e.id === id);
       if (!ev) return fail(404, 'Событие не найдено');
       if (patch.status) ev.status = patch.status;
       if (patch.operator_note !== undefined) ev.operator_note = patch.operator_note;
       if (patch.status) flywheel.onEventPatch(ev);
+      auth.log('event.update', id, {
+        ...(patch.status ? { status: patch.status } : {}),
+        ...(patch.operator_note !== undefined ? { operator_note: patch.operator_note } : {}),
+      });
       window.setTimeout(() => emit({ kind: 'event_update', event: ev }), 140);
       return respond(ev, 100, 220);
-    },
-    getStats: (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) }),
-    getAnalytics: (q) => {
+    }),
+    getStats: guard('analytics.view', '/api/stats', (q: StatsQuery) => respond({ group_by: q.group_by, items: statsItems(q) })),
+    getAnalytics: guard('analytics.view', '/api/analytics', (q: AnalyticsQuery) => {
       // Все поля вычисляются синхронно до respond: обновления не вклиниваются между ними.
       const source = q.employee_id ? employees.forAnalytics(q.employee_id) : events;
       const aggregate = (group_by: StatsQuery['group_by'], filters: { status?: string; severity?: string } = {}) =>
@@ -346,9 +445,14 @@ export function createMockApi(): GuardApi {
           false: aggregate('type', { status: 'false' }), forwarded: aggregate('type', { status: 'forwarded' }),
         },
       });
-    },
-    getMetrics: () => respond(metricsSnapshot(), 60, 140),
+    }),
+    getMetrics: guard('system.view', '/api/metrics', () => respond(metricsSnapshot(), 60, 140)),
     subscribe: (subscription) => {
+      // WS /ws/events без сессии сервер не принимает
+      if (auth.check('events.view')) {
+        subscription.onStatus?.('closed');
+        return () => undefined;
+      }
       subscribers.add(subscription);
       subscription.onStatus?.('connecting');
       window.setTimeout(() => subscription.onStatus?.('open'), 250);
@@ -386,7 +490,10 @@ export function createMockApi(): GuardApi {
       },
       clipUrl: () => null,
     },
-    flywheel: flywheel.api,
-    employees,
+    flywheel: guardFlywheel(flywheel.api, auth),
+    auth: auth.auth,
+    users: auth.users,
+    audit: auth.audit,
+    employees: guardEmployees(employees, auth),
   };
 }

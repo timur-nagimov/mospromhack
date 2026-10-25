@@ -34,7 +34,7 @@ try {
   };
   const selectedId = async () => (await page.locator('.fw-card__kicker .mono').getAttribute('title')) ?? '';
 
-  await page.goto(`${BASE}?mock=1#/data`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}?mock=1&auth=0#/data`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(2500);
 
   // ---------- верх страницы

@@ -305,3 +305,68 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* роль без video.view: вместо кадра — пояснение (152-ФЗ) */
+.ev-media__locked {
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px 15%;
+  text-align: center;
+  color: var(--text-3);
+  background:
+    repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.025) 0 10px, transparent 10px 20px),
+    #050607;
+}
+.ev-media__locked svg {
+  color: var(--text-2);
+}
+.ev-media__locked strong {
+  color: var(--text-1);
+  font-size: 15px;
+}
+.ev-media__locked span {
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ev-media__locked code {
+  color: var(--brand);
+}
+
+/* роль без events.handle: кнопки решения видны, но неактивны, с подсказкой роли */
+.ev-actions--readonly {
+  align-items: start;
+}
+.ev-readonly {
+  display: grid;
+  gap: 8px;
+}
+.ev-readonly .decision:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.ev-readonly__hint {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 0;
+  color: var(--text-2);
+  font-size: 12.5px;
+}
+.ev-readonly__hint svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--text-3);
+}
+.ev-readonly__hint code {
+  color: var(--text-1);
+}
+.ev-readonly__note {
+  display: grid;
+  gap: 4px;
+}
+.ev-readonly__note p {
+  margin: 0;
+  font-size: 13px;
+}

@@ -26,6 +26,7 @@ import type {
   SamplePatch,
   SampleQuery,
 } from '../domain/flywheel';
+import type { AuditPage, AuditQuery, AuthConfig, Me, RolesCatalog, UserCreate, UserPatch, UserRecord } from '../domain/auth';
 import type { Employee, EmployeeInput, EmployeeReport } from '../domain/employees';
 
 export type ConnectionStatus = 'connecting' | 'open' | 'closed';
@@ -91,6 +92,31 @@ export interface FlywheelApi {
   frameUrl(sample: FlywheelSample, size?: 'thumb' | 'full'): string;
 }
 
+/** Вход и сессия: /api/auth/* (docs/ROLES.md, раздел «API») */
+export interface AuthApi {
+  /** Без входа; бэкенд без /api/auth отвечает 404 — значит, вход выключен */
+  config(): Promise<AuthConfig>;
+  /** Неверный логин или пароль — 401 без уточнения */
+  login(username: string, password: string): Promise<Me>;
+  logout(): Promise<void>;
+  /** Без сессии — 401 */
+  me(): Promise<Me>;
+  roles(): Promise<RolesCatalog>;
+}
+
+/** Учётные записи: /api/users* (право users.manage) */
+export interface UsersApi {
+  list(): Promise<UserRecord[]>;
+  create(user: UserCreate): Promise<UserRecord>;
+  /** Последнего активного администратора нельзя понизить или отключить — 409 */
+  update(username: string, patch: UserPatch): Promise<UserRecord>;
+}
+
+/** Журнал действий: GET /api/audit (право audit.view) */
+export interface AuditApi {
+  list(query: AuditQuery, signal?: AbortSignal): Promise<AuditPage>;
+}
+
 /** Единый интерфейс: HTTP-реализация и мок взаимозаменяемы */
 export interface GuardApi {
   readonly mode: 'http' | 'mock';
@@ -112,6 +138,9 @@ export interface GuardApi {
   subscribe(subscription: Subscription): () => void;
   media: MediaUrls;
   flywheel: FlywheelApi;
+  auth: AuthApi;
+  users: UsersApi;
+  audit: AuditApi;
   employees: EmployeesApi;
 }
 
@@ -119,6 +148,8 @@ export class ApiError extends Error {
   constructor(
     public readonly status: number,
     message: string,
+    /** 403 проверки прав: недостающее право из ответа {detail: "forbidden", permission} */
+    public readonly permission?: string,
   ) {
     super(message);
     this.name = 'ApiError';

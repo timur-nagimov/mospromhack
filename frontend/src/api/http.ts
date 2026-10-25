@@ -12,7 +12,27 @@ import type {
   StatsResponse,
 } from '../domain/types';
 import type { DatasetVersion, FlywheelJob, FlywheelSample, ModelCard, SamplePage, SampleQuery } from '../domain/flywheel';
-import { ApiError, type FlywheelApi, type AnalyticsQuery, type GuardApi, type StatsQuery } from './types';
+import {
+  forbiddenText,
+  normalizeAuditPage,
+  normalizeConfig,
+  normalizeMe,
+  normalizeRolesCatalog,
+  normalizeUser,
+  type AuditQuery,
+  type UserRecord,
+} from '../domain/auth';
+import { authSignals } from './authSignals';
+import {
+  ApiError,
+  type AnalyticsQuery,
+  type AuditApi,
+  type AuthApi,
+  type FlywheelApi,
+  type GuardApi,
+  type StatsQuery,
+  type UsersApi,
+} from './types';
 import { EventSocket } from './ws';
 import { getRole } from '../state/role';
 
@@ -38,21 +58,30 @@ function toQuery(params: Record<string, string | number | undefined | null>): st
   return s ? `?${s}` : '';
 }
 
-/** FastAPI отдаёт {detail: string | [{msg, loc}]} — превращаем в читаемый текст */
-async function readError(res: Response): Promise<string> {
+/**
+ * FastAPI отдаёт {detail: string | [{msg, loc}]} — превращаем в читаемый текст.
+ * 403 проверки прав приходит как {detail: "forbidden", permission: "<право>"}.
+ */
+async function readError(res: Response): Promise<{ message: string; permission?: string }> {
   try {
     const body: unknown = await res.json();
     const detail = (body as { detail?: unknown })?.detail;
-    if (typeof detail === 'string') return detail;
+    const permission = (body as { permission?: unknown })?.permission;
+    if (res.status === 403 && typeof permission === 'string' && permission) {
+      return { message: forbiddenText(permission), permission };
+    }
+    if (typeof detail === 'string') return { message: detail };
     if (Array.isArray(detail)) {
-      return detail
-        .map((d: { msg?: string; loc?: unknown[] }) => [d.loc?.slice(1).join('.'), d.msg].filter(Boolean).join(': '))
-        .join('; ');
+      return {
+        message: detail
+          .map((d: { msg?: string; loc?: unknown[] }) => [d.loc?.slice(1).join('.'), d.msg].filter(Boolean).join(': '))
+          .join('; '),
+      };
     }
   } catch {
     // тело не JSON
   }
-  return `${res.status} ${res.statusText || 'Ошибка запроса'}`;
+  return { message: `${res.status} ${res.statusText || 'Ошибка запроса'}` };
 }
 
 async function request<T>(path: string, init: RequestInit & { json?: unknown; responseType?: 'json' | 'text' } = {}): Promise<T> {
@@ -64,6 +93,9 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown; re
   try {
     res = await fetch(API_BASE + path, {
       ...rest,
+      // cookie сессии guard_session; API на другом хосте (VITE_API_BASE) требует
+      // include и CORS с allow_credentials для явного списка источников
+      credentials: API_BASE ? 'include' : 'same-origin',
       headers: requestHeaders,
       body: json !== undefined ? JSON.stringify(json) : rest.body,
     });
@@ -71,7 +103,13 @@ async function request<T>(path: string, init: RequestInit & { json?: unknown; re
     if ((err as Error).name === 'AbortError') throw err;
     throw new ApiError(0, 'Сервер недоступен');
   }
-  if (!res.ok) throw new ApiError(res.status, await readError(res));
+  if (!res.ok) {
+    const { message, permission } = await readError(res);
+    const error = new ApiError(res.status, message, permission);
+    // 401 — переход на вход, 403 — уведомление «Недостаточно прав» (AuthProvider)
+    authSignals.report(error, path);
+    throw error;
+  }
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   if (responseType === 'text') return text as T;
@@ -187,6 +225,38 @@ function createFlywheelHttpApi(): FlywheelApi {
   };
 }
 
+function createAuthHttpApi(): AuthApi {
+  return {
+    config: async () => normalizeConfig(await request<unknown>('/api/auth/config')),
+    login: async (username, password) =>
+      normalizeMe(await request<unknown>('/api/auth/login', { method: 'POST', json: { username, password } })),
+    logout: () => request<void>('/api/auth/logout', { method: 'POST' }),
+    me: async () => normalizeMe(await request<unknown>('/api/auth/me')),
+    roles: async () => normalizeRolesCatalog(await request<unknown>('/api/auth/roles')),
+  };
+}
+
+function createUsersHttpApi(): UsersApi {
+  return {
+    list: async () => listOf(await request<UserRecord[] | { items?: UserRecord[] }>('/api/users')).map(normalizeUser),
+    create: async (user) => normalizeUser(await request<unknown>('/api/users', { method: 'POST', json: user })),
+    update: async (username, patch) =>
+      normalizeUser(await request<unknown>(`/api/users/${enc(username)}`, { method: 'PATCH', json: patch })),
+  };
+}
+
+function createAuditHttpApi(): AuditApi {
+  return {
+    list: async (q: AuditQuery, signal?: AbortSignal) =>
+      normalizeAuditPage(
+        await request<unknown>(
+          `/api/audit${toQuery({ limit: q.limit, offset: q.offset, username: q.username, action: q.action, from: q.from, to: q.to })}`,
+          { signal },
+        ),
+      ),
+  };
+}
+
 export function createHttpApi(): GuardApi {
   const socket = new EventSocket(wsUrl('/ws/events'));
 
@@ -236,6 +306,9 @@ export function createHttpApi(): GuardApi {
       clipUrl: (event) => `${API_BASE}/api/events/${enc(event.id)}/clip.mp4`,
     },
     flywheel: createFlywheelHttpApi(),
+    auth: createAuthHttpApi(),
+    users: createUsersHttpApi(),
+    audit: createAuditHttpApi(),
     employees: {
       list: () => request('/api/employees'),
       create: (body) => request('/api/employees', { method: 'POST', json: body }),

@@ -4,10 +4,14 @@ import { useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { MemoryRouter } from 'react-router-dom';
 import { initApi } from '../src/api';
+import { OPEN_ACCESS_USER, OPEN_CONFIG } from '../src/domain/auth';
 import { CameraEditor } from '../src/features/cameras/CamerasPage';
 import { SchemaForm } from '../src/features/cameras/SchemaForm';
+import { authActions } from '../src/state/auth';
 
 await initApi();
+// Редактор проверяется без входа — как при GUARD_AUTH=0: все права администратора
+authActions.signedIn(OPEN_CONFIG, OPEN_ACCESS_USER);
 const input = (window as any).__fixture;
 const queries = new QueryClient({ defaultOptions: { queries: { retry: false } } });
 queries.setQueryData(['rule-types'], input.types ?? []);

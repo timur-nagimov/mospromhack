@@ -1,4 +1,4 @@
-import { Clock, ImageOff, MousePointer2, Pentagon, Plus, RefreshCw, Trash2, X } from 'lucide-react';
+import { Clock, ImageOff, Lock, MousePointer2, Pentagon, Plus, RefreshCw, Trash2, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../../api';
 import { ZONE_KIND_COLORS, ZONE_KIND_LABELS } from '../../domain/labels';
@@ -10,6 +10,8 @@ import { useNow } from '../../hooks/useNow';
 interface Props {
   camera: CameraConfig;
   onChange: (zones: Zone[], removedZoneId?: string) => void;
+  /** Без права zones.edit: зоны видны на кадре, но не меняются */
+  readOnly?: boolean;
 }
 
 const CLOSE_RADIUS_PX = 12;
@@ -18,7 +20,7 @@ function pointsAttr(points: Point[]): string {
   return points.map(([x, y]) => `${x},${y}`).join(' ');
 }
 
-export function ZoneEditor({ camera, onChange }: Props) {
+export function ZoneEditor({ camera, onChange, readOnly = false }: Props) {
   const now = useNow();
   const zones = camera.zones;
   const [selectedId, setSelectedId] = useState<string | null>(zones[0]?.zone_id ?? null);
@@ -157,7 +159,16 @@ export function ZoneEditor({ camera, onChange }: Props) {
     <div className="zone-editor">
       <div className="zone-editor__canvas">
         <div className="zone-toolbar">
-          {drawing ? (
+          {readOnly ? (
+            <>
+              <span className="zone-toolbar__hint">
+                <Lock size={14} /> Только просмотр: зоны и расписания меняет инженер по ОТ (право <span className="mono">zones.edit</span>)
+              </span>
+              <button type="button" className="btn btn--sm btn--ghost" onClick={() => setFrameNonce((n) => n + 1)} title="Обновить стоп-кадр">
+                <RefreshCw size={14} /> Кадр
+              </button>
+            </>
+          ) : drawing ? (
             <>
               <span className="zone-toolbar__hint">
                 <Pentagon size={15} /> Кликайте по кадру, чтобы ставить вершины. Замкнуть — клик по первой точке или <span className="kbd">Enter</span>,
@@ -260,6 +271,7 @@ export function ZoneEditor({ camera, onChange }: Props) {
           })}
           {selected &&
             !drawing &&
+            !readOnly &&
             selected.polygon.map((p, i) => {
               const next = selected.polygon[(i + 1) % selected.polygon.length];
               return (
@@ -339,7 +351,7 @@ export function ZoneEditor({ camera, onChange }: Props) {
         </div>
 
         {selected && (
-          <div className="zone-props" key={selected.zone_id}>
+          <fieldset className="zone-props lock-fieldset" key={selected.zone_id} disabled={readOnly}>
             <label className="field">
               <span className="field__label">Название</span>
               <input className="input" value={selected.name} onChange={(e) => updateZone(selected.zone_id, { name: e.target.value })} />
@@ -424,10 +436,12 @@ export function ZoneEditor({ camera, onChange }: Props) {
                 )}
               </div>
             </div>
-            <button type="button" className="btn btn--danger btn--sm" onClick={() => deleteZone(selected.zone_id)}>
-              <Trash2 size={14} /> Удалить зону
-            </button>
-          </div>
+            {!readOnly && (
+              <button type="button" className="btn btn--danger btn--sm" onClick={() => deleteZone(selected.zone_id)}>
+                <Trash2 size={14} /> Удалить зону
+              </button>
+            )}
+          </fieldset>
         )}
       </aside>
     </div>

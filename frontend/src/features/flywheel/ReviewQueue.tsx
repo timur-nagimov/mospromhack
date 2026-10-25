@@ -1,4 +1,4 @@
-import { Camera, ChevronLeft, ChevronRight, FilterX, Inbox, Sparkles } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, FilterX, Inbox, Lock, Sparkles } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api } from '../../api';
@@ -25,6 +25,7 @@ import {
 } from '../../domain/flywheel';
 import { formatNumber, formatSmartDateTime, plural } from '../../domain/format';
 import { useLive } from '../../state/live';
+import { useLock } from '../auth/lock';
 import { LazyFrame } from './FrameBoxes';
 import { HoldoutBadge, SampleStatusBadge, SourceTag } from './parts';
 import { SampleCard } from './SampleCard';
@@ -199,6 +200,8 @@ export function ReviewQueue({
   const newCount = summary?.by_status?.new ?? 0;
   const autolabelRunning = jobs.some((j) => j.kind === 'autolabel' && jobPhase(j.status) === 'active');
   const [captureChoice, setCaptureChoice] = useState('');
+  // авторазметка — задача маховика: право flywheel.train
+  const trainLock = useLock()('flywheel.train');
   const captureCamera = captureChoice || cameras.find((c) => c.enabled)?.camera_id || '';
 
   const runAutolabel = () => {
@@ -293,8 +296,14 @@ export function ReviewQueue({
           </button>
         )}
         <div className="filters__actions fw-filters__actions">
-          <button type="button" className="btn" onClick={runAutolabel} disabled={startJob.isPending || autolabelRunning} title="Учитель (YOLOv8x и YOLO-World) размечает новые сэмплы">
-            {autolabelRunning ? <span className="spinner fw-spinner-sm" /> : <Sparkles size={15} />}
+          <button
+            type="button"
+            className="btn"
+            onClick={runAutolabel}
+            disabled={Boolean(trainLock) || startJob.isPending || autolabelRunning}
+            title={trainLock ?? 'Учитель (YOLOv8x и YOLO-World) размечает новые сэмплы'}
+          >
+            {autolabelRunning ? <span className="spinner fw-spinner-sm" /> : trainLock ? <Lock size={14} /> : <Sparkles size={15} />}
             {autolabelRunning ? 'Идёт авторазметка' : `Авторазметка${newCount ? ` (${formatNumber(newCount, 0)})` : ''}`}
           </button>
           <div className="fw-capture">
