@@ -18,8 +18,6 @@
 
 ![Мониторинг на LinQ TPU: камеры с разметкой, лента тревог и хроника смены (25.10)](deliverables/presentation-v2/screens/monitoring.jpg)
 
-Презентация к защите: [PPTX](deliverables/presentation-v2/zazerkalye-v2.pptx), [PDF](deliverables/presentation-v2/zazerkalye-v2.pdf).
-
 ## Как развернуть
 
 Три варианта: только интерфейс, весь конвейер локально на CPU, прод на LinQ TPU. Нужны Python 3.11, [uv](https://docs.astral.sh/uv/) и Node 20+ (на Node 16 тесты фронтенда падают с `structuredClone is not defined`). Доступы к VPN, JupyterHub и LinQ (`VPN_*`, `JUPYTER_*`, `LINQ_*`, `RABBIT_*`) лежат в `.env` в корне проекта, вне git.
