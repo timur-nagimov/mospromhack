@@ -40,7 +40,20 @@ if [ -n "$pids" ]; then
     sleep 0.5
   done
   if [ -n "$alive" ]; then
-    echo "reset_demo_journal: шлюз не остановился за 15 с — журнал не трогаю" >&2
+    # Uvicorn при SIGTERM ждёт закрытия открытых соединений: MJPEG-потоки и WebSocket браузера
+    # держат его бесконечно, порт уже закрыт. SQLite в режиме WAL переживает SIGKILL без потерь
+    # подтверждённых записей, -wal переносится в архив вместе с базой.
+    echo "reset_demo_journal: шлюз ждёт открытые соединения браузера — SIGKILL" >&2
+    kill -9 $pids 2>/dev/null || true
+    for _ in $(seq 1 10); do
+      alive=""
+      for pid in $pids; do kill -0 "$pid" 2>/dev/null && alive=1; done
+      [ -z "$alive" ] && break
+      sleep 0.5
+    done
+  fi
+  if [ -n "$alive" ]; then
+    echo "reset_demo_journal: шлюз не остановился — журнал не трогаю" >&2
     exit 1
   fi
 fi
