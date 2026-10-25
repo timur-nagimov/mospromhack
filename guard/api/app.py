@@ -25,9 +25,12 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
+from guard.api.limits import BodyLimit
 from guard.auth import audit, deps
-from guard.auth.camera_edit import audit_entries, camera_edit
+from guard.auth.camera_edit import audit_entries, camera_edit, hide_source_secrets, restore_hidden_source
 from guard.auth.deps import SessionWatch, ensure_permission, public, require, require_any
+from guard.auth.origin import OriginGuard
+from guard.auth.source_policy import source_problem
 from guard.auth.roles import (
     ANALYTICS_VIEW, CAMERAS_MANAGE, CAMERAS_VIEW, EVENTS_HANDLE, EVENTS_VIEW, SYSTEM_VIEW, VIDEO_VIEW, ZONES_EDIT,
 )
@@ -53,9 +56,22 @@ def _engine(request: Request) -> Any:
     return request.app.state.engine
 
 
-def _camera_out(engine: Any, cam: CameraConfig) -> dict[str, Any]:
-    """CameraConfig плюс необязательное поле status (рантайм: running, fps, ошибки)."""
-    return {**cam.model_dump(mode="json"), "status": engine.camera_status(cam.camera_id)}
+def _camera_out(engine: Any, cam: CameraConfig, user: CurrentUser) -> dict[str, Any]:
+    """CameraConfig плюс необязательное поле status (рантайм: running, fps, ошибки).
+    Пароль и токены в адресе источника видит только роль с cameras.manage."""
+    data = {**cam.model_dump(mode="json"), "status": engine.camera_status(cam.camera_id)}
+    return data if user.can(CAMERAS_MANAGE) else hide_source_secrets(data)
+
+
+def _check_source(engine: Any, cam: CameraConfig) -> None:
+    """Адрес источника, который сервер (или edge через шлюз) откроет сам (guard/auth/source_policy.py), — иначе 422.
+    Ссылку шлюза на камеру edge (edge://…) проверяет движок шлюза: настоящий адрес остаётся на edge."""
+    settings = engine.settings
+    if getattr(settings, "mode", "local") == "gateway" and cam.source.uri.startswith("edge://"):
+        return
+    problem = source_problem(cam.source, getattr(settings, "data_dir", None))
+    if problem:
+        raise HTTPException(422, f"source: {problem}")
 
 
 def _parse_ts(value: str | None, name: str) -> float | None:
@@ -99,24 +115,25 @@ def health(request: Request) -> dict[str, Any]:
 # ---- камеры ----
 
 
-@router.get("/api/cameras", dependencies=[require(CAMERAS_VIEW)])
-def list_cameras(request: Request) -> list[dict[str, Any]]:
+@router.get("/api/cameras")
+def list_cameras(request: Request, user: CurrentUser = require(CAMERAS_VIEW)) -> list[dict[str, Any]]:
     engine = _engine(request)
-    return [_camera_out(engine, c) for c in engine.list_cameras()]
+    return [_camera_out(engine, c, user) for c in engine.list_cameras()]
 
 
-@router.get("/api/cameras/{camera_id}", dependencies=[require(CAMERAS_VIEW)])
-def get_camera(camera_id: str, request: Request) -> dict[str, Any]:
+@router.get("/api/cameras/{camera_id}")
+def get_camera(camera_id: str, request: Request, user: CurrentUser = require(CAMERAS_VIEW)) -> dict[str, Any]:
     engine = _engine(request)
     cam = engine.get_camera(camera_id)
     if cam is None:
         raise HTTPException(404, f"camera {camera_id} not found")
-    return _camera_out(engine, cam)
+    return _camera_out(engine, cam, user)
 
 
 @router.post("/api/cameras", status_code=201)
 def create_camera(cam: CameraConfig, request: Request, user: CurrentUser = require(CAMERAS_MANAGE)) -> dict[str, Any]:
     engine = _engine(request)
+    _check_source(engine, cam)
     try:
         engine.add_camera(cam)
     except CameraReadOnly as exc:
@@ -129,7 +146,7 @@ def create_camera(cam: CameraConfig, request: Request, user: CurrentUser = requi
         "name": cam.name, "site": cam.site, "source": audit.source_details(cam.source), "enabled": cam.enabled,
         "zones": [z.zone_id for z in cam.zones], "rules": [r.rule_id for r in cam.rules],
     }, user=user)
-    return _camera_out(engine, cam)
+    return _camera_out(engine, cam, user)
 
 
 @router.put("/api/cameras/{camera_id}")
@@ -142,11 +159,16 @@ def update_camera(
     """Только zones и rules — право zones.edit; любые другие поля — cameras.manage (docs/ROLES.md).
 
     Несуществующую камеру зонами не изменить: нужно cameras.manage, ответ (404, 422 или 409) даёт движок.
+    Адрес источника с паролем, замаскированным в GET для роли без cameras.manage, считается прежним.
     """
     engine = _engine(request)
     current = engine.get_camera(camera_id)
+    if current is not None:
+        cam = restore_hidden_source(current, cam)
     edit = camera_edit(current, cam) if current is not None else None
     ensure_permission(user, edit.permission if edit is not None else CAMERAS_MANAGE)
+    if current is None or cam.source != current.source:
+        _check_source(engine, cam)
     try:
         engine.update_camera(camera_id, cam)
     except CameraReadOnly as exc:
@@ -158,7 +180,7 @@ def update_camera(
     if edit is not None:
         for action, details in audit_entries(edit, current, cam):
             audit.record(request, action, camera_id, details, user=user)
-    return _camera_out(engine, cam)
+    return _camera_out(engine, cam, user)
 
 
 @router.delete("/api/cameras/{camera_id}", status_code=204)
@@ -506,6 +528,9 @@ def create_app(settings: Settings | None = None, engine: Any | None = None) -> F
     )
     app.state.auth = auth
     deps.install(app)
+    # изменяющие запросы и WebSocket с чужим Origin отклоняются (CSRF, guard/auth/origin.py)
+    app.add_middleware(OriginGuard, allowed_origins=settings.cors_origins)
+    app.add_middleware(BodyLimit)  # тело запроса до 8 МБ: FastAPI читает его до проверки входа
     # cookie сессии ходят только с явным списком источников: с '*' credentials выключены
     app.add_middleware(
         CORSMiddleware,

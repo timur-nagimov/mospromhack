@@ -17,6 +17,7 @@ from pathlib import Path
 
 from guard.auth.passwords import password_problem
 from guard.auth.roles import role_title
+from guard.auth.service import INITIAL_ADMIN_FILE
 from guard.auth.store import DEMO_USERS, AuthStore, UserNotFound
 from guard.pipeline.settings import Settings
 
@@ -44,7 +45,10 @@ def banner() -> int:
         return 0
     print(f"Вход включён (GUARD_AUTH=1), учётные записи и журнал действий: {settings.auth_db_path}")
     if not settings.demo_login:
-        print("Демо-вход выключен (GUARD_DEMO_LOGIN=0).")
+        print("Демо-вход выключен (GUARD_DEMO_LOGIN=0): демо-учётки с паролем, равным логину, не входят.")
+        initial = settings.auth_db_path.parent / INITIAL_ADMIN_FILE
+        if initial.is_file():
+            print(f"Пароль первого администратора (admin) — в файле {initial}. Смените пароль и удалите файл.")
         return 0
     accounts = _demo_accounts(settings.auth_db_path)
     if accounts:
@@ -84,6 +88,8 @@ def set_password(username: str, from_stdin: bool) -> int:
             print(f"Пользователь {username} не найден в {db_path}", file=sys.stderr)
             return 1
         closed = store.delete_user_sessions(user.username)
+        store.add_audit("user.update", username="cli", target=user.username,
+                        details={"password_changed": True, "via": "cli", "sessions_closed": closed})
     print(f"Пароль {user.username} изменён, закрыто сессий: {closed}")
     return 0
 

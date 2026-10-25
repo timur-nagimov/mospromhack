@@ -121,7 +121,11 @@ def test_config_without_demo_login(tmp_path):
     with auth_env(tmp_path, demo_login=False) as e:
         data = e.client.get("/api/auth/config").json()
         assert data == {"auth_enabled": True, "demo_login": False, "demo_users": []}
-        e.login("admin")  # учётки созданы, просто не показываются кнопками
+        # демо-учёток с паролем, равным логину, нет: только admin с паролем из файла рядом с базой
+        r = e.client.post("/api/auth/login", json={"username": "admin", "password": "admin"})
+        assert r.status_code == 401
+        password = e.auth.initial_admin_file.read_text(encoding="utf-8").split()[-1]
+        e.login("admin", password)
 
 
 def test_roles_catalog(env):

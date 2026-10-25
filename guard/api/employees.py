@@ -12,6 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, ConfigDict
 
+from guard.auth import audit
 from guard.employees import Employee, EmployeeExists, EmployeeInput, EmployeeStore, UnknownEmployee, report_csv
 from guard.rules.base import available_rules, load_plugins
 
@@ -50,9 +51,14 @@ def create_employee(body: EmployeeInput, request: Request, role: str = Depends(s
     if role != "admin":
         raise HTTPException(403, "Добавлять сотрудников может только администратор")
     try:
-        return _store(request).create(body)
+        created = _store(request).create(body)
     except EmployeeExists as exc:
         raise HTTPException(409, str(exc)) from exc
+    audit.record(request, audit.EMPLOYEE_CREATE, str(created.get("id") or ""), {
+        "full_name": created.get("full_name"), "personnel_number": created.get("personnel_number"),
+        "department": created.get("department"),
+    })
+    return created
 
 
 @router.get("/api/events/{event_id}/employees", response_model=list[Employee])
@@ -67,12 +73,18 @@ def event_employees(event_id: str, request: Request, role: str = Depends(selecte
 def assign_employees(event_id: str, body: Assignment, request: Request, role: str = Depends(selected_role)) -> list[dict[str, Any]]:
     if role not in {"operator", "admin"}:
         raise HTTPException(403, "Указывать виновников может только диспетчер смены или администратор")
+    store = _store(request)
     try:
-        return _store(request).assign(event_id, body.employee_ids)
+        previous = [e["id"] for e in store.for_event(event_id)]
+        assigned = store.assign(event_id, body.employee_ids)
     except KeyError as exc:
         raise HTTPException(404, "Событие не найдено") from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
+    audit.record(request, audit.EVENT_ASSIGN, event_id, {
+        "employee_ids": [e["id"] for e in assigned], "previous": previous,
+    })
+    return assigned
 
 
 @router.get("/api/employees/{employee_id}/report")

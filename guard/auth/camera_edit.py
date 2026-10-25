@@ -28,6 +28,22 @@ class CameraEdit:
         return CAMERAS_MANAGE if self.fields else ZONES_EDIT
 
 
+def hide_source_secrets(data: dict[str, Any]) -> dict[str, Any]:
+    """Камера для роли без cameras.manage: пароль и токены в адресе источника заменены на ***."""
+    source = data.get("source")
+    if not isinstance(source, dict) or not source.get("uri"):
+        return data
+    return {**data, "source": {**source, "uri": audit.redact_uri(source["uri"])}}
+
+
+def restore_hidden_source(current: CameraConfig, new: CameraConfig) -> CameraConfig:
+    """PUT с адресом, замаскированным hide_source_secrets, — адрес не меняется (зоны правит инженер по ОТ)."""
+    old_uri, new_uri = current.source.uri, new.source.uri
+    if new_uri == old_uri or new_uri != audit.redact_uri(old_uri):
+        return new
+    return new.model_copy(update={"source": new.source.model_copy(update={"uri": old_uri})})
+
+
 def camera_edit(current: CameraConfig, new: CameraConfig) -> CameraEdit:
     """Сравнить с текущей конфигурацией. Правила сравниваются после подстановки severity по умолчанию —
     так же, как их сохранит движок."""

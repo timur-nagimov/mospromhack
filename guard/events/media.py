@@ -30,6 +30,8 @@ from guard.contracts import Event
 log = logging.getLogger(__name__)
 
 MIN_RING_WIDTH = 320
+# resolve отдаёт только кадры и ролики: в data_dir лежат и базы (guard.db, auth.db), их по ссылке события не отдать
+MEDIA_SUFFIXES = frozenset({".jpg", ".jpeg", ".png", ".webp", ".mp4", ".webm", ".mkv", ".avi", ".mov"})
 
 
 class FrameRing:
@@ -326,6 +328,8 @@ class MediaStore:
         p = self.abs_path(rel).resolve()
         roots = {self.data_dir.resolve(), self.media_dir.resolve()}
         if not any(p == r or r in p.parents for r in roots):
+            return None
+        if p.suffix.lower() not in MEDIA_SUFFIXES:
             return None
         return p if p.is_file() else None
 

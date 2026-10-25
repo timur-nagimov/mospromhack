@@ -205,6 +205,23 @@ class AuthStore:
             "SELECT COUNT(*) FROM users WHERE role = ? AND active = 1", (ADMIN,)
         ).fetchone()[0]
 
+    def ensure_initial_admin(self, password: str) -> bool:
+        """В пустую базу — один admin с заданным паролем (не демо). True — создан."""
+        if self.count_users():
+            return False
+        password_hash = hash_password(password)  # scrypt — вне блокировки
+        now = self.clock()
+        with self._lock, self._conn:
+            self._conn.execute("BEGIN IMMEDIATE")
+            if self._conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]:
+                return False
+            self._conn.execute(
+                "INSERT INTO users (username, display_name, role, password_hash, active, demo, created_at, updated_at)"
+                " VALUES (?, ?, ?, ?, 1, 0, ?, ?)",
+                (ADMIN, role_title(ADMIN), ADMIN, password_hash, now, now),
+            )
+        return True
+
     def ensure_demo_users(self) -> list[str]:
         """В пустую базу — демо-учётки worker, operator, safety, admin с паролем, равным логину."""
         if self.count_users():
@@ -364,15 +381,20 @@ class AuthStore:
                 )
         return _user(row), digest
 
-    def session_alive(self, session_hash: str) -> bool:
-        """Сессия ещё действует (для долгих соединений: MJPEG, WebSocket)."""
+    def session_alive(self, session_hash: str, *, role: str | None = None, allow_demo: bool = True) -> bool:
+        """Сессия ещё действует (для долгих соединений: MJPEG, WebSocket). role — роль, с которой соединение
+        открыто: смена роли тоже его закрывает; allow_demo=False — демо-учётки с паролем по умолчанию не живут."""
         with self._lock:
             row = self._conn.execute(
-                "SELECT s.expires_at, u.active FROM sessions s JOIN users u ON u.username = s.username"
+                "SELECT s.expires_at, u.active, u.role, u.demo FROM sessions s JOIN users u ON u.username = s.username"
                 " WHERE s.token_hash = ?",
                 (session_hash,),
             ).fetchone()
-        return bool(row) and row[0] > self.clock() and bool(row[1])
+        if not row or row[0] <= self.clock() or not row[1]:
+            return False
+        if role is not None and row[2] != role:
+            return False
+        return allow_demo or not row[3]
 
     def delete_session(self, session_hash: str) -> None:
         with self._lock, self._conn:
