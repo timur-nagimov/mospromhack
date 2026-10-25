@@ -12,6 +12,7 @@ import { PERIOD_LABELS, periodRange, type PeriodPreset } from '../../domain/peri
 import type { EventQuery, EventStatus, GuardEvent, Severity } from '../../domain/types';
 import { getViolationMeta, VIOLATION_TYPES } from '../../domain/violations';
 import { useNow } from '../../hooks/useNow';
+import { useCan } from '../../state/auth';
 import { useEventModal } from '../event/useEventModal';
 import { downloadText, eventsToCsv } from './csv';
 import './journal.css';
@@ -22,6 +23,10 @@ const EXPORT_MAX = 20000;
 const PRESETS: PeriodPreset[] = ['today', '24h', '7d', '30d', 'all', 'custom'];
 
 export function JournalPage() {
+  // без video.view — журнал без снимков; без cameras.view — без справочника камер и зон
+  const can = useCan();
+  const canVideo = can('video.view');
+  const canCameras = can('cameras.view');
   const [params, setParams] = useSearchParams();
   const now = useNow();
   const { data: cameras = [] } = useCameras();
@@ -128,7 +133,7 @@ export function JournalPage() {
       }
       const rows = [...byId.values()].filter((e) => !filters.severity || e.severity === filters.severity);
       const stamp = toLocalInputValue(Date.now() / 1000).replace(/[:T]/g, '-');
-      downloadText(`zhurnal-sobytiy-${stamp}.csv`, eventsToCsv(rows, cameraMap, window.location.origin));
+      downloadText(`zhurnal-sobytiy-${stamp}.csv`, eventsToCsv(rows, cameraMap, window.location.origin, canVideo));
       if (totalCount > EXPORT_MAX) {
         toast(`Выгружены первые ${rows.length} из ${totalCount} — сузьте период для полной выгрузки`, 'bad');
       } else {
@@ -198,28 +203,32 @@ export function JournalPage() {
             ))}
           </select>
         </label>
-        <label className="field">
-          <span className="field__label">Камера</span>
-          <select className="select" value={filters.camera_id} onChange={(e) => update({ camera: e.target.value, zone: undefined })}>
-            <option value="">Все камеры</option>
-            {cameras.map((c) => (
-              <option key={c.camera_id} value={c.camera_id}>
-                {c.name} · {c.site}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span className="field__label">Зона</span>
-          <select className="select" value={filters.zone_id} onChange={(e) => update({ zone: e.target.value })}>
-            <option value="">Все зоны</option>
-            {zoneOptions.map((z) => (
-              <option key={`${z.camera}-${z.id}`} value={z.id}>
-                {filters.camera_id ? z.label : `${z.label} (${z.camera})`}
-              </option>
-            ))}
-          </select>
-        </label>
+        {canCameras && (
+          <label className="field">
+            <span className="field__label">Камера</span>
+            <select className="select" value={filters.camera_id} onChange={(e) => update({ camera: e.target.value, zone: undefined })}>
+              <option value="">Все камеры</option>
+              {cameras.map((c) => (
+                <option key={c.camera_id} value={c.camera_id}>
+                  {c.name} · {c.site}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+        {canCameras && (
+          <label className="field">
+            <span className="field__label">Зона</span>
+            <select className="select" value={filters.zone_id} onChange={(e) => update({ zone: e.target.value })}>
+              <option value="">Все зоны</option>
+              {zoneOptions.map((z) => (
+                <option key={`${z.camera}-${z.id}`} value={z.id}>
+                  {filters.camera_id ? z.label : `${z.label} (${z.camera})`}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="field">
           <span className="field__label">Статус</span>
           <select className="select" value={filters.status} onChange={(e) => update({ status: e.target.value })}>
@@ -286,7 +295,7 @@ export function JournalPage() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>Кадр</th>
+                  {canVideo && <th>Кадр</th>}
                   <th>Время</th>
                   <th>Нарушение</th>
                   <th>Важность</th>
@@ -311,9 +320,11 @@ export function JournalPage() {
                         if (ev.key === 'Enter') openEvent(e.id);
                       }}
                     >
-                      <td className="journal__thumb">
-                        <EventThumb event={e} width={84} />
-                      </td>
+                      {canVideo && (
+                        <td className="journal__thumb">
+                          <EventThumb event={e} width={84} />
+                        </td>
+                      )}
                       <td>
                         <div className="journal__time">
                           <span className="mono">{formatTime(e.confirmed_at)}</span>

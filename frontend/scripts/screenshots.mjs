@@ -34,8 +34,8 @@ try {
     await page.waitForTimeout(wait);
   };
 
-  // ?mock=1 — на случай, если сервер поднят без VITE_MOCK
-  await page.goto(`${BASE}?mock=1#/`, { waitUntil: 'networkidle' });
+  // ?mock=1 — на случай, если сервер поднят без VITE_MOCK; auth=0 — без входа, роль администратора (роли — rbac.mjs)
+  await page.goto(`${BASE}?mock=1&auth=0#/`, { waitUntil: 'networkidle' });
   // первое «живое» событие (критическое падение) приходит через ~2,5 с
   await page.waitForTimeout(5500);
   await shot('01-monitoring');

@@ -2,6 +2,7 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tansta
 import { useMemo } from 'react';
 import type { CameraConfig, EventPatch, EventQuery, GuardEvent, StatsGroupBy } from '../domain/types';
 import { registerPluginTitles } from '../domain/violations';
+import { usePermission } from '../state/auth';
 import { liveActions } from '../state/live';
 import { api } from './index';
 
@@ -16,11 +17,14 @@ export const queryKeys = {
   metrics: ['metrics'] as const,
 };
 
+/** GET /api/cameras — право cameras.view; без него список пуст, запрос не уходит */
 export function useCameras() {
+  const allowed = usePermission('cameras.view');
   return useQuery({
     queryKey: queryKeys.cameras,
     queryFn: () => api().listCameras(),
     staleTime: 30_000,
+    enabled: allowed,
   });
 }
 
@@ -36,7 +40,9 @@ export function zoneName(cameras: Map<string, CameraConfig>, cameraId: string, z
   return zone?.name ?? zoneId;
 }
 
+/** GET /api/rules/types — тоже cameras.view */
 export function useRuleTypes() {
+  const allowed = usePermission('cameras.view');
   return useQuery({
     queryKey: queryKeys.ruleTypes,
     queryFn: async () => {
@@ -45,16 +51,19 @@ export function useRuleTypes() {
       return items;
     },
     staleTime: Infinity,
+    enabled: allowed,
   });
 }
 
 export function useEvents(query: EventQuery, options: { enabled?: boolean; refetchInterval?: number } = {}) {
+  const allowed = usePermission('events.view');
   return useQuery({
     queryKey: queryKeys.events(query),
     queryFn: ({ signal }) => api().listEvents(query, signal),
     placeholderData: keepPreviousData,
     staleTime: 10_000,
     ...options,
+    enabled: allowed && options.enabled !== false,
   });
 }
 
@@ -88,20 +97,24 @@ export function usePatchEvent() {
 }
 
 export function useStats(groupBy: StatsGroupBy, from?: number, to?: number) {
+  const allowed = usePermission('analytics.view');
   return useQuery({
     queryKey: queryKeys.stats(groupBy, from, to),
     queryFn: () => api().getStats({ group_by: groupBy, from, to }),
     placeholderData: keepPreviousData,
     staleTime: 30_000,
+    enabled: allowed,
   });
 }
 
 /** Один запрос — один снимок SQLite для всех показателей выбранного периода. */
 export function useAnalyticsStats(from: number | undefined, to: number, employeeId?: string) {
+  const allowed = usePermission('analytics.view');
   return useQuery({
     queryKey: ['stats', 'analytics', from, to, employeeId],
     queryFn: ({ signal }) => api().getAnalytics({ from, to, employee_id: employeeId }, signal),
     staleTime: 30_000,
+    enabled: allowed,
   });
 }
 

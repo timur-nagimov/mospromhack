@@ -14,6 +14,7 @@
     "build:mock": "tsc --noEmit -p tsconfig.json && vite build --mode mock --outDir dist-mock",
     "preview": "vite preview",
     "test:analytics": "node --test scripts/test-analytics.mjs",
+    "test:auth": "node --test scripts/test-auth.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "screenshots": "node scripts/screenshots.mjs"
   },

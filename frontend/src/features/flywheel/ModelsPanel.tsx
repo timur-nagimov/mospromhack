@@ -17,7 +17,8 @@ import {
   type ModelCard,
 } from '../../domain/flywheel';
 import { formatNumber, formatSeconds, formatSmartDateTime, nowSec, formatRelative } from '../../domain/format';
-import { JobPhaseIcon, ModelStatusBadge, trainGuard, useTrainForbidden } from './parts';
+import { usePermission } from '../../state/auth';
+import { JobPhaseIcon, ModelStatusBadge, trainGuard, TrainLockNote, useTrainForbidden } from './parts';
 
 type Better = 'higher' | 'lower';
 
@@ -157,7 +158,9 @@ function ModelCardView({
   const created = toEpoch(card.created_at);
   const train = card.train;
   const tpu = card.tpu_check;
-  const canDeploy = card.status === 'candidate' && card.gate?.promote === true;
+  // выкатка — задача маховика: право flywheel.train (администратор)
+  const canTrain = usePermission('flywheel.train');
+  const canDeploy = card.status === 'candidate' && card.gate?.promote === true && canTrain;
   return (
     <article className={`panel fw-model fw-model--${card.status}`}>
       <header className="fw-model__head">
@@ -315,6 +318,7 @@ export function ModelsPanel({
   error: Error | null;
 }) {
   const startJob = useStartJob();
+  const canTrain = usePermission('flywheel.train');
   const forbidden = useTrainForbidden(summary?.allow_train);
   const modelIds = [...new Set(models.map((m) => m.model_id))];
   const [modelChoice, setModelChoice] = useState('');
@@ -353,43 +357,47 @@ export function ModelsPanel({
             </p>
           </div>
         </div>
-        <div className="fw-train__controls">
-          <label className="field">
-            <span className="field__label">Модель</span>
-            <select className="select" value={modelId} onChange={(e) => setModelChoice(e.target.value)} disabled={modelIds.length === 0}>
-              {modelIds.length === 0 && <option value="">нет карточек</option>}
-              {modelIds.map((id) => (
-                <option key={id} value={id}>
-                  {id}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="field">
-            <span className="field__label">Датасет</span>
-            <span className="fw-train__ds mono">{dataset ?? '—'}</span>
-          </div>
-          <span className="fw-train__btn" title={forbidden ?? undefined}>
+        {canTrain ? (
+          <div className="fw-train__controls">
+            <label className="field">
+              <span className="field__label">Модель</span>
+              <select className="select" value={modelId} onChange={(e) => setModelChoice(e.target.value)} disabled={modelIds.length === 0}>
+                {modelIds.length === 0 && <option value="">нет карточек</option>}
+                {modelIds.map((id) => (
+                  <option key={id} value={id}>
+                    {id}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="field">
+              <span className="field__label">Датасет</span>
+              <span className="fw-train__ds mono">{dataset ?? '—'}</span>
+            </div>
+            <span className="fw-train__btn" title={forbidden ?? undefined}>
+              <button
+                type="button"
+                className="btn btn--primary"
+                disabled={Boolean(forbidden) || !modelId || startJob.isPending}
+                onClick={() => launch('train', { model_id: modelId, dataset }, `Дообучение ${modelId} поставлено в очередь`)}
+              >
+                {forbidden ? <Lock size={15} /> : <GraduationCap size={15} />} Дообучить
+              </button>
+            </span>
             <button
               type="button"
-              className="btn btn--primary"
-              disabled={Boolean(forbidden) || !modelId || startJob.isPending}
-              onClick={() => launch('train', { model_id: modelId, dataset }, `Дообучение ${modelId} поставлено в очередь`)}
+              className="btn"
+              disabled={startJob.isPending || models.length === 0}
+              onClick={() => launch('gate', { version: models[0]?.version }, `Гейт для ${models[0]?.version} запущен`)}
+              title="Сравнить новую версию с базовой на отложенных роликах и тесте наборов"
             >
-              {forbidden ? <Lock size={15} /> : <GraduationCap size={15} />} Дообучить
+              <Scale size={15} /> Запустить гейт
             </button>
-          </span>
-          <button
-            type="button"
-            className="btn"
-            disabled={startJob.isPending || models.length === 0}
-            onClick={() => launch('gate', { version: models[0]?.version }, `Гейт для ${models[0]?.version} запущен`)}
-            title="Сравнить новую версию с базовой на отложенных роликах и тесте наборов"
-          >
-            <Scale size={15} /> Запустить гейт
-          </button>
-        </div>
-        {forbidden && (
+          </div>
+        ) : (
+          <TrainLockNote />
+        )}
+        {canTrain && forbidden && (
           <p className="fw-note fw-note--lock">
             <Lock size={14} aria-hidden="true" /> {forbidden}
           </p>

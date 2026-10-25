@@ -1,6 +1,6 @@
 // Мелкие общие элементы страницы «Данные»: бейджи источника и статусов, запрет обучения
 
-import { CircleCheck, CircleDashed, CircleX, Loader2 } from 'lucide-react';
+import { CircleCheck, CircleDashed, CircleX, Loader2, Lock } from 'lucide-react';
 import {
   jobPhase,
   modelStatusLabel,
@@ -12,6 +12,7 @@ import {
   type SampleSource,
 } from '../../domain/flywheel';
 import { createStore, useStore } from '../../state/createStore';
+import { useLock } from '../auth/lock';
 
 export function SourceTag({ source }: { source: string }) {
   return (
@@ -81,4 +82,15 @@ export function useTrainForbidden(allowTrain: boolean | undefined): string | nul
   if (reason) return reason;
   if (allowTrain === false) return 'Задачи train и deploy выключены: нужен GUARD_FLYWHEEL_ALLOW_TRAIN=1';
   return null;
+}
+
+/** Роль без flywheel.train: сборку датасетов, обучение и выкатку запускает администратор */
+export function TrainLockNote() {
+  const hint = useLock()('flywheel.train');
+  return (
+    <p className="fw-note fw-note--lock">
+      <Lock size={14} aria-hidden="true" /> {hint ?? 'Нужна роль: Администратор'} — сборка датасетов, дообучение и выкатка (право{' '}
+      <span className="mono">flywheel.train</span>)
+    </p>
+  );
 }

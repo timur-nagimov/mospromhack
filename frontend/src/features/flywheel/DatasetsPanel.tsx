@@ -4,6 +4,8 @@ import { useBuildDataset } from '../../api/flywheelQueries';
 import { toast } from '../../components/ui/toast';
 import { classLabel, manifestSources, toEpoch, type DatasetVersion, type FlywheelSummary } from '../../domain/flywheel';
 import { formatNumber, formatSmartDateTime } from '../../domain/format';
+import { usePermission } from '../../state/auth';
+import { TrainLockNote } from './parts';
 
 export function DatasetsPanel({
   summary,
@@ -17,6 +19,7 @@ export function DatasetsPanel({
   error: Error | null;
 }) {
   const build = useBuildDataset();
+  const canTrain = usePermission('flywheel.train');
   const [includeHoldout, setIncludeHoldout] = useState(false);
   const accepted = summary?.by_status?.accepted ?? 0;
   const holdout = summary?.holdout ?? 0;
@@ -60,10 +63,14 @@ export function DatasetsPanel({
               <TriangleAlert size={14} aria-hidden="true" /> Оценка на этих роликах станет загрязнённой — отчёт гейта это пометит.
             </p>
           )}
-          <button type="button" className="btn btn--primary" onClick={run} disabled={build.isPending}>
-            {build.isPending ? <span className="spinner fw-spinner-sm fw-spinner-dark" /> : <PackagePlus size={16} />}
-            {build.isPending ? 'Собираем…' : 'Собрать версию'}
-          </button>
+          {canTrain ? (
+            <button type="button" className="btn btn--primary" onClick={run} disabled={build.isPending}>
+              {build.isPending ? <span className="spinner fw-spinner-sm fw-spinner-dark" /> : <PackagePlus size={16} />}
+              {build.isPending ? 'Собираем…' : 'Собрать версию'}
+            </button>
+          ) : (
+            <TrainLockNote />
+          )}
         </div>
       </section>
 
