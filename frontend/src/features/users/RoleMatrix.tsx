@@ -1,6 +1,6 @@
 import { Check } from 'lucide-react';
 import { useMemo } from 'react';
-import { isRoleId, PERMISSION_GROUPS, PERMISSION_META, ROLE_META, type Permission, type PermissionInfo, type RolesCatalog } from '../../domain/auth';
+import { isRoleId, PERMISSION_GROUPS, PERMISSION_META, ROLE_META, roleColor, type Permission, type PermissionInfo, type RolesCatalog } from '../../domain/auth';
 import { AccessLevel } from '../auth/parts';
 
 interface Group {
@@ -62,7 +62,7 @@ export function RoleMatrix({ catalog, fromServer, currentRole }: { catalog: Role
                 <span className="eyebrow">Право</span>
               </th>
               {roles.map((r) => (
-                <th key={r.id} scope="col" className={r.id === currentRole ? 'is-current' : undefined}>
+                <th key={r.id} scope="col" className={r.id === currentRole ? 'is-current' : undefined} style={{ ['--role' as string]: roleColor(r.id) }}>
                   <div className="role-head">
                     <AccessLevel role={r.id} label />
                     <strong>{r.title}</strong>
@@ -99,7 +99,11 @@ export function RoleMatrix({ catalog, fromServer, currentRole }: { catalog: Role
                   {roles.map((r) => {
                     const on = r.permissions.includes(p.id);
                     return (
-                      <td key={r.id} className={`${on ? 'is-on' : 'is-off'}${r.id === currentRole ? ' is-current' : ''}`}>
+                      <td
+                        key={r.id}
+                        className={`${on ? 'is-on' : 'is-off'}${r.id === currentRole ? ' is-current' : ''}`}
+                        style={{ ['--role' as string]: roleColor(r.id) }}
+                      >
                         {on ? (
                           <span className="grant" role="img" aria-label={`${r.title}: есть`}>
                             <Check size={14} strokeWidth={3} />

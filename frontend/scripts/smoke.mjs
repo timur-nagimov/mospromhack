@@ -17,7 +17,7 @@ try {
   const page = await context.newPage();
   page.on('pageerror', (e) => errors.push(e.message));
 
-  await page.goto(`${BASE}?mock=1#/`, { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}?mock=1&auth=0#/`, { waitUntil: 'networkidle' });
   await page.waitForTimeout(4500);
   const kpi = async () => Number((await page.locator('.kpi--accent .kpi__value').innerText()).trim());
   const before = await kpi();

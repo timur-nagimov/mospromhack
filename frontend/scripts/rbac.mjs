@@ -169,7 +169,11 @@ try {
   check('админ: таблица пользователей', (await page.locator('.users__table tbody tr').count()) >= 4);
   check('админ: матрица ролей × права', (await page.locator('.role-matrix__table tbody tr:not(.role-matrix__group)').count()) >= 15);
   await shot('40-admin-users', 1720);
+  // матрица целиком: окно выше страницы, чтобы элемент не обрезала прокрутка
+  await page.setViewportSize({ width: W, height: 2400 });
+  await page.waitForTimeout(500);
   await page.locator('.role-matrix').screenshot({ path: `${OUT}/${PREFIX}41-admin-role-matrix.png` });
+  await page.setViewportSize({ width: W, height: H });
   console.log('saved', `${OUT}/${PREFIX}41-admin-role-matrix.png`);
   await go('#/audit', 2500);
   const actions = await page.locator('.audit-action__text code').allInnerTexts();

@@ -200,8 +200,19 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  background: var(--text-1);
+  background: var(--role, var(--text-1));
   color: #0b0c0e;
+}
+/* цвет колонки — цвет роли, как бейдж в шапке и карточки входа */
+.role-matrix__table thead th[style] .role-head::before {
+  content: '';
+  width: 28px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--role);
+}
+.role-matrix__table thead th[style] .access-level__bars i.is-on {
+  background: var(--role);
 }
 .deny {
   display: inline-block;
