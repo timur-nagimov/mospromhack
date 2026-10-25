@@ -16,7 +16,9 @@
 
 Подробнее — `docs/ANALYTICS.md`.
 
-![Исторический скриншот локального CPU-бэкенда: мониторинг и лента тревог](deliverables/screens/real-01-monitoring.jpg)
+![Мониторинг на LinQ TPU: камеры с разметкой, лента тревог и хроника смены (25.10)](deliverables/presentation-v2/screens/monitoring.jpg)
+
+Презентация к защите: [PPTX](deliverables/presentation-v2/zazerkalye-v2.pptx), [PDF](deliverables/presentation-v2/zazerkalye-v2.pdf).
 
 ## Содержание
 
@@ -24,6 +26,8 @@
 - [Ключевые цифры на LinQ](#ключевые-цифры-на-linq)
 - [Сценарии и статус](#сценарии-и-статус)
 - [Production-запуск на LinQ](#production-запуск-на-linq)
+- [Демо на защите: TPU, 7 камер](#демо-на-защите-tpu-7-камер)
+- [Роли и вход](#роли-и-вход)
 - [Локальная проверка перед запуском](#локальная-проверка-перед-запуском)
 - [CPU-диагностика](#cpu-диагностика)
 - [Режимы local, edge и gateway](#режимы-local-edge-и-gateway)
@@ -115,7 +119,7 @@ GUARD_VPN_MODE=external scripts/run_tpu.sh
 
 Активная приёмка должна показать выбранный `linq-tpu`, отключённый CPU fallback, новые успешные вызовы каждой требуемой модели в наблюдаемом интервале, свежие обработанные кадры и итоговое событие/телеметрию на gateway. `stand.py health` показывает процесс и passive queue state с `inference_verified=false`; накопленные сообщения и старые счётчики не заменяют такую проверку.
 
-### Демо на защите: TPU, 4 камеры
+### Демо на защите: TPU, 7 камер
 
 Edge на стенде уже работает (`python tools/stand.py status`). Пробросы RabbitMQ и Jupyter даёт VPN-контейнер (`infra/vpn/vpnctl.sh status`). Шлюз и UI запускаются на ноутбуке, адрес — http://127.0.0.1:8000:
 
@@ -124,11 +128,27 @@ GUARD_PREVIEW_STALE_AFTER_S=30 GUARD_VPN_MODE=external scripts/run_tpu.sh
 ```
 
 - Вход включён. Демо-учётки: `admin/admin`, `safety/safety`, `operator/operator`, `worker/worker` (роли — [ROLES](docs/ROLES.md)).
-- За 15–20 минут до показа выполнить `scripts/reset_demo_journal.sh`. Скрипт останавливает шлюз, переносит журнал в `data/archive/guard-<дата-время>.db`, засевает демо-сотрудников и снова запускает шлюз той же командой. Зацикленные ролики за ночь набирают тысячи событий, и счётчики «Мониторинга» перестают быть правдоподобными.
-- Камеры (`configs/cameras.stand.yaml`): 4 основные сцены (4 к/с), ещё 2 ролика с другими нарушениями (телефон, курение и огонь; 2–3 к/с) и живая трансляция YouTube Live с перекрёстка Сибуя (2 к/с; сближение с машинами и бег). Перед показом проверить, что трансляция в эфире: на стенде `~/guard311/bin/python -m yt_dlp --print live_status <ссылка>` должен вывести `is_live`.
-- `GUARD_PREVIEW_STALE_AFTER_S=30`: часы стенда отстают от ноутбука на ~4.7 с, а в канале стенд → ноутбук бывают всплески до 10–15 с. С 30 с превью не гаснет на таких всплесках.
-- 25.10, 10 минут на TPU: превью 4 камер живы 100 % времени; оповещение появляется в UI через ~1.5 с после подтверждения нарушения (~2.7 с от его начала); CPU edge — 1.06 ядра. Подробности и файлы замеров — [EDGE](docs/EDGE.md) §7.1а.
+- За 15–20 минут до показа выполнить `scripts/reset_demo_journal.sh`. Скрипт останавливает шлюз, переносит журнал в `data/archive/guard-<дата-время>.db`, засевает демо-сотрудников и снова запускает шлюз той же командой. Зацикленные ролики за ночь набирают тысячи событий, и счётчики «Мониторинга» перестают быть правдоподобными. Если в браузере открыт UI, шлюз ждёт его соединений; через 15 с скрипт добивает процесс SIGKILL. Если он всё же напишет «шлюз не остановился», добить процесс на :8000 вручную и запустить скрипт снова.
+- Камеры (`configs/cameras.stand.yaml`), 7 штук: 4 основные сцены `cam_s1`–`cam_s4` (вход в зону, каски, падение, техника; 4 к/с), `cam_s6` — телефон (3 к/с), `cam_s7` — курение и огонь (2 к/с), `cam_live1` — живая трансляция YouTube Live с перекрёстка Сибуя (2 к/с; сближение с машинами и бег). Перед показом проверить, что трансляция в эфире: на стенде `~/guard311/bin/python -m yt_dlp --print live_status <ссылка>` должен вывести `is_live`; иначе заменить ссылку или поставить ролик.
+- Превью со стенда — 320 px (`edge.settings.preview_max_width`): ~7 КБ на кадр, 7 камер × 1 к/с — ~50 КиБ/с, остаток канала — событиям со снимком. `GUARD_PREVIEW_STALE_AFTER_S=30`: часы стенда отстают от ноутбука на ~4.7 с, а в канале стенд → ноутбук бывают всплески до 10–15 с. С 30 с превью не гаснет на таких всплесках.
+- 25.10, 4 камеры, 10 минут на TPU: превью живы 100 % времени; оповещение появляется в UI через ~1.5 с после подтверждения нарушения (~2.7 с от его начала); CPU edge — 1.06 ядра. 7 камер, 07:05, 60 с: превью 7/7 живы 100 % времени, CPU edge ~1.36 ядра (с 8 камерами было 1.40 ядра и превью старше 30 с, поэтому восьмая убрана). Подробности и файлы замеров — [EDGE](docs/EDGE.md) §7.1а.
 - Канал стенд → ноутбук — ~115 КиБ/с, и он общий со всем трафиком ноутбука. Во время показа на ноутбуке ничего не качать и не пушить: оповещения начинают опаздывать на десятки секунд.
+
+## Роли и вход
+
+Вход включён по умолчанию: логин и пароль, cookie-сессия `guard_session`. Права проверяет сервер — запрос без права получает 403 с названием права, интерфейс только прячет недоступное. Матрица прав — `guard/auth/roles.py`, подробно — [ROLES](docs/ROLES.md).
+
+| Роль | Кто на производстве | Что делает в системе |
+|---|---|---|
+| Сотрудник (`worker`) | рабочий, бригадир | Аналитика и журнал событий без снимков и видео, справочник сотрудников |
+| Диспетчер смены (`operator`) | мастер, диспетчер | + Мониторинг с видео, разбор событий (подтвердить, ложное, закрыть, заметка), виновники инцидента, Производительность |
+| Инженер по ОТ (`safety`) | специалист по охране труда | + зоны и правила камер, проверка кадров маховика данных, журнал действий |
+| Администратор (`admin`) | ИТ, владелец системы | Всё: подключение и удаление камер, учётные записи, обучение и выкатка моделей |
+
+- Настройки: `GUARD_AUTH` (по умолчанию `1`; `0` — все запросы идут как `admin`), `GUARD_DEMO_LOGIN` (по умолчанию `1`), `GUARD_AUTH_DB` (по умолчанию `<data_dir>/auth.db`).
+- Демо-учётки, пароль равен логину: `admin`, `safety`, `operator`, `worker`. Для реального объекта `GUARD_DEMO_LOGIN=0` и сменить пароли (`python -m guard.auth set-password <логин>`).
+- Чья роль сейчас, видно в шапке: бейдж с цветом и уровнем допуска, по клику — карточка «Что может эта роль». При демо-входе в колонне навигации есть панель «Демо-роль» — смена роли в один клик.
+- Вход, изменения камер, зон, правил, статусов событий и учётных записей пишутся в журнал действий (страница «Журнал действий», `GET /api/audit`).
 
 ## CPU-диагностика
 
@@ -157,7 +177,7 @@ GUARD_MODE=local GUARD_BACKEND=onnx-cpu \
 |---|---|
 | Доступ к стенду | Готовые пробросы Lima/VPN: `GUARD_VPN_MODE=external`; контейнер проекта при необходимости — `infra/vpn/vpnctl.sh up`. Параметры доступа остаются вне git |
 | JupyterHub и перенос кода | `python tools/stand.py sync`; корень удалённого checkout — `~/work/mosprom` |
-| Перенос выбранных роликов | `python tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02` |
+| Перенос выбранных роликов | `python tools/stand.py sync-data --videos s1_01,s2_01,s3_02,s4_02,s6_01,s7_01` |
 | Проверка/запуск процесса | `python tools/stand.py status`, `start`, `logs`, `health`; это не активная TPU-приёмка |
 | Повторный запуск после обновления | `python tools/stand.py restart --config configs/cameras.stand.yaml` |
 | Сборка программ TPU | `python tpu/compile.py --help`, [LINQ_NOTES](docs/LINQ_NOTES.md); программы и manifest хранятся вне git |
@@ -233,7 +253,7 @@ Edge записывает событие и outbox в одной транзак�
 
 При временном отказе записи edge удерживает весь пакет новых/закрытых событий и повторяет тот же event ID до commit. WS, счётчик созданных событий и планирование клипа выполняются после успешной записи/readback. Постоянный отказ явно виден и прерывает успешный shutdown; SQLite/backend сохраняются для повторного stop после восстановления. Crash до первого успешного сохранения при недоступном диске не покрыт durable replay.
 
-Превью и метрики идут отдельным ограниченным каналом: `GUARD_PREVIEW_FPS` по умолчанию 1 (максимум 1), `GUARD_PREVIEW_MAX_WIDTH=480`, `GUARD_PREVIEW_STALE_AFTER_S=10`, `GUARD_TELEMETRY_INTERVAL_S=2`. Наложения рисуются на конкретном полученном JPEG. Каталог авторизует смену producer/run; старые последовательности, проходы источника и просроченные сообщения не возвращают старое превью. При устаревании JPEG API отвечает 503, а статус камеры показывает stale.
+Превью и метрики идут отдельным ограниченным каналом: `GUARD_PREVIEW_FPS` по умолчанию 1 (максимум 1), `GUARD_PREVIEW_MAX_WIDTH=480` (максимум 480), `GUARD_PREVIEW_STALE_AFTER_S=10`, `GUARD_TELEMETRY_INTERVAL_S=2`. Демо на стенде задаёт превью 320 px в `edge.settings` и `GUARD_PREVIEW_STALE_AFTER_S=30` на шлюзе (см. «Демо на защите»). Наложения рисуются на конкретном полученном JPEG. Каталог авторизует смену producer/run; старые последовательности, проходы источника и просроченные сообщения не возвращают старое превью. При устаревании JPEG API отвечает 503, а статус камеры показывает stale.
 
 Локальная проверка без RabbitMQ, камер и моделей:
 
@@ -324,16 +344,18 @@ class CrowdingRule(RulePlugin):
 
 | Экран | Для кого | Скриншот |
 |---|---|---|
-| Мониторинг: камеры с оверлеями, лента тревог (критичные сверху, со звуком), хроника смены | диспетчер, мастер | `deliverables/screens/real-01-monitoring.jpg` |
-| Карточка события: кадр с рамкой, клип ±5 с, задержка по этапам, решение оператора клавишами 1/2/3 | диспетчер | `deliverables/screens/real-02-event-card.jpg`, `02b-event-clip.jpg` |
-| Журнал: фильтры по периоду, типу, камере, зоне, статусу и важности, экспорт CSV | служба ОТ, юристы | `deliverables/screens/real-03-journal.jpg` |
-| Аналитика: по типам, участкам, камерам, «день недели × час», доля ложных по правилам | менеджмент | `deliverables/screens/real-04-analytics.jpg` |
-| Камеры и правила: полигон зоны рисуется мышью на стоп-кадре, расписание, формы правил | специалист ОТ | `deliverables/screens/real-05-cameras-zones.jpg`, `05b-zone-drawing.jpg`, `06-cameras-rules.jpg` |
-| Производительность: FPS по камерам, задержка по этапам p50/p95, модели на ускорителе | ИТ-служба | `deliverables/screens/real-07-performance.jpg` |
-| Данные (маховик): цикл из шести шагов, очередь проверки сэмплов с рамками (клавиши 1/2, ←/→), датасеты, модели с решением гейта | инженер данных | `data/media/checks/flywheel_ui_*.png` (мок) |
+| Мониторинг: камеры с оверлеями, лента тревог (критичные сверху, со звуком), хроника смены | диспетчер, мастер | `deliverables/presentation-v2/screens/monitoring.jpg` |
+| Карточка события: кадр с рамкой, задержка по этапам, виновники инцидента, решение оператора клавишами 1/2/3; клип ±5 с — в режиме local | диспетчер | `deliverables/presentation-v2/screens/event.jpg` |
+| Журнал: фильтры по периоду, типу, камере, зоне, статусу и важности, экспорт CSV | служба ОТ, юристы | `deliverables/presentation-v2/screens/journal.jpg` |
+| Аналитика: по типам, участкам, камерам, «день недели × час», доля ложных по правилам, статистика по сотруднику | менеджмент, все роли | `deliverables/presentation-v2/screens/analytics.jpg` |
+| Камеры и правила: полигон зоны рисуется мышью на стоп-кадре, расписание, формы правил | инженер по ОТ | `deliverables/presentation-v2/screens/zones.jpg` |
+| Производительность: FPS по камерам, задержка по этапам p50/p95, модели на ускорителе | ИТ-служба, диспетчер | `deliverables/presentation-v2/screens/performance.jpg` |
+| Данные (маховик): цикл из шести шагов, очередь проверки сэмплов с рамками (клавиши 1/2, ←/→), датасеты, модели с решением гейта | инженер по ОТ, администратор | `deliverables/presentation-v2/screens/data.jpg` |
 | Сотрудники: справочник с поиском, виновники инцидента в карточке события, персональная статистика в «Аналитике» ([EMPLOYEES](docs/EMPLOYEES.md)) | все роли; добавляет сотрудников администратор | — |
+| Пользователи: учётные записи, создание, смена роли, сброс пароля, матрица «роли × права» | администратор | — |
+| Журнал действий: кто, когда и что менял; фильтры по периоду, пользователю и действию | инженер по ОТ, администратор | — |
 
-Исторические скриншоты с префиксом `real-` сняты 24.10 около 01:10 с живого бэкенда на ноутбуке (local, CPU). Остальные — из мок-режима.
+Скриншоты в `deliverables/presentation-v2/screens/` сняты 25.10 в 04:38 с работающей системы: edge и инференс на LinQ TPU, шлюз на ноутбуке, вход `admin`, окно 1600×900. Тогда на стенде было 4 камеры. Исторические скриншоты локального CPU-бэкенда от 24.10 — `deliverables/screens/real-*.jpg`.
 
 ## Структура репозитория
 
@@ -352,19 +374,24 @@ guard/                бэкенд (Python 3.11, FastAPI)
   transport/          versioned wire v1, store и AMQP
   reports/            сводка по смене
   flywheel/           маховик данных: сбор сэмплов, хранилище, задачи
+  auth/               вход, сессии, роли и права, журнал действий
   employees.py        справочник сотрудников и персональная статистика
+  edge_probe.py       наблюдение за очередями edge без потребления (--tap)
   doctor.py           офлайн-проверка конфигурации
   api/                HTTP API и WebSocket
 frontend/             веб-интерфейс (React 18, TypeScript, Vite), мок-режим для резервного демо
 tpu/                  компиляция ONNX → .tpu, калибровка, замеры, сверка TPU с CPU, установка на стенд
 ml/                   экспорт в ONNX, оценка по событиям (ml/eval/), дообучение (ml/flywheel/, ml/datasets/), карточки (ml/model_cards/)
 configs/              cameras.yaml (камеры, зоны, правила), models.yaml (реестр моделей)
-tools/                jhub.py (JupyterHub API), fetch_data.py (демо-данные), heavy.sh и memguard.sh (защита от OOM)
+tools/                stand.py (edge на стенде: sync, start, restart, logs), jhub.py (JupyterHub API),
+                      fetch_data.py (демо-данные), stand_clock.py (сдвиг часов стенда), contact_sheet.py
+                      (раскадровка роликов), heavy.sh и memguard.sh (защита от OOM)
 infra/vpn/            OpenVPN в контейнере Podman для доступа к стенду
-scripts/run_dev.sh    запуск сервиса
+scripts/              run_dev.sh (локальный запуск), run_tpu.sh (шлюз и UI для edge на TPU),
+                      reset_demo_journal.sh (чистый журнал перед показом)
 tests/                unit- и интеграционные проверки pytest
 docs/                 документация (см. ниже)
-deliverables/         материалы для экспертов: скриншоты и презентация (deliverables/presentation/)
+deliverables/         материалы для экспертов: финальная презентация deliverables/presentation-v2/, скриншоты
 ```
 
 `data/`, `models/`, `vendor/` и `.env` в git не входят.
@@ -376,7 +403,7 @@ deliverables/         материалы для экспертов: скринш
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | схема, режимы запуска, почему edge, модули, точки расширения |
 | [docs/CONTRACTS.md](docs/CONTRACTS.md) | контракты модулей, HTTP API, WebSocket |
 | [docs/EDGE_PROTOCOL.md](docs/EDGE_PROTOCOL.md) | durable wire v1, outbox/receipt и bounded telemetry.v2 |
-| [docs/EDGE.md](docs/EDGE.md) | edge на стенде LinQ: запуск, 4 камеры на TPU, сквозная задержка, стабильность (замеры на прежнем транспорте) |
+| [docs/EDGE.md](docs/EDGE.md) | edge на стенде LinQ: запуск, камеры на TPU, сквозная задержка, стабильность; итоговые замеры канала стенд → ноутбук и демо 25.10 — §7.1а |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | замеры TPU и CPU, точность, канал, расчёт «камер на TPU» |
 | [docs/LINQ_NOTES.md](docs/LINQ_NOTES.md) | конспект SDK и облачного протокола LinQ, компиляция, raw, грабли |
 | [docs/TPU_PREFLIGHT.md](docs/TPU_PREFLIGHT.md) | проверка ONNX для TPU без SDK: разрез на голову и хвост (`python -m tpu.preflight`) |
@@ -396,19 +423,20 @@ deliverables/         материалы для экспертов: скринш
 | [docs/RULE_OBSERVATIONS.md](docs/RULE_OBSERVATIONS.md), [docs/RULE_CONFIG_VALIDATION.md](docs/RULE_CONFIG_VALIDATION.md), [docs/RULE_ZONE_METADATA.md](docs/RULE_ZONE_METADATA.md), [docs/RULE_CONFIG_UI.md](docs/RULE_CONFIG_UI.md) | статус наблюдения моделей, проверка конфигурации правил, `zone_schema`, редактор правил |
 | [docs/CPU_MULTICAMERA.md](docs/CPU_MULTICAMERA.md), [docs/RABBIT_ACCEPTANCE.md](docs/RABBIT_ACCEPTANCE.md) | границы CPU и AMQP-приёмок |
 | [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md), [docs/MAIN_INTEGRATION_20261024.md](docs/MAIN_INTEGRATION_20261024.md) | план развития и результаты интеграции 24.10 |
-| [docs/ROLES.md](docs/ROLES.md), [docs/EMPLOYEES.md](docs/EMPLOYEES.md) | роли и права: сотрудник, диспетчер смены, инженер по ОТ, администратор (в интерфейсе — локальный выбор роли, вход и `guard/auth` — план); справочник сотрудников и персональная статистика |
+| [docs/ROLES.md](docs/ROLES.md), [docs/EMPLOYEES.md](docs/EMPLOYEES.md) | роли и права: сотрудник, диспетчер смены, инженер по ОТ, администратор; вход, сессии, журнал действий, проверка безопасности; справочник сотрудников и персональная статистика |
 | [docs/ANALYTICS.md](docs/ANALYTICS.md) | целевая аудитория, проблемы UX, конкуренты и аналоги |
 | [docs/PITCH.md](docs/PITCH.md) | структура защиты и экономика внедрения |
 | [docs/REQUIREMENTS_MATRIX.md](docs/REQUIREMENTS_MATRIX.md), [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md) | матрица требований R1–R7, D1–D5 и сценарий показа на защите (снимок 24.10 17:55) |
 | [docs/EXPERT_CALL.md](docs/EXPERT_CALL.md) | решение, данные и результаты — к созвону с экспертами |
 | [docs/CHECKPOINT_2.md](docs/CHECKPOINT_2.md) | материал к чек-поинту 2 (24.10 11:00) |
 | [docs/CHECKPOINT_3.md](docs/CHECKPOINT_3.md) | материал к чек-поинту 3 (24.10 18:00) |
+| [deliverables/presentation-v2/README.md](deliverables/presentation-v2/README.md) | финальная презентация к защите: сборка PPTX и PDF, пересъёмка скриншотов |
 | [frontend/README.md](frontend/README.md) | экраны, режимы сборки, мок-режим |
 
 ## Модели и лицензии
 
 - YOLOv8n и YOLOv8n-pose (COCO), Ultralytics, AGPL-3.0 — основа det и pose на TPU.
 - PPE-кандидат: [constructelligence/construction-site-safety-hazards](https://huggingface.co/constructelligence/construction-site-safety-hazards); provenance, карты классов, экспериментальный статус и ограничения — в [MODELS](docs/MODELS.md) и [PPE_EVALUATION](docs/PPE_EVALUATION.md).
-- Источник модели огня/дыма: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n); наличие её записи в реестре не подтверждает активную работу текущей TPU-программы. Сверка программы `fire_640s1` с CPU — [LINQ_NOTES](docs/LINQ_NOTES.md) §17; в конфигурации стенда камеры с правилом огня нет.
+- Источник модели огня/дыма: [rabahdev/fire-smoke-yolov8n](https://huggingface.co/rabahdev/fire-smoke-yolov8n); наличие её записи в реестре не подтверждает активную работу текущей TPU-программы. Сверка программы `fire_640s1` с CPU — [LINQ_NOTES](docs/LINQ_NOTES.md) §17; на стенде правило `smoking_fire` включено на камере `cam_s7`.
 - Погрузчик: `forklift-v1` — YOLOv8n COCO, дообученная на открытых наборах `forklift-ds-v1`; источники наборов — [DATASETS](docs/DATASETS.md), метрики — `ml/model_cards/forklift-v1.json`. Модель есть в реестре, на камерах и на стенде не включена.
 - Источники и лицензии демо-видео — в `tools/data_manifest.json` и `data/labels/*.json` (поле `sources`).
